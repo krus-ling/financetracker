@@ -8,13 +8,19 @@
 
 ---
 
-<!-- Badges -->
-![Android](https://img.shields.io/badge/Android-API%2029%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
+<!-- Платформа и UI -->
+![Android](https://img.shields.io/badge/Android-API%2029–37-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)
-![Material 3](https://img.shields.io/badge/Material%203-7986CB?style=for-the-badge&logo=materialdesign&logoColor=white)
-![Room](https://img.shields.io/badge/Room%20DB-Offline--First-00599C?style=for-the-badge&logo=sqlite&logoColor=white)
-![Koin](https://img.shields.io/badge/DI-Koin-F88C00?style=for-the-badge)
+![Material 3](https://img.shields.io/badge/Material%20Design%203-757575?style=for-the-badge&logo=materialdesign&logoColor=white)
+![Gradle](https://img.shields.io/badge/Gradle-9.2-02303A?style=for-the-badge&logo=gradle&logoColor=white)
+
+<!-- Архитектура и Данные -->
+![Clean Architecture](https://img.shields.io/badge/Architecture-Clean%20%2B%20MVVM-0EA5E9?style=for-the-badge)
+![Room DB](https://img.shields.io/badge/Room%20DB-2.8%20(SQLite)-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![Koin](https://img.shields.io/badge/DI-Koin%204.2-F59E0B?style=for-the-badge)
+![Coroutines](https://img.shields.io/badge/Async-Coroutines%20%26%20Flow-6366F1?style=for-the-badge&logo=kotlin&logoColor=white)
+![Network](https://img.shields.io/badge/Network-Retrofit%203%20%2B%20OkHttp%205-10B981?style=for-the-badge)
 
 </div>
 
@@ -22,28 +28,43 @@
 
 ## 🚀 Ключевые возможности
 
-* **100% Offline-First:** мгновенный отклик, локальное хранение всех счетов, категорий и транзакций в базе данных устройства.
-* **Финансовый учёт:** фиксация расходов, доходов и внутренних переводов между счетами с автопересчётом балансов.
-* **Умные лимиты и категории:** отслеживание прогресса бюджета по категориям трат с цветовой индикацией превышений.
-* **Аналитика:** наглядные графики и диаграммы структуры расходов по временным периодам.
-* **Масштабируемость:** заложена архитектурная база для авторизации и облачной синхронизации между устройствами.
+* **100% Offline-First:** мгновенный отклик интерфейса, локальное хранение всех счетов, категорий и транзакций в базе данных устройства без обязательного интернета.
+* **Финансовый учёт:** фиксация расходов, доходов и внутренних переводов между счетами с автоматическим пересчётом балансов.
+* **Умные лимиты и категории:** отслеживание прогресса месячного бюджета по категориям трат с цветовой индикацией рисков и превышений.
+* **Интерактивная аналитика:** круговые и столбчатые диаграммы структуры доходов, расходов и динамики баланса за выбранный период.
+* **Локальный экспорт и облако:** выгрузка истории операций в форматы `CSV` / `JSON` и бесшовная миграция гостевого профиля в облачный аккаунт.
 
 ---
 
 ## 🛠 Стек технологий
 
-| Направление | Стек / Библиотеки |
+| Направление | Стек и библиотеки |
 | :--- | :--- |
-| **Язык и среда** | Kotlin, Java 17 |
-| **UI-фреймворк** | Jetpack Compose, Material Design 3, Compose Material Icons Extended |
-| **Архитектура** | Clean Architecture (Domain / Data / UI / DI), MVVM / MVI |
-| **Навигация** | AndroidX Navigation 3 |
-| **Внедрение зависимостей** | Koin (`koin-android`, `koin-androidx-compose`) |
-| **Локальная база данных** | Room DB (Runtime, Coroutines KTX, KSP Code Generation) |
-| **Сетевой слой & Синхронизация** | Retrofit 3, OkHttp 5, HttpLoggingInterceptor |
-| **Сериализация данных** | Kotlinx Serialization (Core, JSON) |
-| **Асинхронность** | Kotlin Coroutines, StateFlow, SharedFlow, Flow |
-| **Работа с изображениями** | Coil 3 (`coil-compose`, `coil-network-okhttp`) |
+| **Платформа и язык** | Android (`minSdk 29`, `targetSdk 37`, `compileSdk 37`), Kotlin 2.4, Java 17 |
+| **UI-фреймворк** | Jetpack Compose, Material Design 3, Material Icons Extended |
+| **Архитектура** | Clean Architecture (`domain` / `data` / `ui` / `di`), MVVM / MVI, Single Activity |
+| **Навигация** | AndroidX Navigation 3 (`runtime`, `ui`, `viewmodel`, `material3-adaptive`) |
+| **Внедрение зависимостей** | Koin 4.2 (`koin-bom`, `koin-android`, `koin-androidx-compose`) |
+| **Локальное хранилище** | Room 2.8 (`room-runtime`, `room-ktx`, кодогенерация через KSP) |
+| **Сетевой слой** | Retrofit 3.0, OkHttp 5.5, HttpLoggingInterceptor |
+| **Сериализация** | Kotlinx Serialization 1.11 (`json`, `converter-kotlinx-serialization`) |
+| **Асинхронность** | Kotlin Coroutines, `StateFlow`, `SharedFlow`, `Flow` |
+| **Загрузка изображений** | Coil 3.6 (`coil-compose`, `coil-network-okhttp`) |
+| **Система сборки** | Gradle Version Catalog (`libs.versions.toml`), AGP 9.2, KSP 2.3 |
+
+---
+
+## 🗺 Карта разработки (Roadmap)
+
+| Итерация | Фокус этапа | Статус | Отчёт |
+| :---: | :--- | :---: | :---: |
+| **1** | **Аналитика и проектирование:** ТЗ, ролевые модели, сущности, схема переходов, USM, прототип | ![Done](https://img.shields.io/badge/Выполнено-22C55E?style=flat-square) | [iteration-1](./iterations/iteration-1/README.md) |
+| **2** | **Архитектурный каркас:** конфигурация сборки, стек зависимостей, пакеты Clean Architecture, Domain-модели | ![Done](https://img.shields.io/badge/Выполнено-22C55E?style=flat-square) | [iteration-2](./iterations/iteration-2/README.md) |
+| **3** | **Слой данных и навигация:** Room DB, DAO, предзаполнение БД, мапперы, Koin DI, граф Navigation 3 | ![Next](https://img.shields.io/badge/Следующий%20этап-3B82F6?style=flat-square) | `iteration-3` |
+| **4** | **Дашборд, счета и бюджеты:** главный экран, карусель счетов, управление категориями и лимитами | ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square) | `iteration-4` |
+| **5** | **Финансовые операции:** создание/редактирование доходов, расходов и переводов, лента истории, свайп-удаление | ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square) | `iteration-5` |
+| **6** | **Аналитика и сервисы Гостя:** интерактивные диаграммы, прогресс-бары лимитов, профиль, экспорт CSV/JSON | ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square) | `iteration-6` |
+| **7** | **Облачная синхронизация:** регистрация и вход, миграция данных Гостя (`AuthMerge`), фоновая синхронизация | ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square) | `iteration-7` |
 
 ---
 
@@ -164,4 +185,7 @@ feat(core): настроить архитектурный каркас прое�
 1. Клонируйте репозиторий:
    ```bash
    git clone https://github.com/krus-ling/financetracker.git
-   
+
+2. Откройте проект в Android Studio.
+3. Дождитесь завершения синхронизации Gradle (требуется JDK 17+).
+4. Запустите конфигурацию app на эмуляторе или физическом устройстве с Android 10 (API 29) или выше.
