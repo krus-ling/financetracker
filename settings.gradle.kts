@@ -24,4 +24,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "financetracker"
 include(":app")
- 
+include(":core:model")
+include(":feature:home")
+include(":core:uikit")
