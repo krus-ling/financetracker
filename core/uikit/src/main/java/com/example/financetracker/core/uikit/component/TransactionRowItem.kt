@@ -16,10 +16,11 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.financetracker.core.uikit.theme.Category4
 import com.example.financetracker.core.uikit.theme.InkPrimary
 import com.example.financetracker.core.uikit.theme.InkTertiary
-import com.example.financetracker.core.uikit.theme.OnPrimary
+import com.example.financetracker.core.uikit.theme.Primary
+import androidx.compose.ui.text.font.FontWeight
+import com.example.financetracker.core.uikit.theme.PrimaryTint
 
 /**
  * Интерактивный элемент строки операции в ленте.
@@ -36,19 +37,21 @@ fun TransactionRowItem(
     onClick: () -> Unit, //функцию обратного вызова при клике
     modifier: Modifier = Modifier
 ) {
+
     Row( //выстаивает все компоненты по горизонтали
         modifier = modifier
             .fillMaxWidth() //растягивает строку на всю ширину экрана
             .clickable(onClick = onClick) // Клик с ripple-эффектом
             .padding(horizontal = 16.dp, vertical = 12.dp), //Внутренние отступы
-        verticalAlignment = Alignment.CenterVertically //выравнивает все внутренние блоки по вертикальной середине
+        verticalAlignment = Alignment.CenterVertically, //выравнивает все внутренние блоки по вертикальной середине
+        horizontalArrangement = Arrangement.SpaceBetween //разнести левую часть и правую колонку по краям
     ) {
         // Слева: иконка категории
         //используем созданный ранее CategoryIcon
         CategoryIcon(
             icon = categoryIcon,
-            backgroundColor = Category4,
-            iconTint = OnPrimary,
+            backgroundColor = PrimaryTint,
+            iconTint = Primary,
             size = 44.dp
         )
 
@@ -58,12 +61,13 @@ fun TransactionRowItem(
             modifier = Modifier
                 .weight(1f) //занять всё свободное пространство между левой и правой колонкой
                 .padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.Center 
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
                 text = categoryName, //название категории
                 style = TextStyle(
                     fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
                     color = InkPrimary
                 )
             )
@@ -79,13 +83,14 @@ fun TransactionRowItem(
         // Справа: колонка с суммой и временем
         Column(
             horizontalAlignment = Alignment.End, //выравнивание по горизонтали вправо
-            verticalArrangement = Arrangement.Center //распределение по вертикали по центру
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             AmountText(
                 amount = amount,
                 type = transactionType,
                 style = TextStyle(
-                    fontSize = 15.sp
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
                 )
             )
             Text(
