@@ -22,9 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
-import com.example.financetracker.core.uikit.theme.InkPrimary
-import com.example.financetracker.core.uikit.theme.InkSecondary
 import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
 import java.text.DecimalFormat
@@ -36,7 +35,7 @@ import java.util.Locale
  */
 @Composable
 fun AccountCardItem(
-    accountName: String, // Текстовое название счёта
+    title: String, // Текстовое название счёта
     balance: Double, // Числовое значение баланса
     accountIcon: ImageVector, // Иконка, которая будет отображаться в левом верхнем углу карточки
     modifier: Modifier = Modifier,
@@ -79,7 +78,7 @@ fun AccountCardItem(
                 verticalArrangement = Arrangement.spacedBy(2.dp) // отступ между названием и цифрами
             ) {
                 Text(
-                    text = accountName,
+                    text = title,
                     style = TextStyle(
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -106,7 +105,7 @@ fun AccountCardItem(
 fun AccountCardItemLightPreview() {
     FinancetrackerTheme(darkTheme = false) {
         AccountCardItem(
-            accountName = "Основная карта",
+            title = "Основная карта",
             balance = 86780.0,
             accountIcon = Icons.Default.CreditCard,
             onClick = {}
@@ -119,7 +118,7 @@ fun AccountCardItemLightPreview() {
 fun AccountCardItemDarkPreview() {
     FinancetrackerTheme(darkTheme = true) {
         AccountCardItem(
-            accountName = "Основная карта",
+            title = "Основная карта",
             balance = 86780.0,
             accountIcon = Icons.Default.CreditCard,
             onClick = {}

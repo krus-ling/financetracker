@@ -5,7 +5,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsBus
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,6 +22,38 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.uikit.theme.Category4
 import com.example.financetracker.core.uikit.theme.OnPrimary
+
+/**
+ * Преобразует строковый идентификатор иконки в векторный [ImageVector].
+ */
+fun getCategoryIcon(iconRes: String?): ImageVector = when (iconRes) {
+    "shopping_cart" -> Icons.Default.ShoppingCart
+    "restaurant" -> Icons.Default.Restaurant
+    "directions_bus" -> Icons.Default.DirectionsBus
+    "work" -> Icons.Default.Work
+    "swap_horiz" -> Icons.Default.SwapHoriz
+    else -> Icons.Default.ShoppingCart
+}
+
+/**
+ * Перегрузка [CategoryIcon], принимающая строковый ключ иконки.
+ */
+@Composable
+fun CategoryIcon(
+    iconRes: String?,
+    backgroundColor: Color,
+    iconTint: Color,
+    modifier: Modifier = Modifier,
+    size: Dp = 44.dp
+) {
+    CategoryIcon(
+        icon = getCategoryIcon(iconRes),
+        backgroundColor = backgroundColor,
+        iconTint = iconTint,
+        modifier = modifier,
+        size = size
+    )
+}
 
 /**
  * Круглая плашка с иконкой категории для отображения в списках операций и на аналитике.

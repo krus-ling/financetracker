@@ -14,16 +14,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.financetracker.core.uikit.theme.InkPrimary
-import com.example.financetracker.core.uikit.theme.InkTertiary
-import com.example.financetracker.core.uikit.theme.Primary
-import androidx.compose.ui.text.font.FontWeight
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
+import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
 
 /**
@@ -35,13 +35,13 @@ fun TransactionRowItem(
     categoryName: String, // текст названия
     categoryDetails: String, // второстепенный текст
     amount: Double, // сумма
-    transactionType: TransactionType, // тип транзакции
+    type: TransactionType, // тип транзакции
     time: String, // время
-    categoryIcon: androidx.compose.ui.graphics.vector.ImageVector, // иконка
+    categoryIcon: ImageVector, // иконка
     onClick: () -> Unit, // функцию обратного вызова при клике
     modifier: Modifier = Modifier,
     iconBackgroundColor: Color = PrimaryTint,
-    iconTint: Color = Primary
+    iconTint: Color = Primary,
 ) {
 
     Row( // выстаивает все компоненты по горизонтали
@@ -82,7 +82,9 @@ fun TransactionRowItem(
                 style = TextStyle(
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
 
@@ -93,7 +95,7 @@ fun TransactionRowItem(
         ) {
             AmountText(
                 amount = amount,
-                type = transactionType,
+                type = type,
                 style = TextStyle(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
@@ -118,10 +120,10 @@ fun TransactionRowItemLightPreview() {
             categoryName = "Продукты",
             categoryDetails = "Лента · Основная карта",
             amount = -2070.00,
-            transactionType = TransactionType.EXPENSE,
+            type = TransactionType.EXPENSE,
             time = "11:20",
             categoryIcon = Icons.Default.ShoppingCart,
-            onClick = {}
+            onClick = {},
         )
     }
 }
@@ -134,10 +136,26 @@ fun TransactionRowItemDarkPreview() {
             categoryName = "Продукты",
             categoryDetails = "Лента · Основная карта",
             amount = -2070.00,
-            transactionType = TransactionType.EXPENSE,
+            type = TransactionType.INCOME,
             time = "11:20",
             categoryIcon = Icons.Default.ShoppingCart,
-            onClick = {}
+            onClick = {},
+        )
+    }
+}
+
+@Preview(name = "Transaction Row Dark", showBackground = true, backgroundColor = 0xFF121816)
+@Composable
+fun TransactionRowItemDark2Preview() {
+    FinancetrackerTheme(darkTheme = true) {
+        TransactionRowItem(
+            categoryName = "Продукты",
+            categoryDetails = "Лента · Основная карта",
+            amount = -2070.00,
+            type = TransactionType.TRANSFER,
+            time = "11:20",
+            categoryIcon = Icons.Default.ShoppingCart,
+            onClick = {},
         )
     }
 }
