@@ -30,9 +30,7 @@ import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
-import com.example.financetracker.core.uikit.component.AccountCardItem
 import com.example.financetracker.core.uikit.component.AmountText
-import com.example.financetracker.core.uikit.component.TransactionRowItem
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.components.HomeAccountCard
 import com.example.financetracker.feature.home.components.HomeTransactionRow
@@ -101,7 +99,7 @@ fun HomeScreenContent(
                         Spacer(modifier = Modifier.height(4.dp))
                         AmountText(
                             amount = uiState.totalBalance,
-                            type = TransactionType.INCOME,
+                            type = null,
                             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
                         )
                     }

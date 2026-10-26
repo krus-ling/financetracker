@@ -7,13 +7,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.IncomeGreen
-import com.example.financetracker.core.uikit.theme.TextPrimary
 import com.example.financetracker.core.uikit.theme.TransferBlue
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
@@ -22,15 +22,16 @@ import java.util.Locale
 /**
  * Универсальный компонент для отображения отформатированной денежной суммы.
  *
- * @ инвариант форматирования: разделение тысяч пробелом, копейки через запятую, валюта «₽».
+ * @param type Тип операции. Если равен null, сумма отображается без префиксов (`+`/`−`) с цветом текста по умолчанию.
  */
 @Composable
 fun AmountText(
     amount: Double,
-    type: TransactionType,
+    type: TransactionType?,
     modifier: Modifier = Modifier,
     style: TextStyle = TextStyle.Default,
-    currencySymbol: String = "₽"
+    currencySymbol: String = "₽",
+    color: Color = Color.Unspecified
 ) {
     // Настраиваем российскую локаль для формата денег (пробел как разделитель тысяч, запятая для копеек)
     val symbols = DecimalFormatSymbols(Locale.forLanguageTag("ru-RU")).apply {
@@ -40,20 +41,33 @@ fun AmountText(
     val formatter = DecimalFormat("#,##0.00", symbols)
     val formattedNumber = formatter.format(kotlin.math.abs(amount))
 
-    // Определяем префикс и цвет в соответствии с правилами ТЗ
     val prefix: String
-    val color = when (type) {
-        TransactionType.INCOME -> {
-            prefix = "+ "
-            IncomeGreen // Используем цвет доходов из Color.kt
+    val textColor = if (color != Color.Unspecified) {
+        prefix = when (type) {
+            TransactionType.INCOME -> "+ "
+            TransactionType.EXPENSE -> "− "
+            TransactionType.TRANSFER -> ""
+            null -> ""
         }
-        TransactionType.EXPENSE -> {
-            prefix = "− "
-            MaterialTheme.colorScheme.onSurface // Знак "−" и цвет основного текста TextPrimary по ТЗ
-        }
-        TransactionType.TRANSFER -> {
-            prefix = ""
-            TransferBlue // Используем цвет переводов из Color.kt
+        color
+    } else {
+        when (type) {
+            TransactionType.INCOME -> {
+                prefix = "+ "
+                IncomeGreen
+            }
+            TransactionType.EXPENSE -> {
+                prefix = "− "
+                MaterialTheme.colorScheme.onSurface
+            }
+            TransactionType.TRANSFER -> {
+                prefix = ""
+                TransferBlue
+            }
+            null -> {
+                prefix = ""
+                MaterialTheme.colorScheme.onSurface
+            }
         }
     }
 
@@ -63,7 +77,7 @@ fun AmountText(
         text = displayText,
         modifier = modifier,
         style = style,
-        color = color
+        color = textColor
     )
 }
 
@@ -86,6 +100,10 @@ fun AmountTextPreview() {
             AmountText(
                 amount = 5000.0,
                 type = TransactionType.TRANSFER
+            )
+            AmountText(
+                amount = 45200.0,
+                type = null
             )
         }
     }
@@ -110,6 +128,10 @@ fun AmountTextDarkPreview() {
             AmountText(
                 amount = 5000.0,
                 type = TransactionType.TRANSFER
+            )
+            AmountText(
+                amount = 45200.0,
+                type = null
             )
         }
     }
