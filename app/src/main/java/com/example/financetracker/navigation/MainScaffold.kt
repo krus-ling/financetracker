@@ -15,7 +15,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.financetracker.component.QuickAddTransactionSheet
+import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.HomeScreen
 import com.example.financetracker.placeholder.AnalyticsPlaceholderScreen
 import com.example.financetracker.placeholder.ProfilePlaceholderScreen
@@ -28,7 +30,11 @@ fun MainScaffold() {
         bottomBar = { BottomNavBar(currentTab, onTabSelected = { currentTab = it }) },
         floatingActionButtonPosition = FabPosition.Center,
         floatingActionButton = {
-            FloatingActionButton(onClick = { showQuickAdd = true }, containerColor = Color(0xFF0F5C4A), contentColor = Color.White) {
+            FloatingActionButton(
+                onClick = { showQuickAdd = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.White
+            ) {
                 Icon(Icons.Filled.Add, contentDescription = "Добавить операцию")
             }
         },
@@ -45,5 +51,21 @@ fun MainScaffold() {
             onDismiss = { showQuickAdd = false },
             onAddClick = { _, _ -> /* Подключение к хранилищу будет добавлено вместе с логикой операций. */ }
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MainScaffoldLightPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        MainScaffold()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MainScaffoldDarkPreview() {
+    FinancetrackerTheme(darkTheme = true) {
+        MainScaffold()
     }
 }
