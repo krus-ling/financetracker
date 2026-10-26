@@ -80,6 +80,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":feature:home"))
     implementation(project(":core:uikit"))
+    implementation(project(":core:database"))
 
     // Testing
     testImplementation(libs.junit)
