@@ -68,7 +68,7 @@ class HomeViewModel(
 
     fun addTransaction(
         amount: Double,
-        categoryId: String,
+        categoryId: String?,
         type: TransactionType,
         note: String
     ) {
@@ -79,7 +79,7 @@ class HomeViewModel(
             val transaction = Transaction(
                 id = "0",
                 amount = amount,
-                categoryId = categoryId,
+                categoryId = categoryId ?: "",
                 accountId = primaryAccountId,
                 type = type,
                 dateTime = System.currentTimeMillis(),

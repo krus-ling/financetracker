@@ -56,7 +56,7 @@ import com.example.financetracker.core.uikit.theme.PrimaryTint
 fun QuickAddTransactionSheet(
     categories: List<Category>,
     onDismiss: () -> Unit,
-    onAddClick: (amount: Double, categoryId: String, type: TransactionType, note: String) -> Unit
+    onAddClick: (amount: Double, categoryId: String?, type: TransactionType, note: String) -> Unit
 ) {
     // Принудительно пропускаем промежуточное состояние
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -81,19 +81,24 @@ fun QuickAddTransactionSheet(
 
     val actualCategories = if (categories.isNotEmpty()) categories else fallbackCategories
 
-    // Фильтруем категории под выбранный тип операции (расход/доход)
+    // Переводы теперь доступны и для расхода, и для дохода
     val filteredCategories = actualCategories.filter { category ->
+        val isTransfer = category.iconRes == "swap_horiz" || category.name.contains("перевод", ignoreCase = true)
         when (selectedType) {
-            TransactionType.EXPENSE -> category.type == CategoryType.EXPENSE
-            TransactionType.INCOME -> category.type == CategoryType.INCOME
+            TransactionType.EXPENSE -> category.type == CategoryType.EXPENSE || isTransfer
+            TransactionType.INCOME -> category.type == CategoryType.INCOME || isTransfer
             TransactionType.TRANSFER -> true
         }
     }
 
-    // Автовыбор первой доступной категории при переключении типа
-    LaunchedEffect(selectedType, filteredCategories) {
-        if (filteredCategories.none { it.id == selectedCategoryId }) {
-            selectedCategoryId = filteredCategories.firstOrNull()?.id
+    // Для дохода по умолчанию ничего не выбрано; для расхода выбирается первая категория
+    LaunchedEffect(selectedType) {
+        if (selectedType == TransactionType.INCOME) {
+            selectedCategoryId = null
+        } else {
+            if (filteredCategories.none { it.id == selectedCategoryId }) {
+                selectedCategoryId = filteredCategories.firstOrNull()?.id
+            }
         }
     }
 
@@ -119,7 +124,7 @@ fun QuickAddTransactionSheet(
                 fontWeight = FontWeight.Bold
             )
 
-            // 1. Переключатель типа операции
+            // Переключатель типа операции
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -144,7 +149,7 @@ fun QuickAddTransactionSheet(
                 }
             }
 
-            // 2. Ввод суммы
+            // Ввод суммы
             OutlinedTextField(
                 value = amountText,
                 onValueChange = { amountText = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
@@ -157,7 +162,7 @@ fun QuickAddTransactionSheet(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // 3. Выбор категории иконками
+            // Выбор категории иконками
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "Категория",
@@ -177,7 +182,14 @@ fun QuickAddTransactionSheet(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable { selectedCategoryId = category.id }
+                                .clickable {
+                                    // Повторный клик по категории дохода снимает выбор
+                                    selectedCategoryId = if (isSelected && selectedType == TransactionType.INCOME) {
+                                        null
+                                    } else {
+                                        category.id
+                                    }
+                                }
                                 .padding(4.dp)
                         ) {
                             Box(
@@ -210,7 +222,7 @@ fun QuickAddTransactionSheet(
                 }
             }
 
-            // 4. Поле описания / заметки
+            // Поле описания / заметки
             OutlinedTextField(
                 value = note,
                 onValueChange = { note = it },
@@ -220,15 +232,21 @@ fun QuickAddTransactionSheet(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // 5. Кнопки сохранения и отмены
+            // Кнопки сохранения и отмены
             Button(
                 onClick = {
                     submitted = true
                     val validAmount = amount != null && amount.isFinite() && amount > 0.0
-                    val chosenCategory = selectedCategoryId ?: filteredCategories.firstOrNull()?.id
+                    // Для дохода не подставляем дефолт, если категория не выбрана
+                    val chosenCategory = if (selectedType == TransactionType.INCOME) {
+                        selectedCategoryId
+                    } else {
+                        selectedCategoryId ?: filteredCategories.firstOrNull()?.id
+                    }
+                    val isCategoryValid = selectedType == TransactionType.INCOME || chosenCategory != null
 
-                    if (validAmount && chosenCategory != null) {
-                        onAddClick(amount!!, chosenCategory, selectedType, note)
+                    if (validAmount && isCategoryValid) {
+                        onAddClick(amount, chosenCategory, selectedType, note)
                         onDismiss()
                     }
                 },
