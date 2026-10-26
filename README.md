@@ -38,69 +38,88 @@
 
 ## 🛠 Стек технологий
 
-| Направление                | Стек и библиотеки                                                                 |
-|:---------------------------|:----------------------------------------------------------------------------------|
-| **Платформа и язык**       | Android (`minSdk 29`, `targetSdk 37`, `compileSdk 37`), Kotlin 2.4, Java 17       |
-| **UI-фреймворк**           | Jetpack Compose, Material Design 3, Material Icons Extended                       |
-| **Архитектура**            | Clean Architecture (`domain` / `data` / `ui` / `di`), MVVM / MVI, Single Activity |
-| **Навигация**              | AndroidX Navigation 3 (`runtime`, `ui`, `viewmodel`, `material3-adaptive`)        |
-| **Внедрение зависимостей** | Koin 4.2 (`koin-bom`, `koin-android`, `koin-androidx-compose`)                    |
-| **Локальное хранилище**    | Room 2.8 (`room-runtime`, `room-ktx`, кодогенерация через KSP)                    |
-| **Сетевой слой**           | Retrofit 3.0, OkHttp 5.5, HttpLoggingInterceptor                                  |
-| **Сериализация**           | Kotlinx Serialization 1.11 (`json`, `converter-kotlinx-serialization`)            |
-| **Асинхронность**          | Kotlin Coroutines, `StateFlow`, `SharedFlow`, `Flow`                              |
-| **Загрузка изображений**   | Coil 3.6 (`coil-compose`, `coil-network-okhttp`)                                  |
-| **Система сборки**         | Gradle Version Catalog (`libs.versions.toml`), AGP 9.2, KSP 2.3                   |
+| Направление | Стек и библиотеки |
+| :--- | :--- |
+| **Платформа и язык** | Android (`minSdk 29`, `targetSdk 37`, `compileSdk 37`), Kotlin 2.4, Java 17 |
+| **UI-фреймворк** | Jetpack Compose, Material Design 3, Material Icons Extended |
+| **Архитектура** | Clean Architecture (`domain` / `data` / `ui` / `di`), MVVM / MVI, Single Activity |
+| **Навигация** | AndroidX Navigation 3 (`runtime`, `ui`, `viewmodel`, `material3-adaptive`) |
+| **Внедрение зависимостей** | Koin 4.2 (`koin-bom`, `koin-android`, `koin-androidx-compose`) |
+| **Локальное хранилище** | Room 2.8 (`room-runtime`, `room-ktx`, кодогенерация через KSP) |
+| **Сетевой слой** | Retrofit 3.0, OkHttp 5.5, HttpLoggingInterceptor |
+| **Сериализация** | Kotlinx Serialization 1.11 (`json`, `converter-kotlinx-serialization`) |
+| **Асинхронность** | Kotlin Coroutines, `StateFlow`, `SharedFlow`, `Flow` |
+| **Загрузка изображений** | Coil 3.6 (`coil-compose`, `coil-network-okhttp`) |
+| **Система сборки** | Gradle Version Catalog (`libs.versions.toml`), AGP 9.2, KSP 2.3 |
 
 ---
 
 ## 🗺 Карта разработки (Roadmap)
 
-| Итерация | Фокус этапа                                                                                                   |                                     Статус                                      |                       Отчёт                       |
-|:--------:|:--------------------------------------------------------------------------------------------------------------|:-------------------------------------------------------------------------------:|:-------------------------------------------------:|
-|  **1**   | **Аналитика и проектирование:** ТЗ, ролевые модели, сущности, схема переходов, USM, прототип                  |    ![Done](https://img.shields.io/badge/Выполнено-22C55E?style=flat-square)     | [iteration-1](./iterations/iteration-1/README.md) |
-|  **2**   | **Архитектурный каркас:** конфигурация сборки, стек зависимостей, пакеты Clean Architecture, Domain-модели    |    ![Done](https://img.shields.io/badge/Выполнено-22C55E?style=flat-square)     | [iteration-2](./iterations/iteration-2/README.md) |
-|  **3**   | **Слой данных и навигация:** Room DB, DAO, предзаполнение БД, мапперы, Koin DI, граф Navigation 3             | ![Next](https://img.shields.io/badge/Следующий%20этап-3B82F6?style=flat-square) |                   `iteration-3`                   |
-|  **4**   | **Дашборд, счета и бюджеты:** главный экран, карусель счетов, управление категориями и лимитами               |  ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square)   |                   `iteration-4`                   |
-|  **5**   | **Финансовые операции:** создание/редактирование доходов, расходов и переводов, лента истории, свайп-удаление |  ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square)   |                   `iteration-5`                   |
-|  **6**   | **Аналитика и сервисы Гостя:** интерактивные диаграммы, прогресс-бары лимитов, профиль, экспорт CSV/JSON      |  ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square)   |                   `iteration-6`                   |
-|  **7**   | **Облачная синхронизация:** регистрация и вход, миграция данных Гостя (`AuthMerge`), фоновая синхронизация    |  ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square)   |                   `iteration-7`                   |
+| Итерация | Фокус этапа | Статус | Отчёт |
+| :---: | :--- | :---: | :---: |
+| **1** | **Аналитика и проектирование:** ТЗ, ролевые модели, сущности, схема переходов, USM, прототип | ![Done](https://img.shields.io/badge/Выполнено-22C55E?style=flat-square) | [iteration-1](./iterations/iteration-1/README.md) |
+| **2** | **Архитектурный каркас:** конфигурация сборки, стек зависимостей, пакеты Clean Architecture, Domain-модели | ![Done](https://img.shields.io/badge/Выполнено-22C55E?style=flat-square) | [iteration-2](./iterations/iteration-2/README.md) |
+| **3** | **Слой данных и навигация:** Room DB, DAO, предзаполнение БД, мапперы, Koin DI, граф Navigation 3 | ![Next](https://img.shields.io/badge/Следующий%20этап-3B82F6?style=flat-square) | `iteration-3` |
+| **4** | **Дашборд, счета и бюджеты:** главный экран, карусель счетов, управление категориями и лимитами | ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square) | `iteration-4` |
+| **5** | **Финансовые операции:** создание/редактирование доходов, расходов и переводов, лента истории, свайп-удаление | ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square) | `iteration-5` |
+| **6** | **Аналитика и сервисы Гостя:** интерактивные диаграммы, прогресс-бары лимитов, профиль, экспорт CSV/JSON | ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square) | `iteration-6` |
+| **7** | **Облачная синхронизация:** регистрация и вход, миграция данных Гостя (`AuthMerge`), фоновая синхронизация | ![Planned](https://img.shields.io/badge/По%20плану-64748B?style=flat-square) | `iteration-7` |
 
 ---
 
-## 📁 Архитектура и структура модулей (Feature-Based Multi-Module)
+## 📁 Архитектура и структура проекта
 
-Проект спроектирован по многомодульной компонентной модели с разделением по функциональным модулям (**Feature-driven**) и выносом общей дизайн-системы и слоя данных в группу **Core**.
-
-```text
-finance-tracker/
-├── app/                            # Модуль запуска приложения (Single Activity, Root Navigation, Koin сборка)
+```agsl
+com.example.financetracker/
+├── App.kt                  # Наследник Application (точка старта приложения и инициализация Koin)
+├── MainActivity.kt         # Единственная Activity (хост для Compose и навигации)
 │
-├── core/                           # Базовые независимые модули
-│   ├── uikit/                      # Дизайн-система (тема, цвета, типографика, общие кнопки, бейджи, карточки)
-│   ├── model/                      # Общие доменные модели приложения (Account, Category, Transaction, Enums)
-│   ├── database/                   # Локальная база данных Room (AppDatabase, Entity, DAO, TypeConverters)
-│   └── network/                    # Сетевой стек (Retrofit, OkHttp, DTO, интерцепторы)
+├── di/                     # Dependency Injection (Koin)
+│   ├── appModule.kt
+│   ├── databaseModule.kt
+│   └── repositoryModule.kt
 │
-└── feature/                        # Функциональные экраны и сценарии (содержат свои data/domain/presentation)
-    ├── home/                       # Главный экран (Дашборд, карусель счетов, баннер, виджеты)
-    ├── transactions/               # Создание/редактирование транзакции, экран деталей, история со свайп-удалением
-    ├── accounts/                   # Список счетов, детальная карточка счета, формы управления
-    ├── categories/                 # Категории расходов/доходов, экраны лимитов бюджетов
-    ├── analytics/                  # Интерактивная аналитика, круговые и столбчатые диаграммы
-    ├── profile/                    # Профиль Гостя, экспорт CSV/JSON, настройки уведомлений, экран «О приложении»
-    └── auth/                       # Авторизация, регистрация и механизм слияния данных (AuthMerge)
+│
+├── domain/                 # Бизнес-логика
+│   ├── model/              # Transaction, Account, Category, Enums
+│   ├── repository/         # Интерфейсы репозиториев
+│   └── usecase/            # Интеракторы
+│
+├── data/                   # Работа с данными
+│   ├── local/              # Room DB, Entity, DAO, Converters
+│   │   ├── AppDatabase.kt
+│   │   ├── dao/
+│   │   └── entity/
+│   ├── remote/             # DTO, сетевые клиенты для будущей синхронизации
+│   ├── repository/         # Реализация интерфейсов из domain
+│   └── mapper/             # Мапперы (Entity -> Domain, Domain -> Entity)
+│
+└── ui/                     # Слой представления (Jetpack Compose)
+    ├── navigation/         # Навигация (NavHost, маршруты экранов)
+    ├── theme/              # Color, Type, Theme (Material Design 3)
+    ├── components/         # Общие UI-компоненты (AppButton, CategoryBadge, TopBar)
+    ├── util/               # Форматирование для UI (валюты, даты, строковые хелперы)
+    └── screens/            # Экраны приложения
+        ├── dashboard/      # Главный экран
+        │   └── components/ # Локальные виджеты (AccountsCarousel, TransactionItem)
+        ├── transaction/    # Добавление / редактирование операции
+        │   └── components/
+        ├── analytics/      # Экран отчетов и аналитики
+        │   └── components/
+        └── profile/        # Профиль и настройки
+            └── components/
 ```
 
 ---
 
 ## 📋 Правила работы с репозиторием и процесс разработки
 
-### 1. Декомпозиция задач и многомодульность
-Разработка ведётся строго итеративно с декомпозицией на атомарные подзадачи:
-* Уровень итерации (Epic): крупный функциональный этап (например, Итерация 3: Слой данных и навигация)
-* Уровень модуля/фичи: создание или расширение конкретного Gradle-модуля (например, :core:uikit или :core:database).
-* Уровень микрозадачи (один коммит): минимальное логически завершённое изменение внутри модуля, которое компилируется и не ломает сборку проекта.
+### 1. Декомпозиция задач
+Разработка ведётся итеративно. Запрещается заливать всю итерацию одним гигантским коммитом — каждая итерация обязательно дробится на **мелкие атомарные задачи и подзадачи**:
+* **Уровень итерации:** крупный этап разработки (например, *Слой локальной БД и навигация*).
+* **Уровень подзадачи:** конкретный логический блок внутри слоя (например, *Создание Entity и конвертеров Room*, *Реализация DAO*, *Настройка Koin-модуля БД*).
+* **Уровень микрозадачи (один коммит):** минимальное законченное изменение, которое компилируется и не ломает сборку (например, добавление одного экрана, одного маппера или репозитория).
 
 ### 2. Ведение документации по итерациям (`iterations/`)
 В корне репозитория находится директория `iterations/`, внутри которой для каждого этапа создаётся папка текущей итерации (например, `iterations/iteration_1/`, `iterations/iteration_2/` и т.д.):
@@ -121,18 +140,9 @@ iterations/
   *(В качестве эталона оформления используется отчёт первой выполненной итерации).*
 
 ### 3. Правила именования веток
-В проекте используется двухуровневая стратегия веток (сочетание итераций и фиче-веток):
-
-* `main` — основная стабильная ветка с завершёнными и протестированными итерациями.
-* `iter-N` — базовая родительская ветка текущей итерации (например, iter-3), создаваемая от main.
-* Тематические ветки подзадач создаются от текущей ветки итерации (iter-N) по шаблону <тип>/<модуль-или-задача>:
-  * feat/<название> — разработка нового модуля, экрана или функциональности (например, feat/core-uikit, feat/core-database, feat/navigation-setup);
-  * refactor/<название> — рефакторинг архитектуры или вынос кода в модуль (например, refactor/extract-core-model);
-  * fix/<название> — исправление багов и дефектов вёрстки/логики;
-  * docs/<название> — обновление документации и отчётов.
-* Слияние изменений:
-  * Готовая подзадача вливается в ветку итерации (iter-N) через Pull Request.
-  * Полностью завершённая итерация вливается в main через итоговый Pull Request итерации.
+* `main` — стабильная ветка с завершёнными итерациями.
+* `iter-N` (или `iteration-N`) — основная ветка текущей итерации.
+* При командной или параллельной разработке под мелкие подзадачи от ветки итерации заводятся короткие ветки: `feat/<название-задачи>`, `refactor/<название>`, `fix/<название>`.
 
 ### 4. Правила оформления коммитов (Conventional Commits)
 Каждый коммит должен иметь строгую двухчастную структуру: **заголовок в одну строку** и **подробное описание списком** через пустую строку.
@@ -140,7 +150,7 @@ iterations/
 **Формат:**
 
 ```text
-<тип>(<модуль/область>): <краткое описание сути изменений в одну строку>
+<тип>(<область>): <краткое описание сути изменений в одну строку>
 
 - Подробный пункт 1: что именно было создано или изменено.
 - Подробный пункт 2: какие компоненты, модели или зависимости затронуты.
@@ -159,19 +169,13 @@ iterations/
 
 **Пример правильного коммита:**
 ```agsl
-feat(core-uikit): создать базовую дизайн-систему и тему приложения
+feat(core): настроить архитектурный каркас проекта и базовые domain-модели
 
-- Настроена цветовая палитра Material 3 для светлой и тёмной тем.
-- Определены стили типографики и формы компонентов.
-- Созданы переиспользуемые компоненты AppButton и CategoryBadge.
-```
-
-```agsl
-feat(core-database): реализовать сущности Room и интерфейсы DAO
-
-- Описаны таблицы AccountEntity, CategoryEntity и TransactionEntity.
-- Реализованы TypeConverters для сохранения дат и перечислений.
-- Настроен интерфейс AppDatabase с версионированием.
+  - Настроена многослойная структура пакетов Clean Architecture (data, domain, ui, di).
+  - Сконфигурирован каталог зависимостей libs.versions.toml и скрипты Gradle под API 37 и Java 17.
+  - Подключен базовый стек: Jetpack Compose M3, Room с KSP, Koin, Navigation 3, Kotlinx Serialization, Coil 3, Retrofit и OkHttp.
+  - Созданы базовые domain-модели: Account, Category, CategoryType, Transaction, TransactionType.
+  - Документирован стек и этапы итерации в README.md и папке iterations/.
 ```
 
 ---
@@ -181,7 +185,7 @@ feat(core-database): реализовать сущности Room и интер�
 1. Клонируйте репозиторий:
    ```bash
    git clone https://github.com/krus-ling/financetracker.git
-   ```
+
 2. Откройте проект в Android Studio.
 3. Дождитесь завершения синхронизации Gradle (требуется JDK 17+).
 4. Запустите конфигурацию app на эмуляторе или физическом устройстве с Android 10 (API 29) или выше.
