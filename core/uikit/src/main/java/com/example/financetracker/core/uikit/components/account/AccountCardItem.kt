@@ -14,6 +14,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -30,6 +31,11 @@ import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
+private val RuAccountSymbols = DecimalFormatSymbols(Locale.forLanguageTag("ru")).apply {
+    groupingSeparator = ' ' // разделять тысячи пробелом
+    decimalSeparator = ',' // в качестве разделителя целой и дробной части использовать ,
+}
+
 /**
  * Карточка счёта для горизонтальной карусели на главном экране.
  */
@@ -42,15 +48,16 @@ fun AccountCardItem(
     containerColor: Color = MaterialTheme.colorScheme.surface, // Цвет фона самой карточки
     onClick: () -> Unit // Функция обратного вызова
 ) {
-    // отвечает только за внешний вид знаков
-    val symbols = DecimalFormatSymbols(Locale.forLanguageTag("ru")).apply {
-        groupingSeparator = ' ' // разделять тысячи пробелом
-        decimalSeparator = ',' // в качестве разделителя целой и дробной части использовать ,
+    // Оформление чисел по шаблону: если после запятой "00", скрываем их
+    val formattedBalance = remember(balance) {
+        val decimalFormat = DecimalFormat("#,##0.00", RuAccountSymbols)
+        val formatted = decimalFormat.format(balance)
+        if (formatted.endsWith(",00")) {
+            formatted.removeSuffix(",00")
+        } else {
+            formatted
+        }
     }
-    // оформление чисел по шаблону (структура числа)
-    val decimalFormat = DecimalFormat("#,##0.00", symbols)
-    // применение к балансу
-    val formattedBalance = decimalFormat.format(balance)
 
     Card(
         onClick = onClick, // делает интерактивной

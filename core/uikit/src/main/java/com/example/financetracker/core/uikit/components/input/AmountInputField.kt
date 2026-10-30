@@ -40,7 +40,14 @@ fun AmountInputField(
             val filtered = input.filter { it.isDigit() || it == '.' || it == ',' }
             val separatorCount = filtered.count { it == '.' || it == ',' }
             if (separatorCount <= 1) {
-                onValueChange(filtered)
+                val separatorIndex = filtered.indexOfFirst { it == '.' || it == ',' }
+                val decimalLength = if (separatorIndex != -1) filtered.length - separatorIndex - 1 else 0
+                if (decimalLength <= 2) {
+                    onValueChange(filtered)
+                } else if (input.length - value.length > 1) {
+                    // При вставке (paste) числа с лишними знаками — обрезаем до 2 знаков после запятой
+                    onValueChange(filtered.substring(0, separatorIndex + 3))
+                }
             }
         },
         label = { Text(label) },

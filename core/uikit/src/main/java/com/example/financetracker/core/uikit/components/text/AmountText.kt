@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -19,6 +20,11 @@ import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 import kotlin.math.abs
+
+private val RuSymbols = DecimalFormatSymbols(Locale.forLanguageTag("ru-RU")).apply {
+    groupingSeparator = ' '
+    decimalSeparator = ','
+}
 
 /**
  * Универсальный компонент для отображения отформатированной денежной суммы.
@@ -34,13 +40,17 @@ fun AmountText(
     currencySymbol: String = "₽",
     color: Color = Color.Unspecified
 ) {
-    // Настраиваем российскую локаль для формата денег (пробел как разделитель тысяч, запятая для копеек)
-    val symbols = DecimalFormatSymbols(Locale.forLanguageTag("ru-RU")).apply {
-        groupingSeparator = ' '
-        decimalSeparator = ','
+    // Настраиваем российскую локаль для формата денег:
+    // если после запятой "00", скрываем их и отображаем только целое число
+    val formattedNumber = remember(amount) {
+        val formatter = DecimalFormat("#,##0.00", RuSymbols)
+        val formatted = formatter.format(abs(amount))
+        if (formatted.endsWith(",00")) {
+            formatted.removeSuffix(",00")
+        } else {
+            formatted
+        }
     }
-    val formatter = DecimalFormat("#,##0.00", symbols)
-    val formattedNumber = formatter.format(abs(amount))
 
     val prefix: String
     val textColor = if (color != Color.Unspecified) {
@@ -95,11 +105,11 @@ fun AmountTextPreview() {
                 type = TransactionType.INCOME
             )
             AmountText(
-                amount = 2070.0,
+                amount = 2070.50,
                 type = TransactionType.EXPENSE
             )
             AmountText(
-                amount = 5000.0,
+                amount = 5000.00,
                 type = TransactionType.TRANSFER
             )
             AmountText(
@@ -123,7 +133,7 @@ fun AmountTextDarkPreview() {
                 type = TransactionType.INCOME
             )
             AmountText(
-                amount = 2070.0,
+                amount = 2070.50,
                 type = TransactionType.EXPENSE
             )
             AmountText(
