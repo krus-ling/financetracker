@@ -1,4 +1,4 @@
-package com.example.financetracker.core.uikit.component
+package com.example.financetracker.core.uikit.components.input
 
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.OffsetMapping

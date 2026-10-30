@@ -14,10 +14,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -30,7 +34,9 @@ import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
-import com.example.financetracker.core.uikit.component.AmountText
+import com.example.financetracker.feature.home.components.AddAccountBottomSheet
+import com.example.financetracker.core.uikit.components.account.AddAccountCardItem
+import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.components.HomeAccountCard
 import com.example.financetracker.feature.home.components.HomeTransactionRow
@@ -45,15 +51,22 @@ fun HomeScreen(
 
     HomeScreenContent(
         uiState = uiState,
+        onAddAccount = { name, initialBalance ->
+            viewModel.createAccount(name, initialBalance)
+        },
         modifier = modifier
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenContent(
     uiState: HomeUiState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAddAccount: (name: String, initialBalance: Double) -> Unit = { _, _ -> }
 ) {
+    var showAddAccountSheet by remember { mutableStateOf(false) }
+
     when {
         uiState.isLoading -> {
             Box(
@@ -120,6 +133,11 @@ fun HomeScreenContent(
                         items(uiState.accounts, key = { it.id }) { account ->
                             HomeAccountCard(account = account, onClick = {})
                         }
+                        item {
+                            AddAccountCardItem(
+                                onClick = { showAddAccountSheet = true }
+                            )
+                        }
                     }
                 }
 
@@ -176,6 +194,15 @@ fun HomeScreenContent(
                 }
             }
         }
+    }
+
+    if (showAddAccountSheet) {
+        AddAccountBottomSheet(
+            onDismiss = { showAddAccountSheet = false },
+            onAddClick = { name, initialBalance ->
+                onAddAccount(name, initialBalance)
+            }
+        )
     }
 }
 

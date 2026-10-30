@@ -1,4 +1,4 @@
-package com.example.financetracker.core.uikit.component
+package com.example.financetracker.core.uikit.components.category
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

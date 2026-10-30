@@ -68,12 +68,15 @@ finance_tracker/                     # Root of the repository
 │   └─ uikit/                       # UI‑kit (design system) – reusable Compose components & theme
 │       ├─ build.gradle.kts
 │       └─ src/main/java/com/example/financetracker/core/uikit/
-│           ├─ component/            # Common UI components (cards, rows, icons, amount text)
-│           │   ├─ AccountCardItem.kt
-│           │   ├─ AmountText.kt
-│           │   ├─ CategoryIcon.kt
-│           │   ├─ TransactionRowItem.kt
-│           │   └─ ...
+│           ├─ components/
+│           │   ├─ account/          # Account cards & items (AccountCardItem, AddAccountCardItem)
+│           │   ├─ category/         # Category icons & chips (CategoryIcon, CategoryIconChip)
+│           │   ├─ input/            # Input fields & formatters (AmountInputField, ThousandsSeparatorVisualTransformation)
+│           │   ├─ sheet/            # Bottom sheets (AppFormBottomSheet)
+│           │   ├─ text/             # Formatted texts (AmountText)
+│           │   ├─ transaction/      # Transaction list items (TransactionRowItem)
+│           │   └─ info              # Architecture cheat sheet for UI-kit components
+
 │           └─ theme/                # Color palette, typography, and MaterialTheme wrapper
 │               ├─ Color.kt
 │               ├─ Theme.kt
@@ -90,6 +93,8 @@ finance_tracker/                     # Root of the repository
 │       │   │   └─ HomeModule.kt
 │       │   └─ components/            # Small composables used only by Home
 │       │       ├─ HomeComponents.kt   # `HomeAccountCard` and `HomeTransactionRow`
+│       │       ├─ AddAccountBottomSheet.kt
+│       │       ├─ QuickAddTransactionSheet.kt
 │       │       └─ ...
 └─ iterations/                     # Documentation of development iterations (not code)
     ├─ iteration-1/README.md
@@ -138,10 +143,6 @@ finance_tracker/                     # Root of the repository
 | `theme/Color.kt`                  | Central colour definitions (brand, surfaces, text, semantic financial colours, category palette).                     |
 | `theme/Theme.kt`                  | `FinancetrackerTheme` composable that selects light/dark colour schemes and optionally dynamic colour on Android 12+. |
 | `theme/Type.kt`                   | Basic Material typography (`Typography` instance).                                                                    |
-| `component/AccountCardItem.kt`    | Card UI for an account shown in the horizontal carousel on the Home screen.                                           |
-| `component/AmountText.kt`         | Formats a monetary amount with appropriate prefix (`+`, `−`) and colour based on `TransactionType`.                   |
-| `component/CategoryIcon.kt`       | Utility to map a string `iconRes` to a Material Icons vector and display it inside a coloured circle.                 |
-| `component/TransactionRowItem.kt` | Row UI for a single transaction in the recent‑transactions list.                                                      |
 | `build.gradle.kts`                | Android library module – adds Compose BOM, core UI, and a dependency on `core:model`.                                 |
 
 ---

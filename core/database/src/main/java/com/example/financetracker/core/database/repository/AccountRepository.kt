@@ -1,6 +1,7 @@
 package com.example.financetracker.core.database.repository
 
 import com.example.financetracker.core.database.dao.AccountDao
+import com.example.financetracker.core.database.entity.AccountEntity
 import com.example.financetracker.core.database.mapper.toDomain
 import com.example.financetracker.core.database.mapper.toEntity
 import com.example.financetracker.core.model.Account
@@ -20,7 +21,13 @@ class AccountRepository(
         return accountDao.getAccountById(id)?.toDomain()
     }
 
-    suspend fun createAccount(account: Account): Long {
-        return accountDao.insertAccount(account.toEntity())
+    suspend fun createAccount(name: String, initialBalance: Double, currency: String = "RUB"): Long {
+        return accountDao.insertAccount(
+            AccountEntity(
+                name = name,
+                balance = initialBalance,
+                currency = currency
+            )
+        )
     }
 }
