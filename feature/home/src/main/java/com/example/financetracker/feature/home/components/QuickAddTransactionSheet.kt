@@ -30,14 +30,12 @@ import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.TransactionType
-import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.category.CategoryIconChip
 import com.example.financetracker.core.uikit.components.category.getCategoryIcon
+import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
 import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
 
 @ExperimentalMaterial3Api
 @Composable
@@ -53,12 +51,6 @@ fun QuickAddTransactionSheet(
     var note by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf<String?>(null) }
     var submitted by remember { mutableStateOf(false) }
-
-    // Автофокус на поле ввода суммы при открытии
-    LaunchedEffect(Unit) {
-        delay(250.milliseconds)
-        amountFocusRequester.requestFocus()
-    }
 
     val fallbackCategories = remember {
         listOf(
@@ -109,10 +101,13 @@ fun QuickAddTransactionSheet(
 
             if (isAmountValid && isCategoryValid) {
                 onAddClick(amount!!, chosenCategory, selectedType, note)
-                onDismiss()
+                true
+            } else {
+                false
             }
         },
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
+        onSheetOpened = { amountFocusRequester.requestFocus() }
     ) { clearFocus ->
         // Селектор типа операции
         Row(
@@ -165,17 +160,17 @@ fun QuickAddTransactionSheet(
 
         // Сетка категорий
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = if (selectedType == TransactionType.INCOME) "Категория (необязательно)" else "Категория",
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             LazyRow(
-                contentPadding = PaddingValues(vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredCategories, key = { it.id }) { category ->
                     val isSelected = category.id == selectedCategoryId

@@ -34,33 +34,33 @@ fun CategoryIconChip(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .width(68.dp)
+            .width(62.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp, horizontal = 2.dp)
+            .padding(vertical = 2.dp, horizontal = 2.dp)
     ) {
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .then(
                     if (isSelected) {
                         Modifier.border(
                             width = 2.dp,
                             color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(14.dp)
+                            shape = RoundedCornerShape(12.dp)
                         )
                     } else Modifier
                 )
-                .padding(4.dp)
+                .padding(3.dp)
         ) {
             CategoryIcon(
                 icon = icon,
                 backgroundColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else PrimaryTint,
                 iconTint = if (isSelected) MaterialTheme.colorScheme.primary else Primary,
-                size = 40.dp
+                size = 36.dp
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.labelSmall,

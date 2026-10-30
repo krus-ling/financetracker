@@ -8,7 +8,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,8 +18,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
 
 @ExperimentalMaterial3Api
 @Composable
@@ -34,11 +31,6 @@ fun AddAccountBottomSheet(
     var balanceText by remember { mutableStateOf("") }
     var submitted by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        delay(250.milliseconds)
-        nameFocusRequester.requestFocus()
-    }
-
     val isNameValid = accountName.trim().isNotEmpty()
     val nameError = submitted && !isNameValid
 
@@ -50,17 +42,20 @@ fun AddAccountBottomSheet(
             if (isNameValid) {
                 val balance = balanceText.replace(',', '.').toDoubleOrNull() ?: 0.0
                 onAddClick(accountName.trim(), balance)
-                onDismiss()
+                true
+            } else {
+                false
             }
         },
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
+        onSheetOpened = { nameFocusRequester.requestFocus() }
     ) { clearFocus ->
         // Название счёта
         OutlinedTextField(
             value = accountName,
             onValueChange = { accountName = it },
             label = { Text("Название счёта") },
-            placeholder = { Text("Например, Карта Т-Банк или Сберегательный") },
+            placeholder = { Text("Например, Наличные") },
             singleLine = true,
             isError = nameError,
             supportingText = if (nameError) {

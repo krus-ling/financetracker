@@ -1,10 +1,7 @@
 package com.example.financetracker.core.uikit.components.sheet
 
-import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,9 +9,9 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +31,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -41,24 +40,29 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 /**
- * Универсальная шторка (bottom sheet) для форм ввода данных.
+ * Оптимизированная универсальная шторка (bottom sheet) для форм ввода данных.
  *
- * Инкапсулирует:
- * - Вызов Material 3 ModalBottomSheet со скруглением 24.dp и drag-хэндлом;
- * - Плавную асимметричную анимацию подъёма контента вместе с клавиатурой (400 мс / 280 мс);
- * - Снятие фокуса при закрытии клавиатуры системной кнопкой/жестом «Назад»;
- * - Мгновенное скрытие клавиатуры при свайпе шторки вниз (nestedScroll и отслеживание сдвига);
- * - Гарантированное скрытие клавиатуры при dismiss/dispose;
- * - Снятие фокуса при тапе по фону;
- * - Скроллируемый контейнер Column с системными отступами;
- * - Заголовок и стандартные кнопки действий (основная и отмена).
+ * Особенности и архитектура:
+ * - Безопасный автофокус без фризов через колбэк [onSheetOpened] (запрос фокуса строго
+ *   после завершения анимации раскрытия шторки);
+ * - Защита от удара о верхний край экрана: отступ [statusBarsPadding] + 16.dp гарантирует,
+ *   что шторка никогда не бьётся о строку состояния и сохраняет скруглённые углы и затемнение сверху;
+ * - Плавное программное закрытие: кнопки «Отмена» и действие формы [onPrimaryClick]
+ *   закрывают шторку с естественной плавной анимацией скольжения вниз;
+ * - Мгновенное скрытие клавиатуры при начале свайпа вниз (за ручку шторки или контент);
+ * - Компактные отступы (12.dp) для комфортного размещения формы без растягивания во весь экран;
+ * - Автоматический сброс скролла наверх к заголовку при скрытии клавиатуры;
+ * - Снятие фокуса при скрытии клавиатуры по системной кнопке «Назад».
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -68,43 +72,103 @@ fun AppFormBottomSheet(
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     primaryButtonText: String? = null,
-    onPrimaryClick: (() -> Unit)? = null,
+    onPrimaryClick: (() -> Boolean)? = null,
     isPrimaryEnabled: Boolean = true,
     cancelButtonText: String? = "Отмена",
+    onSheetOpened: (() -> Unit)? = null,
     content: @Composable ColumnScope.(clearFocus: () -> Unit) -> Unit
 ) {
+    val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    val currentOnSheetOpened by rememberUpdatedState(onSheetOpened)
+
+    // Флаг для предотвращения повторных вызовов анимации закрытия
+    var isDismissing by remember { mutableStateOf(false) }
+
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        modifier = modifier,
+        onDismissRequest = {
+            if (!isDismissing) {
+                currentOnDismiss()
+            }
+        },
+        modifier = modifier
+            .statusBarsPadding(),
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
+        dragHandle = {
+            val focusManager = LocalFocusManager.current
+            val keyboardController = LocalSoftwareKeyboardController.current
+            BottomSheetDefaults.DragHandle(
+                modifier = Modifier.pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            focusManager.clearFocus(force = true)
+                            keyboardController?.hide()
+                        }
+                    )
+                }
+            )
+        }
     ) {
         val focusManager = LocalFocusManager.current
         val keyboardController = LocalSoftwareKeyboardController.current
 
-        fun clearAllFocus() {
-            focusManager.clearFocus(force = true)
-            keyboardController?.hide()
+        val clearAllFocus: () -> Unit = remember(focusManager, keyboardController) {
+            {
+                focusManager.clearFocus(force = true)
+                keyboardController?.hide()
+            }
         }
 
-        // Отслеживаем системное закрытие клавиатуры (например, по кнопке Назад)
+        // Плавное закрытие шторки с анимацией спуска
+        val animateDismiss: (onFinished: (() -> Unit)?) -> Unit = remember(sheetState, coroutineScope) {
+            { onFinished ->
+                if (!isDismissing) {
+                    isDismissing = true
+                    clearAllFocus()
+                    coroutineScope.launch {
+                        sheetState.hide()
+                    }.invokeOnCompletion {
+                        onFinished?.invoke()
+                        if (!sheetState.isVisible) {
+                            currentOnDismiss()
+                        }
+                    }
+                }
+            }
+        }
+
+        // Колбэк после завершения анимации открытия шторки (для безопасного автофокуса)
+        LaunchedEffect(sheetState) {
+            snapshotFlow { sheetState.currentValue == SheetValue.Expanded && !sheetState.isAnimationRunning }
+                .filter { it }
+                .first()
+            currentOnSheetOpened?.invoke()
+        }
+
+        // Отслеживаем системное закрытие клавиатуры (например, по системной кнопке Назад)
         val isImeVisible = WindowInsets.isImeVisible
         var wasImeOpened by remember { mutableStateOf(false) }
 
         LaunchedEffect(isImeVisible) {
             if (isImeVisible) {
                 wasImeOpened = true
-            } else if (wasImeOpened) {
-                focusManager.clearFocus(force = true)
-                wasImeOpened = false
+            } else {
+                if (wasImeOpened) {
+                    focusManager.clearFocus(force = true)
+                    wasImeOpened = false
+                }
+                // Автоматически возвращаем скролл наверх к шапке при скрытии клавиатуры
+                if (scrollState.value > 0) {
+                    scrollState.animateScrollTo(0)
+                }
             }
         }
 
-        // Скрываем клавиатуру сразу же, как только шторка начинает закрываться
+        // Скрываем клавиатуру сразу при переходе шторки в закрытие
         LaunchedEffect(sheetState) {
             snapshotFlow { sheetState.targetValue }
                 .collect { target ->
@@ -114,34 +178,8 @@ fun AppFormBottomSheet(
                 }
         }
 
-        // Отслеживаем сдвиг шторки вниз при свайпе за ручку или шапку
-        var settledOffset by remember { mutableStateOf<Float?>(null) }
-
-        LaunchedEffect(sheetState) {
-            snapshotFlow {
-                if (!sheetState.isAnimationRunning && sheetState.currentValue == SheetValue.Expanded) {
-                    runCatching { sheetState.requireOffset() }.getOrNull()
-                } else null
-            }.collect { offset ->
-                if (offset != null) {
-                    settledOffset = offset
-                }
-            }
-        }
-
-        LaunchedEffect(sheetState) {
-            snapshotFlow {
-                runCatching { sheetState.requireOffset() }.getOrNull()
-            }.collect { currentOffset ->
-                val base = settledOffset
-                if (currentOffset != null && base != null && currentOffset > base + 15f) {
-                    clearAllFocus()
-                }
-            }
-        }
-
-        // Перехватываем свайп контента шторки вниз для мгновенного скрытия клавиатуры
-        val nestedScrollConnection = remember {
+        // Перехват жеста смахивания контента вниз для мгновенного скрытия клавиатуры
+        val nestedScrollConnection = remember(clearAllFocus) {
             object : NestedScrollConnection {
                 override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                     if (available.y > 0 && source == NestedScrollSource.UserInput) {
@@ -152,64 +190,46 @@ fun AppFormBottomSheet(
             }
         }
 
-        // Гарантированно скрываем клавиатуру при удалении шторки
-        DisposableEffect(Unit) {
+        // Гарантированное скрытие клавиатуры при уничтожении шторки
+        DisposableEffect(clearAllFocus) {
             onDispose {
                 clearAllFocus()
             }
         }
-
-        // Плавная анимация подъема контента вровень с клавиатурой
-        val density = LocalDensity.current
-        val imeBottom = WindowInsets.ime.getBottom(density)
-        val imeBottomDp = with(density) { imeBottom.toDp() }
-        val animatedImePadding by animateDpAsState(
-            targetValue = imeBottomDp,
-            animationSpec = if (imeBottomDp > 0.dp) {
-                tween(
-                    durationMillis = 400,
-                    easing = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
-                )
-            } else {
-                tween(
-                    durationMillis = 280,
-                    easing = FastOutSlowInEasing
-                )
-            },
-            label = "formSheetImePadding"
-        )
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .nestedScroll(nestedScrollConnection)
                 .verticalScroll(scrollState)
-                .padding(bottom = animatedImePadding)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
                 ) {
                     clearAllFocus()
                 }
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
 
-            // Специфический контент формы
-            content(::clearAllFocus)
+            // Контент формы
+            content(clearAllFocus)
 
             // Основная кнопка действия
             if (primaryButtonText != null) {
                 Button(
                     onClick = {
                         clearAllFocus()
-                        onPrimaryClick?.invoke()
+                        val shouldDismiss = onPrimaryClick?.invoke() ?: true
+                        if (shouldDismiss) {
+                            animateDismiss(null)
+                        }
                     },
                     enabled = isPrimaryEnabled,
                     modifier = Modifier.fillMaxWidth()
@@ -222,8 +242,7 @@ fun AppFormBottomSheet(
             if (cancelButtonText != null) {
                 TextButton(
                     onClick = {
-                        clearAllFocus()
-                        onDismiss()
+                        animateDismiss(null)
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -233,4 +252,3 @@ fun AppFormBottomSheet(
         }
     }
 }
-

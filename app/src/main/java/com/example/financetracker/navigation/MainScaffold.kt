@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.example.financetracker.navigation
 
 import androidx.compose.material.icons.Icons
@@ -28,7 +26,7 @@ import com.example.financetracker.placeholder.AnalyticsPlaceholderScreen
 import com.example.financetracker.placeholder.ProfilePlaceholderScreen
 import org.koin.androidx.compose.koinViewModel
 
-@ExperimentalMaterial3Api
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScaffold(
     homeViewModel: HomeViewModel = koinViewModel()
