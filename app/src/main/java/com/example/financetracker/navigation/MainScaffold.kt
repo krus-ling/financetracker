@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.financetracker.navigation
 
 import androidx.compose.material.icons.Icons
@@ -8,6 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,8 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.financetracker.component.QuickAddTransactionSheet
+import com.example.financetracker.feature.home.components.QuickAddTransactionSheet
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.HomeScreen
 import com.example.financetracker.feature.home.HomeViewModel
@@ -26,6 +28,7 @@ import com.example.financetracker.placeholder.AnalyticsPlaceholderScreen
 import com.example.financetracker.placeholder.ProfilePlaceholderScreen
 import org.koin.androidx.compose.koinViewModel
 
+@ExperimentalMaterial3Api
 @Composable
 fun MainScaffold(
     homeViewModel: HomeViewModel = koinViewModel()

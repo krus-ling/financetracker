@@ -1,4 +1,4 @@
-package com.example.financetracker.core.uikit.component
+package com.example.financetracker.core.uikit.components.transaction
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +22,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.core.uikit.components.category.CategoryIcon
+import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint

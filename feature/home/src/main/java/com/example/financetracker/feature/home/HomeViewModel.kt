@@ -88,4 +88,18 @@ class HomeViewModel(
             transactionRepository.addTransaction(transaction)
         }
     }
+
+    fun createAccount(
+        name: String,
+        initialBalance: Double,
+        currency: String = "RUB"
+    ) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.createAccount(
+                name = name,
+                initialBalance = initialBalance,
+                currency = currency
+            )
+        }
+    }
 }

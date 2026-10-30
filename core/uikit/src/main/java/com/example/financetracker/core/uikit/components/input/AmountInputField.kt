@@ -1,4 +1,4 @@
-package com.example.financetracker.core.uikit.component
+package com.example.financetracker.core.uikit.components.input
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions

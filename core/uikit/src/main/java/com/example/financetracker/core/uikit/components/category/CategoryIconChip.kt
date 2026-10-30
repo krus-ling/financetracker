@@ -1,4 +1,4 @@
-package com.example.financetracker.core.uikit.component
+package com.example.financetracker.core.uikit.components.category
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable

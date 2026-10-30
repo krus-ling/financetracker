@@ -1,4 +1,4 @@
-package com.example.financetracker.core.uikit.component
+package com.example.financetracker.core.uikit.components.text
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,6 +18,7 @@ import com.example.financetracker.core.uikit.theme.TransferBlue
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
+import kotlin.math.abs
 
 /**
  * Универсальный компонент для отображения отформатированной денежной суммы.
@@ -39,7 +40,7 @@ fun AmountText(
         decimalSeparator = ','
     }
     val formatter = DecimalFormat("#,##0.00", symbols)
-    val formattedNumber = formatter.format(kotlin.math.abs(amount))
+    val formattedNumber = formatter.format(abs(amount))
 
     val prefix: String
     val textColor = if (color != Color.Unspecified) {
