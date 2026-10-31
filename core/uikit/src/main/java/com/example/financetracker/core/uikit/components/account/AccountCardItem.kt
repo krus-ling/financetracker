@@ -126,7 +126,7 @@ fun AccountCardItemDarkPreview() {
     FinancetrackerTheme(darkTheme = true) {
         AccountCardItem(
             title = "Основная карта",
-            balance = 86780.0,
+            balance = 86780.05,
             accountIcon = Icons.Default.CreditCard,
             onClick = {}
         )

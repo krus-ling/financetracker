@@ -21,6 +21,10 @@ class AccountRepository(
         return accountDao.getAccountById(id)?.toDomain()
     }
 
+    suspend fun getAccountById(id: String): Account? {
+        return id.toLongOrNull()?.let { getAccountById(it) }
+    }
+
     suspend fun createAccount(name: String, initialBalance: Double, currency: String = "RUB"): Long {
         return accountDao.insertAccount(
             AccountEntity(
@@ -29,5 +33,17 @@ class AccountRepository(
                 currency = currency
             )
         )
+    }
+
+    suspend fun updateAccount(account: Account) {
+        accountDao.updateAccount(account.toEntity())
+    }
+
+    suspend fun deleteAccount(id: Long) {
+        accountDao.deleteAccountById(id)
+    }
+
+    suspend fun deleteAccount(id: String) {
+        id.toLongOrNull()?.let { deleteAccount(it) }
     }
 }
