@@ -4,5 +4,6 @@ data class Account(
     val id: String,
     val name: String,
     val balance: Double,
-    val currency: String = "RUB"
+    val currency: String = "RUB",
+    val type: AccountType = AccountType.CARD
 )
