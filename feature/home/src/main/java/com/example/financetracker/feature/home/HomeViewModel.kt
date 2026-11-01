@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.financetracker.core.database.repository.AccountRepository
 import com.example.financetracker.core.database.repository.CategoryRepository
 import com.example.financetracker.core.database.repository.TransactionRepository
+import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
@@ -100,6 +101,12 @@ class HomeViewModel(
                 initialBalance = initialBalance,
                 currency = currency
             )
+        }
+    }
+
+    fun updateAccount(account: Account) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.updateAccount(account)
         }
     }
 }
