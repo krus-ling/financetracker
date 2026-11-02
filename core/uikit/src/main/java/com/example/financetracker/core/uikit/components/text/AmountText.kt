@@ -58,7 +58,7 @@ fun AmountText(
             TransactionType.INCOME -> "+ "
             TransactionType.EXPENSE -> "− "
             TransactionType.TRANSFER -> ""
-            null -> ""
+            null -> if (amount < 0) "– " else ""
         }
         color
     } else {
@@ -76,7 +76,7 @@ fun AmountText(
                 TransferBlue
             }
             null -> {
-                prefix = ""
+                prefix = if (amount < 0) "– " else ""
                 MaterialTheme.colorScheme.onSurface
             }
         }
