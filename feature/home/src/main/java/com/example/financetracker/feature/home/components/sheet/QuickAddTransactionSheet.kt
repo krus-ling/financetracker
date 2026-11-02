@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -69,6 +70,7 @@ fun QuickAddTransactionSheet(
 ) {
     val amountFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var amountText by remember { mutableStateOf("") }
@@ -165,7 +167,7 @@ fun QuickAddTransactionSheet(
         },
         onDismiss = onDismiss,
         onSheetOpened = { amountFocusRequester.requestFocus() }
-    ) {
+    ) { clearFocus ->
         // 1. Селектор типа операции
         TransactionTypeSelector(
             selectedType = selectedType,
@@ -179,7 +181,7 @@ fun QuickAddTransactionSheet(
             isError = amountError,
             errorMessage = "Введите сумму больше нуля",
             focusRequester = amountFocusRequester,
-            onDone = { focusManager.clearFocus(force = true) }
+            onDone = { clearFocus() }
         )
 
         // 3. Сетка категорий (2 ряда по 4 иконки)
@@ -261,9 +263,7 @@ fun QuickAddTransactionSheet(
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(
-                onDone = {
-                    focusManager.clearFocus(force = true)
-                }
+                onDone = { clearFocus() }
             ),
             shape = MaterialTheme.shapes.medium,
             colors = OutlinedTextFieldDefaults.colors(
