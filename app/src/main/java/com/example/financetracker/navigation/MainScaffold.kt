@@ -101,13 +101,14 @@ fun MainScaffold(
             categories = homeUiState.categories,
             accounts = homeUiState.accounts,
             onDismiss = { showQuickAdd = false },
-            onAddClick = { amount, categoryId, accountId, type, note ->
+            onAddClick = { amount, categoryId, accountId, type, note, dateTime ->
                 homeViewModel.addTransaction(
                     amount = amount,
                     categoryId = categoryId,
                     type = type,
                     note = note,
-                    accountId = accountId
+                    accountId = accountId,
+                    dateTime = dateTime
                 )
             }
         )

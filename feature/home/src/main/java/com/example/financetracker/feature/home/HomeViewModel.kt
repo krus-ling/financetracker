@@ -72,7 +72,8 @@ class HomeViewModel(
         categoryId: String?,
         type: TransactionType,
         note: String,
-        accountId: String? = null
+        accountId: String? = null,
+        dateTime: Long = System.currentTimeMillis()
     ) {
         val currentAccounts = uiState.value.accounts
         val selectedAccountId = accountId ?: currentAccounts.firstOrNull()?.id ?: "1"
@@ -84,7 +85,7 @@ class HomeViewModel(
                 categoryId = categoryId ?: "",
                 accountId = selectedAccountId,
                 type = type,
-                dateTime = System.currentTimeMillis(),
+                dateTime = dateTime,
                 note = note.trim()
             )
             transactionRepository.addTransaction(transaction)

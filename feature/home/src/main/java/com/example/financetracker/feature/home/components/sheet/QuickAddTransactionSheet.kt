@@ -1,5 +1,6 @@
 package com.example.financetracker.feature.home.components.sheet
 
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,14 +14,19 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,6 +50,7 @@ import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
 import com.example.financetracker.core.uikit.components.transaction.TransactionTypeSelector
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.PrimaryTint
+import java.util.Calendar
 
 @ExperimentalMaterial3Api
 @Composable
@@ -51,7 +58,14 @@ fun QuickAddTransactionSheet(
     categories: List<Category>,
     accounts: List<Account> = emptyList(),
     onDismiss: () -> Unit,
-    onAddClick: (amount: Double, categoryId: String?, accountId: String, type: TransactionType, note: String) -> Unit
+    onAddClick: (
+        amount: Double,
+        categoryId: String?,
+        accountId: String, type:
+        TransactionType,
+        note: String,
+        dateTime: Long
+    ) -> Unit
 ) {
     val amountFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
@@ -59,6 +73,11 @@ fun QuickAddTransactionSheet(
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var amountText by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
+    var selectedDateTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = selectedDateTime,
+    )
     var selectedCategoryId by remember { mutableStateOf<String?>(null) }
     var selectedAccountId by remember { mutableStateOf<String?>(accounts.firstOrNull()?.id) }
     var submitted by remember { mutableStateOf(false) }
@@ -131,7 +150,14 @@ fun QuickAddTransactionSheet(
             val isCategoryValid = selectedType == TransactionType.INCOME || chosenCategory != null
 
             if (isAmountValid && isCategoryValid && chosenAccount != null) {
-                onAddClick(amount, chosenCategory, chosenAccount, selectedType, note)
+                onAddClick(
+                    amount,
+                    chosenCategory,
+                    chosenAccount,
+                    selectedType,
+                    note,
+                    selectedDateTime
+                )
                 true
             } else {
                 false
@@ -222,14 +248,14 @@ fun QuickAddTransactionSheet(
 
         // 5. Дата и время
         DateTimePickerRow(
-            dateText = "Сегодня, 15:42",
-            onClick = { /* Клик по дате */ }
+            dateTime = selectedDateTime,
+            onClick = { showDatePicker = true }
         )
 
         // 6. Поле заметки
         OutlinedTextField(
             value = note,
-            onValueChange = { note = it },
+            onValueChange = { if (it.length <= 100) note = it },
             label = { Text("Заметка (необязательно)") },
             placeholder = { Text("Например, Лента или такси") },
             singleLine = true,
@@ -247,6 +273,39 @@ fun QuickAddTransactionSheet(
             modifier = Modifier.fillMaxWidth()
         )
     }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { pickerDateMills ->
+                            // Сохраняем выбранную дату, но оставляем текущее время (часы и минуты)
+                            val calendarPicked = Calendar.getInstance().apply { timeInMillis = pickerDateMills }
+                            val currentCalendar = Calendar.getInstance().apply { timeInMillis = selectedDateTime }
+
+                            currentCalendar.set(Calendar.YEAR, calendarPicked.get(Calendar.YEAR))
+                            currentCalendar.set(Calendar.MONTH, calendarPicked.get(Calendar.MONTH))
+                            currentCalendar.set(Calendar.DAY_OF_MONTH, calendarPicked.get(Calendar.DAY_OF_MONTH))
+
+                            selectedDateTime = currentCalendar.timeInMillis
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Отмена")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -258,7 +317,7 @@ private fun QuickAddTransactionSheetLightPreview() {
             categories = emptyList(),
             accounts = emptyList(),
             onDismiss = {},
-            onAddClick = { _, _, _, _, _ -> }
+            onAddClick = { _, _, _, _, _, _ -> }
         )
     }
 }
@@ -276,7 +335,7 @@ private fun QuickAddTransactionSheetDarkPreview() {
             categories = emptyList(),
             accounts = emptyList(),
             onDismiss = {},
-            onAddClick = { _, _, _, _, _ -> }
+            onAddClick = { _, _, _, _, _, _ -> }
         )
     }
 }
