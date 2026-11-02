@@ -61,13 +61,15 @@ fun MainScaffold(
     if (showQuickAdd) {
         QuickAddTransactionSheet(
             categories = homeUiState.categories,
+            accounts = homeUiState.accounts,
             onDismiss = { showQuickAdd = false },
-            onAddClick = { amount, categoryId, type, note ->
+            onAddClick = { amount, categoryId, accountId, type, note ->
                 homeViewModel.addTransaction(
                     amount = amount,
                     categoryId = categoryId,
                     type = type,
-                    note = note
+                    note = note,
+                    accountId = accountId
                 )
             }
         )

@@ -71,17 +71,18 @@ class HomeViewModel(
         amount: Double,
         categoryId: String?,
         type: TransactionType,
-        note: String
+        note: String,
+        accountId: String? = null
     ) {
         val currentAccounts = uiState.value.accounts
-        val primaryAccountId = currentAccounts.firstOrNull()?.id ?: "1"
+        val selectedAccountId = accountId ?: currentAccounts.firstOrNull()?.id ?: "1"
 
         viewModelScope.launch(errorHandler) {
             val transaction = Transaction(
                 id = "0",
                 amount = amount,
                 categoryId = categoryId ?: "",
-                accountId = primaryAccountId,
+                accountId = selectedAccountId,
                 type = type,
                 dateTime = System.currentTimeMillis(),
                 note = note.trim()
