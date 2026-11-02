@@ -170,7 +170,7 @@ fun QuickAddTransactionSheet(
                 columns = GridCells.Fixed(4),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp),
+                    .height(180.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 userScrollEnabled = false

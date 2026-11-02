@@ -66,7 +66,11 @@ abstract class AppDatabase : RoomDatabase() {
                             CategoryEntity(name = "Кафе", type = CategoryType.EXPENSE, iconRes = "restaurant"),
                             CategoryEntity(name = "Транспорт", type = CategoryType.EXPENSE, iconRes = "directions_bus"),
                             CategoryEntity(name = "Зарплата", type = CategoryType.INCOME, iconRes = "work"),
-                            CategoryEntity(name = "Переводы", type = CategoryType.EXPENSE, iconRes = "swap_horiz")
+                            CategoryEntity(name = "Переводы", type = CategoryType.EXPENSE, iconRes = "swap_horiz"),
+                            CategoryEntity(name = "Дом", type = CategoryType.EXPENSE, iconRes = "home"),
+                            CategoryEntity(name = "Развлечения", type = CategoryType.EXPENSE, iconRes = "theater_comedy"),
+                            CategoryEntity(name = "Здоровье", type = CategoryType.EXPENSE, iconRes = "favorite"),
+                            CategoryEntity(name = "Другое", type = CategoryType.EXPENSE, iconRes = "more_horiz")
                         )
                         database.categoryDao().insertAll(defaultCategories)
                     }
