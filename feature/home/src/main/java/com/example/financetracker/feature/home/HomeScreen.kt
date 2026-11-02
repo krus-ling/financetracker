@@ -1,23 +1,23 @@
 package com.example.financetracker.feature.home
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,123 +25,247 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.financetracker.core.model.Account
-import com.example.financetracker.core.model.AccountType
+import com.example.financetracker.core.model.Category
+import com.example.financetracker.core.model.CategoryType
+import com.example.financetracker.core.model.Transaction
+import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.core.uikit.components.account.AddAccountCardItem
+import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
-import java.text.NumberFormat
-import java.util.Locale
+import com.example.financetracker.feature.home.components.sheet.AddAccountBottomSheet
+import com.example.financetracker.feature.home.components.HomeAccountCard
+import com.example.financetracker.feature.home.components.HomeTransactionRow
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel
+    viewModel: HomeViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    var selectedAccountId by remember { mutableStateOf<String?>(null) }
-    val selectedAccount = uiState.accounts.firstOrNull { it.id == selectedAccountId }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    if (selectedAccount != null) {
-        AccountDetailScreen(
-            account = selectedAccount,
-            onBack = { selectedAccountId = null },
-            onSave = viewModel::updateAccount,
-            modifier = modifier
-        )
-    } else if (uiState.isLoading) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else {
-        HomeAccountList(
-            accounts = uiState.accounts,
-            onAccountClick = { selectedAccountId = it },
-            modifier = modifier
-        )
-    }
+    HomeScreenContent(
+        uiState = uiState,
+        onAddAccount = { name, initialBalance ->
+            viewModel.createAccount(name, initialBalance)
+        },
+        onUpdateAccount = { updatedAccount ->
+            viewModel.updateAccount(updatedAccount)
+        },
+        modifier = modifier
+    )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeAccountList(
-    accounts: List<Account>,
-    onAccountClick: (String) -> Unit,
-    modifier: Modifier = Modifier
+fun HomeScreenContent(
+    uiState: HomeUiState,
+    modifier: Modifier = Modifier,
+    onAddAccount: (name: String, initialBalance: Double) -> Unit = { _, _ -> },
+    onUpdateAccount: (Account) -> Unit = {}
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Мои счета",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(4.dp))
+    var showAddAccountSheet by remember { mutableStateOf(false) }
+    var selectedAccountForDetail by remember { mutableStateOf<Account?>(null) }
 
-            if (accounts.isEmpty()) {
-                Text(
-                    text = "Счетов пока нет",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                accounts.forEach { account ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onAccountClick(account.id) },
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    ) {
-                        Column(modifier = Modifier.padding(22.dp)) {
+    val activeDetailAccount = uiState.accounts.find { it.id == selectedAccountForDetail?.id } ?: selectedAccountForDetail
+
+    if (activeDetailAccount != null) {
+        AccountDetailScreen(
+            account = activeDetailAccount,
+            onBack = { selectedAccountForDetail = null },
+            onSave = { updatedAccount ->
+                onUpdateAccount(updatedAccount)
+            },
+            modifier = modifier
+        )
+    } else {
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            uiState.errorMessage != null -> {
+                Box(
+                    modifier = modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = uiState.errorMessage,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(24.dp)
+                    )
+                }
+            }
+
+            else -> {
+                LazyColumn(
+                    modifier = modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 88.dp)
+                ) {
+                    // Общий баланс
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 16.dp)
+                        ) {
                             Text(
-                                text = account.name,
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = formatAccountBalance(account.balance),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = account.type.title,
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "Общий баланс",
+                                style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            AmountText(
+                                amount = uiState.totalBalance,
+                                type = null,
+                                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+
+                    // Карусель счетов
+                    item {
+                        Text(
+                            text = "Мои счета",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                        )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(uiState.accounts, key = { it.id }) { account ->
+                                HomeAccountCard(
+                                    account = account,
+                                    onClick = {
+                                        selectedAccountForDetail = account
+                                    }
+                                )
+                            }
+                            item {
+                                AddAccountCardItem(
+                                    onClick = { showAddAccountSheet = true }
+                                )
+                            }
+                        }
+                    }
+
+                    // Заголовок ленты операций
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Последние операции",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    // Секция ленты операций
+                    when {
+                        uiState.recentTransaction.isEmpty() -> {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 32.dp, horizontal = 20.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Операций пока нет.\nНажмите +, чтобы добавить первую.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+
+                        else -> {
+                            items(uiState.recentTransaction, key = { it.id }) { transaction ->
+                                val account = uiState.accounts.find { it.id == transaction.accountId }
+                                val category = uiState.categories.find { it.id == transaction.categoryId }
+
+                                HomeTransactionRow(
+                                    transaction = transaction,
+                                    category = category,
+                                    account = account,
+                                    onClick = {}
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
-}
 
-private fun formatAccountBalance(balance: Double): String =
-    NumberFormat.getCurrencyInstance(Locale.forLanguageTag("ru-RU")).format(balance)
+    if (showAddAccountSheet) {
+        AddAccountBottomSheet(
+            onDismiss = { showAddAccountSheet = false },
+            onAddClick = { name, initialBalance ->
+                onAddAccount(name, initialBalance)
+            }
+        )
+    }
+}
 
 @Preview(showBackground = true)
 @Composable
 private fun HomeScreenPreview() {
-    val previewAccounts = listOf(
-        Account("1", "Основная карта", 40510.20, type = AccountType.CARD),
-        Account("2", "Наличные", 8200.0, type = AccountType.CASH)
-    )
-
     FinancetrackerTheme {
-        HomeAccountList(
-            accounts = previewAccounts,
-            onAccountClick = {}
+        HomeScreenContent(
+            uiState = HomeUiState(
+                isLoading = false,
+                totalBalance = 45200.0,
+                accounts = listOf(
+                    Account(
+                        id = "1",
+                        name = "Основная карта",
+                        balance = 45200.0,
+                        currency = "RUB"
+                    )
+                ),
+                categories = listOf(
+                    Category(
+                        id = "1",
+                        name = "Продукты",
+                        type = CategoryType.EXPENSE,
+                        iconRes = "shopping_cart",
+                        budgetLimit = 0.0
+                    )
+                ),
+                recentTransaction = listOf(
+                    Transaction(
+                        id = "1",
+                        amount = 2070.0,
+                        categoryId = "1",
+                        accountId = "1",
+                        type = TransactionType.EXPENSE,
+                        dateTime = System.currentTimeMillis(),
+                        note = "Скупил весь магазин"
+                    )
+                )
+            )
         )
     }
 }
