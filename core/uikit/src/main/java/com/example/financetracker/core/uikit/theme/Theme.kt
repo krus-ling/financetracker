@@ -10,16 +10,38 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Primary,
-    secondary = PrimaryStrong,
-    tertiary = PrimarySoft
-)
-
 private val LightColorScheme = lightColorScheme(
     primary = Primary,
-    secondary = PrimaryStrong,
-    tertiary = PrimarySoft
+    onPrimary = OnPrimary,
+    primaryContainer = PrimarySoft,
+    onPrimaryContainer = PrimaryStrong,
+
+    background = SurfaceBgLight,        // фирменный светлый фон экрана
+    onBackground = InkPrimary,          // темный текст на фоне экрана
+
+    surface = SurfaceLight,             // белый фон карточек
+    onSurface = InkPrimary,             // основной текст на карточках
+    onSurfaceVariant = InkSecondary,    // второстепенный текст и подписи
+
+    surfaceVariant = Surface2Light,     // мягкие подложки
+    outline = Line                      // границы
+)
+
+private val DarkColorScheme = darkColorScheme(
+    primary = Primary,
+    onPrimary = OnPrimary,
+    primaryContainer = PrimaryStrong,
+    onPrimaryContainer = PrimarySoft,
+
+    background = SurfaceBgDark,         // глубокий темный фон
+    onBackground = InkPrimaryDark,      // светлый текст на фоне
+
+    surface = SurfaceDark,              // темный фон карточек
+    onSurface = InkPrimaryDark,         // светлый текст карточки
+    onSurfaceVariant = InkSecondaryDark,// приглушенный текст в темноте
+
+    surfaceVariant = Surface2Dark,
+    outline = LineDark
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),
@@ -36,7 +58,7 @@ private val LightColorScheme = lightColorScheme(
 fun FinancetrackerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
