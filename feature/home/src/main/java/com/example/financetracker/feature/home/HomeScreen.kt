@@ -34,10 +34,10 @@ import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
-import com.example.financetracker.feature.home.components.AddAccountBottomSheet
 import com.example.financetracker.core.uikit.components.account.AddAccountCardItem
 import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
+import com.example.financetracker.feature.home.components.sheet.AddAccountBottomSheet
 import com.example.financetracker.feature.home.components.HomeAccountCard
 import com.example.financetracker.feature.home.components.HomeTransactionRow
 import org.koin.androidx.compose.koinViewModel
@@ -54,6 +54,9 @@ fun HomeScreen(
         onAddAccount = { name, initialBalance ->
             viewModel.createAccount(name, initialBalance)
         },
+        onUpdateAccount = { updatedAccount ->
+            viewModel.updateAccount(updatedAccount)
+        },
         modifier = modifier
     )
 }
@@ -63,132 +66,152 @@ fun HomeScreen(
 fun HomeScreenContent(
     uiState: HomeUiState,
     modifier: Modifier = Modifier,
-    onAddAccount: (name: String, initialBalance: Double) -> Unit = { _, _ -> }
+    onAddAccount: (name: String, initialBalance: Double) -> Unit = { _, _ -> },
+    onUpdateAccount: (Account) -> Unit = {}
 ) {
     var showAddAccountSheet by remember { mutableStateOf(false) }
+    var selectedAccountForDetail by remember { mutableStateOf<Account?>(null) }
 
-    when {
-        uiState.isLoading -> {
-            Box(
-                modifier = modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
-        }
+    val activeDetailAccount = uiState.accounts.find { it.id == selectedAccountForDetail?.id } ?: selectedAccountForDetail
 
-        uiState.errorMessage != null -> {
-            Box(
-                modifier = modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = uiState.errorMessage,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(24.dp)
-                )
-            }
-        }
-
-        else -> {
-            LazyColumn(
-                modifier = modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 88.dp)
-            ) {
-                // Общий баланс
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 16.dp)
-                    ) {
-                        Text(
-                            text = "Общий баланс",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        AmountText(
-                            amount = uiState.totalBalance,
-                            type = null,
-                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
+    if (activeDetailAccount != null) {
+        AccountDetailScreen(
+            account = activeDetailAccount,
+            onBack = { selectedAccountForDetail = null },
+            onSave = { updatedAccount ->
+                onUpdateAccount(updatedAccount)
+            },
+            modifier = modifier
+        )
+    } else {
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
+            }
 
-                // Карусель счетов
-                item {
+            uiState.errorMessage != null -> {
+                Box(
+                    modifier = modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = "Мои счета",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                        text = uiState.errorMessage,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(24.dp)
                     )
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(uiState.accounts, key = { it.id }) { account ->
-                            HomeAccountCard(account = account, onClick = {})
-                        }
-                        item {
-                            AddAccountCardItem(
-                                onClick = { showAddAccountSheet = true }
+                }
+            }
+
+            else -> {
+                LazyColumn(
+                    modifier = modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 88.dp)
+                ) {
+                    // Общий баланс
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 16.dp)
+                        ) {
+                            Text(
+                                text = "Общий баланс",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            AmountText(
+                                amount = uiState.totalBalance,
+                                type = null,
+                                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
-                }
 
-                // Заголовок ленты операций
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    // Карусель счетов
+                    item {
                         Text(
-                            text = "Последние операции",
+                            text = "Мои счета",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                         )
-                    }
-                }
-
-                // Секция ленты операций
-                when {
-                    uiState.recentTransaction.isEmpty() -> {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 32.dp, horizontal = 20.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "Операций пока нет.\nНажмите +, чтобы добавить первую.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(uiState.accounts, key = { it.id }) { account ->
+                                HomeAccountCard(
+                                    account = account,
+                                    onClick = {
+                                        selectedAccountForDetail = account
+                                    }
+                                )
+                            }
+                            item {
+                                AddAccountCardItem(
+                                    onClick = { showAddAccountSheet = true }
                                 )
                             }
                         }
                     }
 
-                    else -> {
-                        items(uiState.recentTransaction, key = { it.id }) { transaction ->
-                            val account = uiState.accounts.find { it.id == transaction.accountId }
-                            val category = uiState.categories.find { it.id == transaction.categoryId }
-
-                            HomeTransactionRow(
-                                transaction = transaction,
-                                category = category,
-                                account = account,
-                                onClick = {}
+                    // Заголовок ленты операций
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Последние операции",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
                             )
+                        }
+                    }
+
+                    // Секция ленты операций
+                    when {
+                        uiState.recentTransaction.isEmpty() -> {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 32.dp, horizontal = 20.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Операций пока нет.\nНажмите +, чтобы добавить первую.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+
+                        else -> {
+                            items(uiState.recentTransaction, key = { it.id }) { transaction ->
+                                val account = uiState.accounts.find { it.id == transaction.accountId }
+                                val category = uiState.categories.find { it.id == transaction.categoryId }
+
+                                HomeTransactionRow(
+                                    transaction = transaction,
+                                    category = category,
+                                    account = account,
+                                    onClick = {}
+                                )
+                            }
                         }
                     }
                 }

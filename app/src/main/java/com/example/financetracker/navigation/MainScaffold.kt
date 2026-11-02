@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.financetracker.feature.home.components.QuickAddTransactionSheet
+import com.example.financetracker.feature.home.components.sheet.QuickAddTransactionSheet
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.HomeScreen
 import com.example.financetracker.feature.home.HomeViewModel
