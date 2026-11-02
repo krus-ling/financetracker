@@ -77,6 +77,10 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
 
+    implementation(project(":core:model"))
+    implementation(project(":feature:home"))
+    implementation(project(":core:uikit"))
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
