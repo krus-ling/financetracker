@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.isImeVisible
@@ -45,6 +46,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.financetracker.core.uikit.components.button.AppPrimaryButton
+import com.example.financetracker.core.uikit.components.button.AppSecondaryButton
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -221,32 +224,40 @@ fun AppFormBottomSheet(
             // Контент формы
             content(clearAllFocus)
 
-            // Основная кнопка действия
-            if (primaryButtonText != null) {
-                Button(
-                    onClick = {
-                        clearAllFocus()
-                        val shouldDismiss = onPrimaryClick?.invoke() ?: true
-                        if (shouldDismiss) {
-                            animateDismiss(null)
-                        }
-                    },
-                    enabled = isPrimaryEnabled,
-                    modifier = Modifier.fillMaxWidth()
+            // Подвал шторки: кнопки «Назад» и действия
+            val hasCancel = cancelButtonText != null
+            val hasPrimary = primaryButtonText != null
+            if (hasCancel || hasPrimary) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(primaryButtonText)
-                }
-            }
+                    // Кнопка отмены
+                    if (hasCancel) {
+                        AppSecondaryButton(
+                            text = cancelButtonText,
+                            onClick = { animateDismiss(null) },
+                            modifier = if (hasPrimary) Modifier.weight(1f) else Modifier.fillMaxWidth()
+                        )
+                    }
 
-            // Кнопка отмены
-            if (cancelButtonText != null) {
-                TextButton(
-                    onClick = {
-                        animateDismiss(null)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(cancelButtonText)
+                    // Кнопка действия
+                    if (hasPrimary) {
+                        AppPrimaryButton(
+                            text = primaryButtonText,
+                            onClick = {
+                                clearAllFocus()
+                                val shouldDismiss = onPrimaryClick?.invoke() ?: true
+                                if (shouldDismiss) {
+                                    animateDismiss(null)
+                                }
+                            },
+                            enabled = isPrimaryEnabled,
+                            modifier = if (hasCancel) Modifier.weight(1.3f) else Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
