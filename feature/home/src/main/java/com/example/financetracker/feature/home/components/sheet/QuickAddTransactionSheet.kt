@@ -2,7 +2,6 @@ package com.example.financetracker.feature.home.components.sheet
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyRow
@@ -15,8 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -29,9 +26,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.Account
@@ -44,10 +41,9 @@ import com.example.financetracker.core.uikit.components.category.getCategoryIcon
 import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.input.DateTimePickerRow
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
+import com.example.financetracker.core.uikit.components.transaction.TransactionTypeSelector
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
-import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
-import androidx.compose.ui.graphics.Color
 
 @ExperimentalMaterial3Api
 @Composable
@@ -145,43 +141,10 @@ fun QuickAddTransactionSheet(
         onSheetOpened = { amountFocusRequester.requestFocus() }
     ) {
         // 1. Селектор типа операции
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf(
-                TransactionType.EXPENSE to "Расход",
-                TransactionType.INCOME to "Доход",
-                TransactionType.TRANSFER to "Перевод"
-            ).forEach { (type, label) ->
-                FilterChip(
-                    selected = selectedType == type,
-                    onClick = {
-                        selectedType = type
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PrimaryTint,
-                        selectedLabelColor = Primary,
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = selectedType == type,
-                        borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                        selectedBorderColor = Primary
-                    ),
-                    label = {
-                        Text(
-                            text = label,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
+        TransactionTypeSelector(
+            selectedType = selectedType,
+            onTypeSelected = { selectedType = it }
+        )
 
         // 2. Поле ввода суммы
         AmountInputField(
