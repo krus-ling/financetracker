@@ -1,5 +1,6 @@
 package com.example.financetracker.feature.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,17 +43,16 @@ fun AccountDetailScreen(
     account: Account,
     onBack: () -> Unit,
     onSave: (Account) -> Unit,
-    modifier: Modifier = Modifier
 ) {
     var editing by remember { mutableStateOf(false) }
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(innerPadding)
                 .padding(horizontal = 20.dp)
         ) {
             Row(
