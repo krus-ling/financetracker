@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+//import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,19 +36,22 @@ fun CategoryIconChip(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .width(62.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(CircleShape)
+            //.clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 2.dp, horizontal = 2.dp)
     ) {
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
+                //.clip(RoundedCornerShape(12.dp))
+                .clip(CircleShape)
                 .then(
                     if (isSelected) {
                         Modifier.border(
                             width = 2.dp,
                             color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(12.dp)
+                            //shape = RoundedCornerShape(12.dp)
+                            shape = CircleShape
                         )
                     } else Modifier
                 )
@@ -55,9 +59,15 @@ fun CategoryIconChip(
         ) {
             CategoryIcon(
                 icon = icon,
-                backgroundColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else PrimaryTint,
+                //backgroundColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else PrimaryTint,
+                // Меняем цвета в зависимости от того, выбрана ли категория
+                backgroundColor = if (isSelected) {
+                    Primary.copy(alpha = 0.3f) // Делаем кружок заметным и контрастным при выборе
+                } else {
+                    PrimaryTint
+                },
                 iconTint = if (isSelected) MaterialTheme.colorScheme.primary else Primary,
-                size = 36.dp
+                size = 40.dp //сделала больше вместо 36
             )
         }
         Spacer(modifier = Modifier.height(2.dp))

@@ -10,6 +10,10 @@ import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.TheaterComedy
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,6 +36,10 @@ fun getCategoryIcon(iconRes: String?): ImageVector = when (iconRes) {
     "directions_bus" -> Icons.Default.DirectionsBus
     "work" -> Icons.Default.Work
     "swap_horiz" -> Icons.Default.SwapHoriz
+    "home" -> Icons.Default.Home                      // Иконка для Дома
+    "theater_comedy", "entertainment" -> Icons.Default.TheaterComedy // Для развлечений / досуга
+    "favorite", "health" -> Icons.Default.Favorite    // Сердечко для Здоровья
+    "more_horiz", "other" -> Icons.Default.MoreHoriz  // Для Другого
     else -> Icons.Default.ShoppingCart
 }
 

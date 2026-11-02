@@ -30,6 +30,7 @@ import com.example.financetracker.core.uikit.theme.PrimaryTint
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
+import androidx.compose.foundation.BorderStroke
 
 private val RuAccountSymbols = DecimalFormatSymbols(Locale.forLanguageTag("ru")).apply {
     groupingSeparator = ' ' // разделять тысячи пробелом
@@ -45,7 +46,9 @@ fun AccountCardItem(
     balance: Double, // Числовое значение баланса
     accountIcon: ImageVector, // Иконка, которая будет отображаться в левом верхнем углу карточки
     modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
     containerColor: Color = MaterialTheme.colorScheme.surface, // Цвет фона самой карточки
+    contentColor: Color? = null, // параметр для цвета текста
     onClick: () -> Unit // Функция обратного вызова
 ) {
     // Оформление чисел по шаблону: если после запятой "00", скрываем их
@@ -59,6 +62,10 @@ fun AccountCardItem(
         }
     }
 
+    // Если цвет текста не передан явно, берем стандартный из темы
+    val resolvedTitleColor = contentColor ?: MaterialTheme.colorScheme.onSurfaceVariant
+    val resolvedBalanceColor = contentColor ?: MaterialTheme.colorScheme.onSurface
+
     Card(
         onClick = onClick, // делает интерактивной
         modifier = modifier
@@ -66,6 +73,13 @@ fun AccountCardItem(
             .height(100.dp),
         shape = RoundedCornerShape(16.dp), // скругление углов
         colors = CardDefaults.cardColors(containerColor = containerColor), // цвет фона
+        // Добавляем обводку (рамку), если карточка выбрана
+        border = if (isSelected) {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        } else {
+            // Если не выбрана, можно сделать тонкую  рамку
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        }
     ) {
         Column(
             modifier = Modifier
@@ -73,10 +87,16 @@ fun AccountCardItem(
                 .padding(12.dp),
             verticalArrangement = Arrangement.SpaceBetween // распределить расстояние между 1 и последним компонентом
         ) {
+            // Делаем фон иконки темнее/насыщеннее, если карточка выбрана, чтобы она не сливалась
+            val iconBgColor = if (isSelected) {
+                Primary.copy(alpha = 0.2f) // зелёный оттенок для выбранной карточки
+            } else {
+                PrimaryTint
+            }
             // Иконка в левом верхнем углу
             CategoryIcon(
                 icon = accountIcon,
-                backgroundColor = PrimaryTint,
+                backgroundColor = iconBgColor,
                 iconTint = Primary, // цвет иконки
                 size = 32.dp
             )
@@ -88,7 +108,7 @@ fun AccountCardItem(
                     text = title,
                     style = TextStyle(
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = resolvedTitleColor, // Применяем цвет
                         fontWeight = FontWeight.Normal // без жирности
                     ),
                     maxLines = 1 // текст занимает не больше 1 строки
@@ -98,7 +118,7 @@ fun AccountCardItem(
                     style = TextStyle(
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold, // жирный
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = resolvedBalanceColor // Применяем цвет
                     ),
                     maxLines = 1
                 )
