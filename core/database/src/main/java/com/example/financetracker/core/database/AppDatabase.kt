@@ -51,9 +51,7 @@ abstract class AppDatabase : RoomDatabase() {
         )
 
         fun buildDatabase(context: Context): AppDatabase {
-            lateinit var database: AppDatabase
-
-            val callback = object : RoomDatabase.Callback() {
+            val callback = object : Callback() {
                 override fun onOpen(connection: SQLiteConnection) {
                     super.onOpen(connection)
                     // Включаем поддержку внешних ключей в SQLite, чтобы работал каскадный onDelete (CASCADE)
@@ -63,21 +61,14 @@ abstract class AppDatabase : RoomDatabase() {
                 override fun onCreate(connection: SQLiteConnection) {
                     super.onCreate(connection)
 
-                    // Заполняем базу данными в фоновом потоке
-                    CoroutineScope(Dispatchers.IO).launch {
-                        // Стартовый счет
-                        database.accountDao().insertAccount(
-                            AccountEntity(
-                                name = "Основная карта",
-                                balance = 0.0,
-                            )
-                        )
-                        database.categoryDao().insertAll(defaultCategories)
-                    }
+                    // Прямой SQL без гонки потоков, корутин и опасного lateinit
+                    connection.execSQL(
+                        "INSERT INTO accounts (name, balance, currency, colorHex) VALUES ('Основная карта', 0.0, 'RUB', '#0F5C4A');"
+                    )
                 }
             }
 
-            database = Room.databaseBuilder(
+            return Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,
                 DATABASE_NAME
@@ -85,8 +76,6 @@ abstract class AppDatabase : RoomDatabase() {
                 .fallbackToDestructiveMigration(true)
                 .addCallback(callback)
                 .build()
-
-            return database
         }
     }
 }
