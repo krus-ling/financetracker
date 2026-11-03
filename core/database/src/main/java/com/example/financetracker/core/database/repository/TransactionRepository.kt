@@ -1,5 +1,7 @@
 package com.example.financetracker.core.database.repository
 
+import androidx.room.withTransaction
+import com.example.financetracker.core.database.AppDatabase
 import com.example.financetracker.core.database.dao.AccountDao
 import com.example.financetracker.core.database.dao.TransactionDao
 import com.example.financetracker.core.database.mapper.toDomain
@@ -10,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class TransactionRepository(
+    private val appDatabase: AppDatabase,
     private val transactionDao: TransactionDao,
     private val accountDao: AccountDao
 ) {
@@ -19,13 +22,13 @@ class TransactionRepository(
         }
     }
 
-    suspend fun addTransaction(transaction: Transaction): Long {
+    suspend fun addTransaction(transaction: Transaction): Long = appDatabase.withTransaction {
         val entity = transaction.toEntity()
 
-        // Сначала сохраняем запись транзакции в базу
+        // 1. Сохраняем операцию
         val insertedId = transactionDao.insertTransaction(entity)
 
-        // Только если запись успешно сохранилась — корректируем балансы счетов
+        // 2. Обновляем балансы счетов
         when (transaction.type) {
             TransactionType.EXPENSE -> {
                 accountDao.updateBalance(entity.accountId, -transaction.amount)
@@ -43,6 +46,6 @@ class TransactionRepository(
             }
         }
 
-        return insertedId
+        insertedId
     }
 }

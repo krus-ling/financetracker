@@ -18,6 +18,6 @@ val databaseModule = module {
 
     // Репозитории
     single { AccountRepository(accountDao = get()) }
-    single { TransactionRepository(transactionDao = get(), accountDao = get()) }
+    single { TransactionRepository(appDatabase = get(), transactionDao = get(), accountDao = get()) }
     single { CategoryRepository(categoryDao = get()) }
 }
