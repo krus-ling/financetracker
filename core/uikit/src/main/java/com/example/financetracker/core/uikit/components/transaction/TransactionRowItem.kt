@@ -38,7 +38,6 @@ fun TransactionRowItem(
     categoryDetails: String, // второстепенный текст
     amount: Double, // сумма
     type: TransactionType, // тип транзакции
-    time: String, // время
     categoryIcon: ImageVector, // иконка
     onClick: () -> Unit, // функцию обратного вызова при клике
     modifier: Modifier = Modifier,
@@ -90,27 +89,15 @@ fun TransactionRowItem(
             )
         }
 
-        // Справа: колонка с суммой и временем
-        Column(
-            horizontalAlignment = Alignment.End, //выравнивание по горизонтали вправо
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            AmountText(
-                amount = amount,
-                type = type,
-                style = TextStyle(
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
+        // Справа: колонка с суммой
+        AmountText(
+            amount = amount,
+            type = type,
+            style = TextStyle(
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
             )
-            Text(
-                text = time,
-                style = TextStyle(
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            )
-        }
+        )
     }
 }
 
@@ -123,7 +110,6 @@ fun TransactionRowItemLightPreview() {
             categoryDetails = "Лента · Основная карта",
             amount = -2070.00,
             type = TransactionType.EXPENSE,
-            time = "11:20",
             categoryIcon = Icons.Default.ShoppingCart,
             onClick = {},
         )
@@ -139,7 +125,6 @@ fun TransactionRowItemDarkPreview() {
             categoryDetails = "Лента · Основная карта",
             amount = -2070.00,
             type = TransactionType.INCOME,
-            time = "11:20",
             categoryIcon = Icons.Default.ShoppingCart,
             onClick = {},
         )
@@ -155,7 +140,6 @@ fun TransactionRowItemDark2Preview() {
             categoryDetails = "Лента · Основная карта",
             amount = -2070.00,
             type = TransactionType.TRANSFER,
-            time = "11:20",
             categoryIcon = Icons.Default.ShoppingCart,
             onClick = {},
         )

@@ -2,6 +2,7 @@ package com.example.financetracker.feature.home
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -39,10 +43,12 @@ import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AddAccountCardItem
 import com.example.financetracker.core.uikit.components.text.AmountText
+import com.example.financetracker.core.uikit.components.text.DateHeader
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.components.sheet.AddAccountBottomSheet
 import com.example.financetracker.feature.home.components.HomeAccountCard
 import com.example.financetracker.feature.home.components.HomeTransactionRow
+import com.example.financetracker.feature.home.util.groupTransactionByDay
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -72,7 +78,9 @@ fun HomeScreenContent(
     onAccountClick: (String) -> Unit = {}
 ) {
     var showAddAccountSheet by remember { mutableStateOf(false) }
-
+    val groupedDays = remember(uiState.recentTransaction) {
+        groupTransactionByDay(uiState.recentTransaction)
+    }
 
     when {
         uiState.isLoading -> {
@@ -167,6 +175,15 @@ fun HomeScreenContent(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
+                        Text(
+                            text = "Все операции",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.clickable {
+                                // TODO переход на полный экран истории
+                            }
+                        )
                     }
                 }
 
@@ -191,16 +208,43 @@ fun HomeScreenContent(
                     }
 
                     else -> {
-                        items(uiState.recentTransaction, key = { it.id }) { transaction ->
-                            val account = uiState.accounts.find { it.id == transaction.accountId }
-                            val category = uiState.categories.find { it.id == transaction.categoryId }
+                        groupedDays.forEach { dayGroup ->
+                            // Заголовок дня и сводка доходов/расходов
+                            item(key = "header_${dayGroup.dateTitle}") {
+                                DateHeader(
+                                    title = dayGroup.dateTitle,
+                                    dailyTotal = dayGroup.dailyTotal
+                                )
+                            }
 
-                            HomeTransactionRow(
-                                transaction = transaction,
-                                category = category,
-                                account = account,
-                                onClick = {}
-                            )
+                            // Белая карточка с операциями за этот день
+                            item(key = "card_${dayGroup.dateTitle}") {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surface
+                                    )
+                                ) {
+                                    Column {
+                                        dayGroup.transactions.forEach { transaction ->
+                                            val account = uiState.accounts.find { it.id == transaction.accountId }
+                                            val category = uiState.categories.find { it.id == transaction.categoryId }
+
+                                            HomeTransactionRow(
+                                                transaction = transaction,
+                                                category = category,
+                                                account = account,
+                                                onClick = {
+                                                    // TODO клик по операции
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

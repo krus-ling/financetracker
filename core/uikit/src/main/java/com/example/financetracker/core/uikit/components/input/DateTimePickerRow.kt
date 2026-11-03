@@ -33,7 +33,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Универсальный компонент строки для выбора даты и времени.
+ * Универсальный компонент строки для выбора даты.
  * Отображает иконку календаря, подпись, текущее значение и стрелочку перехода.
  */
 @Composable
@@ -41,7 +41,7 @@ fun DateTimePickerRow(
     dateTime: Long,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Дата и время"
+    label: String = "Дата"
 ) {
     val dateText = remember(dateTime) {
         formatDateTime(dateTime)
@@ -90,25 +90,27 @@ fun DateTimePickerRow(
 }
 
 /**
- * Преобразует миллисекунды в понятную строку: «Сегодня, 14:20», «Вчера, 18:00» или «2 ноября, 15:30».
+ * Преобразует миллисекунды в понятную строку: «Сегодня», «Вчера» или «2 ноября».
  */
 private fun formatDateTime(timestamp: Long): String {
     val now = Calendar.getInstance()
     val target = Calendar.getInstance().apply { timeInMillis = timestamp }
-    val timeFormat = SimpleDateFormat("HH:mm", Locale.forLanguageTag("ru"))
-    val timeString = timeFormat.format(Date(timestamp))
     return when {
         now.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
                 now.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR) -> {
-            "Сегодня, $timeString"
+            "Сегодня"
         }
         now.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
                 now.get(Calendar.DAY_OF_YEAR) - target.get(Calendar.DAY_OF_YEAR) == 1 -> {
-            "Вчера, $timeString"
+            "Вчера"
+        }
+        now.get(Calendar.YEAR) == target.get(Calendar.YEAR) -> {
+            val format = SimpleDateFormat("d MMMM", Locale.forLanguageTag("ru"))
+            format.format(Date(timestamp))
         }
         else -> {
-            val fullFormat = SimpleDateFormat("d MMMM, HH:mm", Locale.forLanguageTag("ru"))
-            fullFormat.format(Date(timestamp))
+            val formatedWithYear = SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("ru"))
+            formatedWithYear.format(Date(timestamp))
         }
     }
 }

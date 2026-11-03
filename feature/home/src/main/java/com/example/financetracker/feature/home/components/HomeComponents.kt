@@ -43,7 +43,6 @@ fun HomeTransactionRow(
 ) {
     val accountName = account?.name ?: "Основная карта"
     val note = transaction.note?.trim()
-    val formattedTime = SimpleDateFormat("HH:mm", LocalLocale.current.platformLocale).format(Date(transaction.dateTime))
 
     val title: String
     val subtitle: String
@@ -84,7 +83,6 @@ fun HomeTransactionRow(
         categoryDetails = subtitle,
         amount = transaction.amount,
         type = transaction.type,
-        time = formattedTime,
         categoryIcon = icon,
         onClick = onClick,
         modifier = modifier
