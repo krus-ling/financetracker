@@ -51,6 +51,7 @@ fun TransactionEntity.toDomain(): Transaction {
         amount = amount,
         categoryId = categoryId?.toString() ?: "",
         accountId = accountId.toString(),
+        targetAccountId = targetAccountId?.toString(),
         type = type,
         dateTime = dateTime,
         note = note
@@ -63,6 +64,7 @@ fun Transaction.toEntity(): TransactionEntity {
         amount = amount,
         categoryId = categoryId.toLongOrNull(),
         accountId = accountId.toLongOrNull() ?: 0L,
+        targetAccountId = targetAccountId?.toLongOrNull(),
         type = type,
         dateTime = dateTime,
         note = note

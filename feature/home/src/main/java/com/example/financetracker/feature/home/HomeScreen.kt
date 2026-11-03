@@ -1,7 +1,5 @@
 package com.example.financetracker.feature.home
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,9 +43,9 @@ import com.example.financetracker.core.uikit.components.account.AddAccountCardIt
 import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.components.text.DateHeader
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
-import com.example.financetracker.feature.home.components.sheet.AddAccountBottomSheet
 import com.example.financetracker.feature.home.components.HomeAccountCard
 import com.example.financetracker.feature.home.components.HomeTransactionRow
+import com.example.financetracker.feature.home.components.sheet.AddAccountBottomSheet
 import com.example.financetracker.feature.home.util.groupTransactionByDay
 import org.koin.androidx.compose.koinViewModel
 
@@ -65,6 +63,7 @@ fun HomeScreen(
             viewModel.createAccount(name, initialBalance)
         },
         onAccountClick = onAccountClick,
+        onClearError = { viewModel.clearError() },
         modifier = modifier
     )
 }
@@ -75,7 +74,8 @@ fun HomeScreenContent(
     uiState: HomeUiState,
     modifier: Modifier = Modifier,
     onAddAccount: (name: String, initialBalance: Double) -> Unit = { _, _ -> },
-    onAccountClick: (String) -> Unit = {}
+    onAccountClick: (String) -> Unit = {},
+    onClearError: () -> Unit = {}
 ) {
     var showAddAccountSheet by remember { mutableStateOf(false) }
     val groupedDays = remember(uiState.recentTransaction) {
@@ -94,16 +94,25 @@ fun HomeScreenContent(
 
         uiState.errorMessage != null -> {
             Box(
-                modifier = modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = uiState.errorMessage,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.padding(24.dp)
-                )
+                ) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                    Button(
+                        onClick = onClearError
+                    ) {
+                        Text("Понятно")
+                    }
+                }
             }
         }
 
@@ -232,11 +241,13 @@ fun HomeScreenContent(
                                         dayGroup.transactions.forEach { transaction ->
                                             val account = uiState.accounts.find { it.id == transaction.accountId }
                                             val category = uiState.categories.find { it.id == transaction.categoryId }
+                                            val targetAccount = uiState.accounts.find { it.id == transaction.targetAccountId }
 
                                             HomeTransactionRow(
                                                 transaction = transaction,
                                                 category = category,
                                                 account = account,
+                                                targetAccount = targetAccount,
                                                 onClick = {
                                                     // TODO клик по операции
                                                 }

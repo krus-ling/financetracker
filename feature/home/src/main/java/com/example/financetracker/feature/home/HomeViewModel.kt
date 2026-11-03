@@ -63,6 +63,12 @@ class HomeViewModel(
         initialValue = HomeUiState(isLoading = true)
     )
 
+    init {
+        viewModelScope.launch(errorHandler) {
+            categoryRepository.checkAndSeedDefaultCategories()
+        }
+    }
+
     fun clearError() {
         _errorState.value = null
     }
@@ -73,6 +79,7 @@ class HomeViewModel(
         type: TransactionType,
         note: String,
         accountId: String? = null,
+        targetAccountId: String? = null,
         dateTime: Long = System.currentTimeMillis()
     ) {
         val currentAccounts = uiState.value.accounts
@@ -82,8 +89,9 @@ class HomeViewModel(
             val transaction = Transaction(
                 id = "0",
                 amount = amount,
-                categoryId = categoryId ?: "",
+                categoryId = if (type == TransactionType.TRANSFER) "" else (categoryId ?: ""),
                 accountId = selectedAccountId,
+                targetAccountId = targetAccountId,
                 type = type,
                 dateTime = dateTime,
                 note = note.trim()

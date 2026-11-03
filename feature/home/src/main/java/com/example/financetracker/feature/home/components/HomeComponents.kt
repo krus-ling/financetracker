@@ -38,10 +38,12 @@ fun HomeTransactionRow(
     transaction: Transaction,
     category: Category?,
     account: Account?,
+    targetAccount: Account? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val accountName = account?.name ?: "Основная карта"
+    val targetAccountName = targetAccount?.name
     val note = transaction.note?.trim()
 
     val title: String
@@ -72,8 +74,13 @@ fun HomeTransactionRow(
         }
 
         TransactionType.TRANSFER -> {
-            title = category?.name ?: "Перевод"
-            subtitle = if (!note.isNullOrEmpty()) "$accountName · $note" else accountName
+            title = "Перевод"
+            val transferRoute = if (!targetAccountName.isNullOrEmpty()) {
+                "$accountName -> $targetAccountName"
+            } else {
+                accountName
+            }
+            subtitle = if (!note.isNullOrEmpty()) "$transferRoute · $note" else transferRoute
             icon = Icons.Default.SwapHoriz
         }
     }

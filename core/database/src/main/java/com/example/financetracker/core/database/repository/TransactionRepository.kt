@@ -22,14 +22,27 @@ class TransactionRepository(
     suspend fun addTransaction(transaction: Transaction): Long {
         val entity = transaction.toEntity()
 
-        // Корректируем баланс счёта в зависимости от типа операции
-        val delta = when(transaction.type) {
-            TransactionType.EXPENSE -> -transaction.amount
-            TransactionType.INCOME -> transaction.amount
-            TransactionType.TRANSFER -> -transaction.amount
-        }
-        accountDao.updateBalance(entity.accountId, delta)
+        // Сначала сохраняем запись транзакции в базу
+        val insertedId = transactionDao.insertTransaction(entity)
 
-        return transactionDao.insertTransaction(entity)
+        // Только если запись успешно сохранилась — корректируем балансы счетов
+        when (transaction.type) {
+            TransactionType.EXPENSE -> {
+                accountDao.updateBalance(entity.accountId, -transaction.amount)
+            }
+            TransactionType.INCOME -> {
+                accountDao.updateBalance(entity.accountId, transaction.amount)
+            }
+            TransactionType.TRANSFER -> {
+                // Списываем со счёта списания
+                accountDao.updateBalance(entity.accountId, -transaction.amount)
+                // Зачисляем на целевой счёт
+                entity.targetAccountId?.let { targetId ->
+                    accountDao.updateBalance(targetId, transaction.amount)
+                }
+            }
+        }
+
+        return insertedId
     }
 }

@@ -25,6 +25,7 @@ import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.AccountDetailScreen
 import com.example.financetracker.feature.home.HomeScreen
 import com.example.financetracker.feature.home.HomeViewModel
+import com.example.financetracker.feature.home.components.sheet.AddAccountBottomSheet
 import com.example.financetracker.placeholder.AnalyticsPlaceholderScreen
 import com.example.financetracker.placeholder.ProfilePlaceholderScreen
 import org.koin.androidx.compose.koinViewModel
@@ -36,6 +37,7 @@ fun MainScaffold(
 ) {
     var currentTab by rememberSaveable { mutableStateOf(NavTab.HOME) }
     var showQuickAdd by remember { mutableStateOf(false) }
+    var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
     var selectedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     val account = homeUiState.accounts.find { it.id == selectedAccountId }
@@ -101,15 +103,36 @@ fun MainScaffold(
             categories = homeUiState.categories,
             accounts = homeUiState.accounts,
             onDismiss = { showQuickAdd = false },
-            onAddClick = { amount, categoryId, accountId, type, note, dateTime ->
+            onAddNewAccount = {
+                showQuickAdd = false
+                showAddAccountSheet = true
+            },
+            onAddClick = { amount, categoryId, accountId, targetAccountId, type, note, dateTime ->
                 homeViewModel.addTransaction(
                     amount = amount,
                     categoryId = categoryId,
                     type = type,
                     note = note,
                     accountId = accountId,
+                    targetAccountId = targetAccountId,
                     dateTime = dateTime
                 )
+            }
+        )
+    }
+
+    if (showAddAccountSheet) {
+        AddAccountBottomSheet(
+            onDismiss = {
+                showAddAccountSheet = false
+                // При закрытии возвращаем шторку операции назад
+                showQuickAdd = true
+            },
+            onAddClick = { name, initialBalance ->
+                homeViewModel.createAccount(name, initialBalance)
+                showAddAccountSheet = false
+                // После успешного создания возвращаем шторку операции
+                showQuickAdd = true
             }
         )
     }

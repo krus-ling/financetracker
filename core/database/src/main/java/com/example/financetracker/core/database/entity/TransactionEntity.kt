@@ -22,17 +22,25 @@ import com.example.financetracker.core.model.TransactionType
             childColumns = ["categoryId"],
             // Удалили категорию - в операции остаётся null
             onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["targetAccountId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
     indices = [
         Index("accountId"),
-        Index("categoryId")
+        Index("categoryId"),
+        Index("targetAccountId")
     ]
 )
 data class TransactionEntity (
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val accountId: Long,
+    val targetAccountId: Long? = null,
     val categoryId: Long?,
     val amount: Double,
     val type: TransactionType,

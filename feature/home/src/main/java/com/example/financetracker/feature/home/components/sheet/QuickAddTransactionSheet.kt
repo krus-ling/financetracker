@@ -43,6 +43,7 @@ import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountCardItem
+import com.example.financetracker.core.uikit.components.account.AddAccountCardItem
 import com.example.financetracker.core.uikit.components.category.CategoryIconChip
 import com.example.financetracker.core.uikit.components.category.getCategoryIcon
 import com.example.financetracker.core.uikit.components.input.AmountInputField
@@ -59,18 +60,18 @@ fun QuickAddTransactionSheet(
     categories: List<Category>,
     accounts: List<Account> = emptyList(),
     onDismiss: () -> Unit,
+    onAddNewAccount: () -> Unit,
     onAddClick: (
         amount: Double,
         categoryId: String?,
-        accountId: String, type:
-        TransactionType,
+        accountId: String,
+        targetAccountId: String?,
+        type: TransactionType,
         note: String,
         dateTime: Long
     ) -> Unit
 ) {
     val amountFocusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
 
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var amountText by remember { mutableStateOf("") }
@@ -81,40 +82,34 @@ fun QuickAddTransactionSheet(
         initialSelectedDateMillis = selectedDateTime,
     )
     var selectedCategoryId by remember { mutableStateOf<String?>(null) }
-    var selectedAccountId by remember { mutableStateOf<String?>(accounts.firstOrNull()?.id) }
     var submitted by remember { mutableStateOf(false) }
 
-    // Резервный список счетов
-    val fallbackAccounts = remember {
-        listOf(
-            Account(id = "1", name = "Основная карта", balance = 43965.72, currency = "RUB"),
-            Account(id = "2", name = "наличные", balance = 5000.0, currency = "RUB")
-        )
-    }
-    val actualAccounts = accounts.ifEmpty { fallbackAccounts }
+    var selectedAccountId by remember { mutableStateOf<String?>(accounts.firstOrNull()?.id) }
+    var selectedTargetAccountId by remember { mutableStateOf<String?>(accounts.getOrNull(1)?.id) }
 
-    LaunchedEffect(actualAccounts) {
-        if (selectedAccountId == null) {
-            selectedAccountId = actualAccounts.firstOrNull()?.id
+    // Список счетов для зачисления: исключая счет выбранный в "откуда"
+    val targetAccounts = remember(accounts, selectedAccountId) {
+        accounts.filter { it.id != selectedAccountId }
+    }
+
+    // Инициализация при изменении списка счетов
+    LaunchedEffect(accounts) {
+        if (selectedAccountId == null || accounts.none { it.id == selectedAccountId }) {
+            selectedAccountId = accounts.firstOrNull()?.id
+        }
+        if (selectedTargetAccountId == null || targetAccounts.none { it.id == selectedTargetAccountId }) {
+            selectedTargetAccountId = targetAccounts.firstOrNull()?.id
         }
     }
 
-    val fallbackCategories = remember {
-        listOf(
-            Category(id = "1", name = "Продукты", type = CategoryType.EXPENSE, iconRes = "shopping_cart", budgetLimit = null),
-            Category(id = "2", name = "Кафе", type = CategoryType.EXPENSE, iconRes = "restaurant", budgetLimit = null),
-            Category(id = "3", name = "Транспорт", type = CategoryType.EXPENSE, iconRes = "directions_bus", budgetLimit = null),
-            Category(id = "4", name = "Переводы", type = CategoryType.EXPENSE, iconRes = "swap_horiz", budgetLimit = null),
-            Category(id = "5", name = "Дом", type = CategoryType.EXPENSE, iconRes = "home", budgetLimit = null),
-            Category(id = "6", name = "Досуг", type = CategoryType.EXPENSE, iconRes = "theater_comedy", budgetLimit = null),
-            Category(id = "7", name = "Здоровье", type = CategoryType.EXPENSE, iconRes = "favorite", budgetLimit = null),
-            Category(id = "8", name = "Другое", type = CategoryType.EXPENSE, iconRes = "more_horiz", budgetLimit = null)
-        )
+    // Если изменился счёт списания и совпал с целевым — сбрасываем целевой на первый доступный из отфильтрованных
+    LaunchedEffect(selectedAccountId) {
+        if (selectedTargetAccountId == selectedAccountId || targetAccounts.none { it.id == selectedTargetAccountId }) {
+            selectedTargetAccountId = targetAccounts.firstOrNull()?.id
+        }
     }
 
-    val actualCategories = categories.ifEmpty { fallbackCategories }
-
-    val filteredCategories = actualCategories.filter { category ->
+    val filteredCategories = categories.filter { category ->
         val isTransfer = category.iconRes == "swap_horiz" || category.name.contains("перевод", ignoreCase = true)
         when (selectedType) {
             TransactionType.EXPENSE -> category.type == CategoryType.EXPENSE || isTransfer
@@ -123,8 +118,8 @@ fun QuickAddTransactionSheet(
         }
     }
 
-    LaunchedEffect(selectedType) {
-        if (selectedType == TransactionType.INCOME) {
+    LaunchedEffect(categories, selectedType) {
+        if (selectedType == TransactionType.INCOME || selectedType == TransactionType.TRANSFER) {
             selectedCategoryId = null
         } else {
             if (filteredCategories.none { it.id == selectedCategoryId }) {
@@ -143,19 +138,25 @@ fun QuickAddTransactionSheet(
         cancelButtonText = "Назад",
         onPrimaryClick = {
             submitted = true
-            val chosenCategory = if (selectedType == TransactionType.INCOME) {
-                selectedCategoryId
-            } else {
-                selectedCategoryId ?: filteredCategories.firstOrNull()?.id
+            val chosenCategory = when (selectedType) {
+                TransactionType.TRANSFER -> null
+                TransactionType.INCOME -> selectedCategoryId
+                TransactionType.EXPENSE -> selectedCategoryId ?: filteredCategories.firstOrNull()?.id
             }
-            val chosenAccount = selectedAccountId ?: actualAccounts.firstOrNull()?.id
-            val isCategoryValid = selectedType == TransactionType.INCOME || chosenCategory != null
+            val chosenAccount = selectedAccountId ?: accounts.firstOrNull()?.id
+            val chosenTargetAccount = if (selectedType == TransactionType.TRANSFER) selectedTargetAccountId else null
+            val isCategoryValid = selectedType == TransactionType.INCOME ||
+                    selectedType == TransactionType.TRANSFER ||
+                    chosenCategory != null
+            val isTransferValid = selectedType != TransactionType.TRANSFER ||
+                    (chosenAccount != null && chosenTargetAccount != null && chosenAccount != chosenTargetAccount)
 
-            if (isAmountValid && isCategoryValid && chosenAccount != null) {
+            if (isAmountValid && isCategoryValid && chosenAccount != null && isTransferValid) {
                 onAddClick(
                     amount,
                     chosenCategory,
                     chosenAccount,
+                    chosenTargetAccount,
                     selectedType,
                     note,
                     selectedDateTime
@@ -184,66 +185,150 @@ fun QuickAddTransactionSheet(
             onDone = { clearFocus() }
         )
 
-        // 3. Сетка категорий (2 ряда по 4 иконки)
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = if (selectedType == TransactionType.INCOME) "Категория (необязательно)" else "Категория",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                userScrollEnabled = false
+        // 3. Блок категорий ИЛИ Счёт списания (Откуда)
+        if (selectedType == TransactionType.TRANSFER && accounts.isNotEmpty()) {
+            // Если перевод и есть хотя бы 1 счёт — показываем «Откуда»
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Откуда",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(accounts, key = { it.id }) { account ->
+                        val isSelected = account.id == selectedAccountId
+                        AccountCardItem(
+                            title = account.name,
+                            balance = account.balance,
+                            accountIcon = Icons.Default.CreditCard,
+                            isSelected = isSelected,
+                            containerColor = if (isSelected) PrimaryTint else MaterialTheme.colorScheme.surfaceVariant.copy(
+                                alpha = 0.3f
+                            ),
+                            contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
+                            onClick = { selectedAccountId = account.id }
+                        )
+                    }
+                }
+            }
+        } else if (selectedType != TransactionType.TRANSFER) {
+            // Для Расхода и Дохода — стандартная сетка категорий
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(filteredCategories, key = { it.id }) { category ->
-                    val isSelected = category.id == selectedCategoryId
-                    CategoryIconChip(
-                        icon = getCategoryIcon(category.iconRes),
-                        title = category.name,
-                        isSelected = isSelected,
-                        onClick = {
-                            selectedCategoryId = if (isSelected && selectedType == TransactionType.INCOME) {
-                                null
-                            } else {
-                                category.id
+                Text(
+                    text = if (selectedType == TransactionType.INCOME) "Категория (необязательно)" else "Категория",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    userScrollEnabled = false
+                ) {
+                    items(filteredCategories, key = { it.id }) { category ->
+                        val isSelected = category.id == selectedCategoryId
+                        CategoryIconChip(
+                            icon = getCategoryIcon(category.iconRes),
+                            title = category.name,
+                            isSelected = isSelected,
+                            onClick = {
+                                selectedCategoryId =
+                                    if (isSelected && selectedType == TransactionType.INCOME) {
+                                        null
+                                    } else {
+                                        category.id
+                                    }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
 
-        // 4. Выбор счёта
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // 4. Блок выбора счёта: «Куда» (для перевода) или «Счёт» (для остальных)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            val title = when {
+                accounts.isEmpty() -> "Счёт"
+                selectedType == TransactionType.TRANSFER -> "Куда"
+                else -> "Счёт"
+            }
+
             Text(
-                text = "Счёт",
+                text = if (selectedType == TransactionType.TRANSFER) "Куда" else "Счёт",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(actualAccounts, key = { it.id }) { account ->
-                    val isSelected = account.id == selectedAccountId
-                    AccountCardItem(
-                        title = account.name,
-                        balance = account.balance,
-                        accountIcon = Icons.Default.CreditCard,
-                        isSelected = isSelected,
-                        containerColor = if (isSelected) PrimaryTint else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        // Управляем цветом текста/иконки: если выбрана — тёмный цвет (например, Color.Black или OnPrimaryTint), иначе стандартный цвет темы
-                        contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
-                        onClick = { selectedAccountId = account.id }
-                    )
+            if (accounts.isEmpty()) {
+                // Вообще нет счетов -> предлагаем создать первый счёт
+                LazyRow {
+                    item {
+                        AddAccountCardItem(
+                            title = "Создать счёт",
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            onClick = onAddNewAccount
+                        )
+                    }
+                }
+            } else if (selectedType == TransactionType.TRANSFER && targetAccounts.isEmpty()) {
+                // Перевод, но второго счёта нет -> предлагаем создать второй счёт
+                LazyRow {
+                    item {
+                        AddAccountCardItem(
+                            title = "Добавить счёт",
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            onClick = onAddNewAccount
+                        )
+                    }
+                }
+            } else {
+                // Стандартный список счетов
+                val displayedAccounts =
+                    if (selectedType == TransactionType.TRANSFER) targetAccounts else accounts
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(displayedAccounts, key = { it.id }) { account ->
+                        val isSelected = if (selectedType == TransactionType.TRANSFER) {
+                            account.id == selectedTargetAccountId
+                        } else {
+                            account.id == selectedAccountId
+                        }
+                        AccountCardItem(
+                            title = account.name,
+                            balance = account.balance,
+                            accountIcon = Icons.Default.CreditCard,
+                            isSelected = isSelected,
+                            containerColor = if (isSelected) PrimaryTint else MaterialTheme.colorScheme.surfaceVariant.copy(
+                                alpha = 0.3f
+                            ),
+                            // Управляем цветом текста/иконки: если выбрана — тёмный цвет (например, Color.Black или OnPrimaryTint), иначе стандартный цвет темы
+                            contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
+                            onClick = {
+                                if (selectedType == TransactionType.TRANSFER) {
+                                    selectedTargetAccountId = account.id
+                                } else {
+                                    selectedAccountId = account.id
+                                }
+                            }
+                        )
+                    }
+                    item {
+                        AddAccountCardItem(
+                            title = "Добавить счёт",
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            onClick = onAddNewAccount
+                        )
+                    }
                 }
             }
         }
@@ -317,7 +402,8 @@ private fun QuickAddTransactionSheetLightPreview() {
             categories = emptyList(),
             accounts = emptyList(),
             onDismiss = {},
-            onAddClick = { _, _, _, _, _, _ -> }
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
         )
     }
 }
@@ -335,7 +421,8 @@ private fun QuickAddTransactionSheetDarkPreview() {
             categories = emptyList(),
             accounts = emptyList(),
             onDismiss = {},
-            onAddClick = { _, _, _, _, _, _ -> }
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
         )
     }
 }

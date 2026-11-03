@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
         CategoryEntity::class,
         TransactionEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(DatabaseConverters::class)
@@ -36,6 +36,19 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         private const val DATABASE_NAME = "finance_tracker.db"
+
+        // Базовые категории расходов и доходов
+        val defaultCategories = listOf(
+            CategoryEntity(name = "Продукты", type = CategoryType.EXPENSE, iconRes = "shopping_cart"),
+            CategoryEntity(name = "Кафе", type = CategoryType.EXPENSE, iconRes = "restaurant"),
+            CategoryEntity(name = "Транспорт", type = CategoryType.EXPENSE, iconRes = "directions_bus"),
+            CategoryEntity(name = "Зарплата", type = CategoryType.INCOME, iconRes = "work"),
+            CategoryEntity(name = "Переводы", type = CategoryType.EXPENSE, iconRes = "swap_horiz"),
+            CategoryEntity(name = "Дом", type = CategoryType.EXPENSE, iconRes = "home"),
+            CategoryEntity(name = "Развлечения", type = CategoryType.EXPENSE, iconRes = "theater_comedy"),
+            CategoryEntity(name = "Здоровье", type = CategoryType.EXPENSE, iconRes = "favorite"),
+            CategoryEntity(name = "Другое", type = CategoryType.EXPENSE, iconRes = "more_horiz")
+        )
 
         fun buildDatabase(context: Context): AppDatabase {
             lateinit var database: AppDatabase
@@ -59,19 +72,6 @@ abstract class AppDatabase : RoomDatabase() {
                                 balance = 0.0,
                             )
                         )
-
-                        // Базовые категории расходов и доходов
-                        val defaultCategories = listOf(
-                            CategoryEntity(name = "Продукты", type = CategoryType.EXPENSE, iconRes = "shopping_cart"),
-                            CategoryEntity(name = "Кафе", type = CategoryType.EXPENSE, iconRes = "restaurant"),
-                            CategoryEntity(name = "Транспорт", type = CategoryType.EXPENSE, iconRes = "directions_bus"),
-                            CategoryEntity(name = "Зарплата", type = CategoryType.INCOME, iconRes = "work"),
-                            CategoryEntity(name = "Переводы", type = CategoryType.EXPENSE, iconRes = "swap_horiz"),
-                            CategoryEntity(name = "Дом", type = CategoryType.EXPENSE, iconRes = "home"),
-                            CategoryEntity(name = "Развлечения", type = CategoryType.EXPENSE, iconRes = "theater_comedy"),
-                            CategoryEntity(name = "Здоровье", type = CategoryType.EXPENSE, iconRes = "favorite"),
-                            CategoryEntity(name = "Другое", type = CategoryType.EXPENSE, iconRes = "more_horiz")
-                        )
                         database.categoryDao().insertAll(defaultCategories)
                     }
                 }
@@ -82,6 +82,7 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 DATABASE_NAME
             )
+                .fallbackToDestructiveMigration(true)
                 .addCallback(callback)
                 .build()
 
