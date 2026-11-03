@@ -1,6 +1,7 @@
 package com.example.financetracker.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
@@ -11,15 +12,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.ui.NavDisplay
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.feature.home.components.sheet.QuickAddTransactionSheet
@@ -74,20 +80,22 @@ fun MainScaffoldContent(
     onUpdateAccount: (Account) -> Unit,
     onClearError: () -> Unit = {}
 ) {
-    var currentTab by rememberSaveable { mutableStateOf(NavTab.HOME) }
+    // 1. Стек навигации Navigation 3 (автоматически переживает поворот экрана и смерть процесса)
+    val backStack = rememberNavBackStack(ScreenKey.Home)
+    val currentKey = backStack.lastOrNull() ?: ScreenKey.Home
+    val currentHomeUiState by rememberUpdatedState(homeUiState)
+
+    // 2. Детальный экран скрывает нижний бар и FAB
+    val isDetailOpen = currentKey is ScreenKey.AccountDetail
+
     var showQuickAdd by remember { mutableStateOf(false) }
     var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
-    var selectedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
-    val account = homeUiState.accounts.find { it.id == selectedAccountId }
 
-    // Представь редкую ситуацию: пользователь открыл счёт, и в этот момент счёт удалился
-    // (например, удалили из фонового синхронизатора или базы). В этом случае account станет null,
-    // и в теле экрана отобразится HomeScreen, но selectedAccountId всё ещё не null,
-    // поэтому BottomNavBar будет скрыт.
-    val isDetailOpen = account != null
-
-    BackHandler(enabled = isDetailOpen) {
-        selectedAccountId = null
+    // 3. Вычисляем текущую выбранную вкладку из стека
+    val currentTab = when (currentKey) {
+        is ScreenKey.Analytics -> NavTab.ANALYTICS
+        is ScreenKey.Profile -> NavTab.PROFILE
+        else -> NavTab.HOME
     }
 
     Scaffold(
@@ -95,12 +103,28 @@ fun MainScaffoldContent(
             if (!isDetailOpen) {
                 BottomNavBar(
                     currentTab,
-                    onTabSelected = { currentTab = it }
+                    onTabSelected = { tab ->
+                        val targetKey = when (tab) {
+                            NavTab.HOME -> ScreenKey.Home
+                            NavTab.ANALYTICS -> ScreenKey.Analytics
+                            NavTab.PROFILE -> ScreenKey.Profile
+                        }
+                        if (currentKey != targetKey) {
+                            if (targetKey == ScreenKey.Home) {
+                                backStack.clear()
+                                backStack.add(ScreenKey.Home)
+                            } else {
+                                backStack.clear()
+                                backStack.add(ScreenKey.Home)
+                                backStack.add(targetKey)
+                            }
+                        }
+                    }
                 )
             }
         },
         floatingActionButton = {
-            if (!isDetailOpen) {
+            if (!isDetailOpen && currentKey is ScreenKey.Home) {
                 FloatingActionButton(
                     onClick = { showQuickAdd = true },
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -114,26 +138,50 @@ fun MainScaffoldContent(
         containerColor = MaterialTheme.colorScheme.background
 
     ) { innerPadding ->
-        if (account != null) {
-            AccountDetailScreen(
-                account = account,
-                onBack = { selectedAccountId = null },
-                onSave = onUpdateAccount,
-            )
-        } else {
-            when (currentTab) {
-                NavTab.HOME -> HomeScreenContent(
-                    uiState = homeUiState,
-                    contentPadding = innerPadding,
-                    onAccountClick = { accountId ->
-                        selectedAccountId = accountId
-                    },
-                    onAddAccount = onCreateAccount,
-                    onClearError = onClearError
-                )
+        // 4. NavDisplay отрисовывает экраны и автоматически управляет системным «Назад»
+        NavDisplay(
+            backStack = backStack,
+            modifier = Modifier.fillMaxSize(),
+            onBack = { backStack.removeLastOrNull() }
+        ) { key ->
+            when (key) {
+                is ScreenKey.Home -> NavEntry(key) {
+                    HomeScreenContent(
+                        uiState = currentHomeUiState,
+                        contentPadding = innerPadding,
+                        onAccountClick = { accountId ->
+                            backStack.add(ScreenKey.AccountDetail(accountId))
+                        },
+                        onAddAccount = onCreateAccount,
+                        onClearError = onClearError
+                    )
+                }
 
-                NavTab.ANALYTICS -> AnalyticsPlaceholderScreen(Modifier.padding(innerPadding))
-                NavTab.PROFILE -> ProfilePlaceholderScreen(Modifier.padding(innerPadding))
+                is ScreenKey.Analytics -> NavEntry(key) {
+                    AnalyticsPlaceholderScreen(Modifier.padding(innerPadding))
+                }
+
+                is ScreenKey.Profile -> NavEntry(key) {
+                    ProfilePlaceholderScreen(Modifier.padding(innerPadding))
+                }
+
+                is ScreenKey.AccountDetail -> NavEntry(key) {
+                    val account = currentHomeUiState.accounts.find { it.id == key.accountId }
+                    if (account != null) {
+                        AccountDetailScreen(
+                            account = account,
+                            onBack = { backStack.removeLastOrNull() },
+                            onSave = onUpdateAccount
+                        )
+                    } else {
+                        // Если аккаунт не найден (например, удален), корректно возвращаемся назад
+                        LaunchedEffect(Unit) {
+                            backStack.removeLastOrNull()
+                        }
+                    }
+                }
+
+                else -> NavEntry(key) {}
             }
         }
     }
