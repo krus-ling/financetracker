@@ -52,6 +52,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     onAccountClick: (String) -> Unit,
     viewModel: HomeViewModel = koinViewModel()
 ) {
@@ -59,6 +60,7 @@ fun HomeScreen(
 
     HomeScreenContent(
         uiState = uiState,
+        contentPadding = contentPadding,
         onAddAccount = { name, initialBalance ->
             viewModel.createAccount(name, initialBalance)
         },
@@ -73,6 +75,7 @@ fun HomeScreen(
 fun HomeScreenContent(
     uiState: HomeUiState,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     onAddAccount: (name: String, initialBalance: Double) -> Unit = { _, _ -> },
     onAccountClick: (String) -> Unit = {},
     onClearError: () -> Unit = {}
@@ -119,7 +122,10 @@ fun HomeScreenContent(
         else -> {
             LazyColumn(
                 modifier = modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 88.dp)
+                contentPadding = PaddingValues(
+                    top = contentPadding.calculateTopPadding(),
+                    bottom = contentPadding.calculateBottomPadding() + 16.dp
+                )
             ) {
                 // Общий баланс
                 item {

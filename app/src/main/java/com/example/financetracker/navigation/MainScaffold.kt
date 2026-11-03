@@ -20,25 +20,63 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.financetracker.core.model.Account
+import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.feature.home.components.sheet.QuickAddTransactionSheet
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.AccountDetailScreen
-import com.example.financetracker.feature.home.HomeScreen
+import com.example.financetracker.feature.home.HomeScreenContent
+import com.example.financetracker.feature.home.HomeUiState
 import com.example.financetracker.feature.home.HomeViewModel
 import com.example.financetracker.feature.home.components.sheet.AddAccountBottomSheet
 import com.example.financetracker.placeholder.AnalyticsPlaceholderScreen
 import com.example.financetracker.placeholder.ProfilePlaceholderScreen
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScaffold(
     homeViewModel: HomeViewModel = koinViewModel()
 ) {
+
+    val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+
+    MainScaffoldContent(
+        homeUiState = homeUiState,
+        onAddTransaction = { amount, categoryId, accountId, targetAccountId, type, note, dateTime ->
+            homeViewModel.addTransaction(
+                amount = amount,
+                categoryId = categoryId,
+                accountId = accountId,
+                targetAccountId = targetAccountId,
+                type = type,
+                note = note,
+                dateTime = dateTime
+            )
+        },
+        onCreateAccount = { name, initialBalance ->
+            homeViewModel.createAccount(name, initialBalance)
+        },
+        onUpdateAccount = { account ->
+            homeViewModel.updateAccount(account)
+        },
+        onClearError = {
+            homeViewModel.clearError()
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScaffoldContent(
+    homeUiState: HomeUiState,
+    onAddTransaction: (Double, String?, String, String?, TransactionType, String, Long) -> Unit,
+    onCreateAccount: (String, Double) -> Unit,
+    onUpdateAccount: (Account) -> Unit,
+    onClearError: () -> Unit = {}
+) {
     var currentTab by rememberSaveable { mutableStateOf(NavTab.HOME) }
     var showQuickAdd by remember { mutableStateOf(false) }
     var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
-    val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
     var selectedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     val account = homeUiState.accounts.find { it.id == selectedAccountId }
 
@@ -80,16 +118,18 @@ fun MainScaffold(
             AccountDetailScreen(
                 account = account,
                 onBack = { selectedAccountId = null },
-                onSave = { homeViewModel.updateAccount(it) },
+                onSave = onUpdateAccount,
             )
         } else {
             when (currentTab) {
-                NavTab.HOME -> HomeScreen(
+                NavTab.HOME -> HomeScreenContent(
+                    uiState = homeUiState,
+                    contentPadding = innerPadding,
                     onAccountClick = { accountId ->
                         selectedAccountId = accountId
                     },
-                    modifier = Modifier.padding(innerPadding),
-                    viewModel = homeViewModel
+                    onAddAccount = onCreateAccount,
+                    onClearError = onClearError
                 )
 
                 NavTab.ANALYTICS -> AnalyticsPlaceholderScreen(Modifier.padding(innerPadding))
@@ -108,14 +148,14 @@ fun MainScaffold(
                 showAddAccountSheet = true
             },
             onAddClick = { amount, categoryId, accountId, targetAccountId, type, note, dateTime ->
-                homeViewModel.addTransaction(
-                    amount = amount,
-                    categoryId = categoryId,
-                    type = type,
-                    note = note,
-                    accountId = accountId,
-                    targetAccountId = targetAccountId,
-                    dateTime = dateTime
+                onAddTransaction(
+                    amount,
+                    categoryId,
+                    accountId,
+                    targetAccountId,
+                    type,
+                    note,
+                    dateTime
                 )
             }
         )
@@ -129,7 +169,7 @@ fun MainScaffold(
                 showQuickAdd = true
             },
             onAddClick = { name, initialBalance ->
-                homeViewModel.createAccount(name, initialBalance)
+                onCreateAccount(name, initialBalance)
                 showAddAccountSheet = false
                 // После успешного создания возвращаем шторку операции
                 showQuickAdd = true
@@ -142,14 +182,35 @@ fun MainScaffold(
 @Composable
 private fun MainScaffoldLightPreview() {
     FinancetrackerTheme(darkTheme = false) {
-        MainScaffold()
+        MainScaffoldContent(
+            homeUiState = HomeUiState(
+                isLoading = false,
+                totalBalance = 43965.72,
+                accounts = listOf(
+                    Account(id = "1", name = "Основная карта", balance = 43965.72, currency = "RUB")
+                )
+            ),
+            onAddTransaction = { _, _, _, _, _, _, _ -> },
+            onCreateAccount = { _, _ -> },
+            onUpdateAccount = {}
+        )
     }
 }
-
 @Preview(showBackground = true)
 @Composable
 private fun MainScaffoldDarkPreview() {
     FinancetrackerTheme(darkTheme = true) {
-        MainScaffold()
+        MainScaffoldContent(
+            homeUiState = HomeUiState(
+                isLoading = false,
+                totalBalance = 43965.72,
+                accounts = listOf(
+                    Account(id = "1", name = "Основная карта", balance = 43965.72, currency = "RUB")
+                )
+            ),
+            onAddTransaction = { _, _, _, _, _, _, _ -> },
+            onCreateAccount = { _, _ -> },
+            onUpdateAccount = {}
+        )
     }
 }
