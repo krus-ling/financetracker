@@ -1,9 +1,12 @@
 package com.example.financetracker.core.database.di
 
 import com.example.financetracker.core.database.AppDatabase
-import com.example.financetracker.core.database.repository.AccountRepository
-import com.example.financetracker.core.database.repository.CategoryRepository
-import com.example.financetracker.core.database.repository.TransactionRepository
+import com.example.financetracker.core.database.repository.AccountRepositoryImpl
+import com.example.financetracker.core.database.repository.CategoryRepositoryImpl
+import com.example.financetracker.core.database.repository.TransactionRepositoryImpl
+import com.example.financetracker.core.model.repository.AccountRepository
+import com.example.financetracker.core.model.repository.CategoryRepository
+import com.example.financetracker.core.model.repository.TransactionRepository
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -17,7 +20,13 @@ val databaseModule = module {
     single { get<AppDatabase>().transactionDao() }
 
     // Репозитории
-    single { AccountRepository(accountDao = get()) }
-    single { TransactionRepository(appDatabase = get(), transactionDao = get(), accountDao = get()) }
-    single { CategoryRepository(categoryDao = get()) }
+    single<AccountRepository> { AccountRepositoryImpl(accountDao = get()) }
+    single<TransactionRepository> {
+        TransactionRepositoryImpl(
+            appDatabase = get(),
+            transactionDao = get(),
+            accountDao = get()
+        )
+    }
+    single<CategoryRepository> { CategoryRepositoryImpl(categoryDao = get()) }
 }

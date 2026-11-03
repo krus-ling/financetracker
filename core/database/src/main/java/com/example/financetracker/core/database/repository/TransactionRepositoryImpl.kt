@@ -8,21 +8,22 @@ import com.example.financetracker.core.database.mapper.toDomain
 import com.example.financetracker.core.database.mapper.toEntity
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.core.model.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class TransactionRepository(
+class TransactionRepositoryImpl(
     private val appDatabase: AppDatabase,
     private val transactionDao: TransactionDao,
     private val accountDao: AccountDao
-) {
-    fun getRecentTransaction(limit: Int = 10): Flow<List<Transaction>> {
+) : TransactionRepository {
+    override fun getRecentTransaction(limit: Int): Flow<List<Transaction>> {
         return transactionDao.getRecentTransaction(limit).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
-    suspend fun addTransaction(transaction: Transaction): Long = appDatabase.withTransaction {
+    override suspend fun addTransaction(transaction: Transaction): Long = appDatabase.withTransaction {
         val entity = transaction.toEntity()
 
         // 1. Сохраняем операцию

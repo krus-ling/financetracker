@@ -2,11 +2,10 @@ package com.example.financetracker.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.financetracker.core.database.repository.AccountRepository
-import com.example.financetracker.core.database.repository.CategoryRepository
-import com.example.financetracker.core.database.repository.TransactionRepository
+import com.example.financetracker.core.model.repository.AccountRepository
+import com.example.financetracker.core.model.repository.CategoryRepository
+import com.example.financetracker.core.model.repository.TransactionRepository
 import com.example.financetracker.core.model.Account
-import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
 import kotlinx.coroutines.CoroutineExceptionHandler

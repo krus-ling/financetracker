@@ -80,7 +80,7 @@ PRAGMA foreign_keys = ON;
 ## ⚡ Транзакционность и атомарность (ACID)
 
 Для операций изменения счетов и создания транзакций критически важна атомарность:
-В `TransactionRepository.kt` все действия объединены в атомарный блок Room:
+В `TransactionRepositoryImpl.kt` все действия объединены в атомарный блок Room:
 
 ```kotlin
 suspend fun addTransaction(transaction: Transaction): Long = appDatabase.withTransaction {
