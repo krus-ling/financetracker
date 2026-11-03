@@ -16,15 +16,8 @@ import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.IncomeGreen
 import com.example.financetracker.core.uikit.theme.TransferBlue
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
-import java.util.Locale
+import com.example.financetracker.core.uikit.util.AmountFormatter
 import kotlin.math.abs
-
-private val RuSymbols = DecimalFormatSymbols(Locale.forLanguageTag("ru-RU")).apply {
-    groupingSeparator = ' '
-    decimalSeparator = ','
-}
 
 /**
  * Универсальный компонент для отображения отформатированной денежной суммы.
@@ -40,16 +33,8 @@ fun AmountText(
     currencySymbol: String = "₽",
     color: Color = Color.Unspecified
 ) {
-    // Настраиваем российскую локаль для формата денег:
-    // если после запятой "00", скрываем их и отображаем только целое число
     val formattedNumber = remember(amount) {
-        val formatter = DecimalFormat("#,##0.00", RuSymbols)
-        val formatted = formatter.format(abs(amount))
-        if (formatted.endsWith(",00")) {
-            formatted.removeSuffix(",00")
-        } else {
-            formatted
-        }
+        AmountFormatter.format(abs(amount))
     }
 
     val prefix: String
