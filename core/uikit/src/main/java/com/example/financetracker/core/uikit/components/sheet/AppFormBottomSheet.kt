@@ -1,5 +1,6 @@
 package com.example.financetracker.core.uikit.components.sheet
 
+import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -29,7 +31,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,10 +46,14 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 import com.example.financetracker.core.uikit.components.button.AppPrimaryButton
 import com.example.financetracker.core.uikit.components.button.AppSecondaryButton
 import kotlinx.coroutines.flow.filter
@@ -73,7 +81,8 @@ fun AppFormBottomSheet(
     title: String,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    sheetState: SheetState? = null,
+    dismissThresholdFraction: Float = 0.20f,
     primaryButtonText: String? = null,
     onPrimaryClick: (() -> Boolean)? = null,
     isPrimaryEnabled: Boolean = true,
@@ -90,15 +99,41 @@ fun AppFormBottomSheet(
     // Флаг для предотвращения повторных вызовов анимации закрытия
     var isDismissing by remember { mutableStateOf(false) }
 
+    // Реальная высота контента шторки в пикселях для вычисления 30% порога
+    var sheetHeightPx by remember { mutableFloatStateOf(1000f) }
+
+    var sheetStateRef: SheetState? = null
+    val defaultSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { targetValue ->
+            if (targetValue == SheetValue.Hidden) {
+                if (isDismissing) {
+                    true // По кнопке Отмена или по сохранению закрываем всегда
+                } else {
+                    val currentOffset = runCatching {
+                        sheetStateRef?.requireOffset()
+                    }.getOrNull() ?: Float.MAX_VALUE
+                    // Закрываем свайпом ТОЛЬКО если пользователь протянул шторку вниз минимум на 30% высоты
+                    currentOffset >= (sheetHeightPx * dismissThresholdFraction)
+                }
+            } else {
+                true
+            }
+        }
+    )
+    sheetStateRef = defaultSheetState
+
+    val actualSheetState = sheetState ?: defaultSheetState
+
     ModalBottomSheet(
         onDismissRequest = {
             if (!isDismissing) {
                 currentOnDismiss()
             }
         },
-        modifier = modifier
-            .statusBarsPadding(),
-        sheetState = sheetState,
+        modifier = modifier.statusBarsPadding(),
+        sheetState = actualSheetState,
+        contentWindowInsets = { WindowInsets(0, 0, 0, 0) }, // Фон шторки заходит под системный бар
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = {
@@ -119,6 +154,24 @@ fun AppFormBottomSheet(
         val focusManager = LocalFocusManager.current
         val keyboardController = LocalSoftwareKeyboardController.current
 
+        // Делаем системный бар снизу полностью прозрачным в окне диалога шторки
+        val view = LocalView.current
+        SideEffect {
+            var parent = view.parent
+            while (parent != null) {
+                if (parent is DialogWindowProvider) {
+                    val window = parent.window
+                    WindowCompat.setDecorFitsSystemWindows(window, false)
+                    window.navigationBarColor = android.graphics.Color.TRANSPARENT
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        window.isNavigationBarContrastEnforced = false
+                    }
+                    break
+                }
+                parent = parent.parent
+            }
+        }
+
         val clearAllFocus: () -> Unit = remember(focusManager, keyboardController) {
             {
                 focusManager.clearFocus(force = true)
@@ -127,16 +180,16 @@ fun AppFormBottomSheet(
         }
 
         // Плавное закрытие шторки с анимацией спуска
-        val animateDismiss: (onFinished: (() -> Unit)?) -> Unit = remember(sheetState, coroutineScope) {
+        val animateDismiss: (onFinished: (() -> Unit)?) -> Unit = remember(actualSheetState, coroutineScope) {
             { onFinished ->
                 if (!isDismissing) {
                     isDismissing = true
                     clearAllFocus()
                     coroutineScope.launch {
-                        sheetState.hide()
+                        actualSheetState.hide()
                     }.invokeOnCompletion {
                         onFinished?.invoke()
-                        if (!sheetState.isVisible) {
+                        if (!actualSheetState.isVisible) {
                             currentOnDismiss()
                         }
                     }
@@ -145,8 +198,8 @@ fun AppFormBottomSheet(
         }
 
         // Колбэк после завершения анимации открытия шторки (для безопасного автофокуса)
-        LaunchedEffect(sheetState) {
-            snapshotFlow { sheetState.currentValue == SheetValue.Expanded && !sheetState.isAnimationRunning }
+        LaunchedEffect(actualSheetState) {
+            snapshotFlow { actualSheetState.currentValue == SheetValue.Expanded && !actualSheetState.isAnimationRunning }
                 .filter { it }
                 .first()
             currentOnSheetOpened?.invoke()
@@ -172,8 +225,8 @@ fun AppFormBottomSheet(
         }
 
         // Скрываем клавиатуру сразу при переходе шторки в закрытие
-        LaunchedEffect(sheetState) {
-            snapshotFlow { sheetState.targetValue }
+        LaunchedEffect(actualSheetState) {
+            snapshotFlow { actualSheetState.targetValue }
                 .collect { target ->
                     if (target == SheetValue.Hidden) {
                         clearAllFocus()
@@ -211,7 +264,13 @@ fun AppFormBottomSheet(
                 ) {
                     clearAllFocus()
                 }
+                .onSizeChanged { size ->
+                    if (size.height > 0) {
+                        sheetHeightPx = size.height.toFloat()
+                    }
+                }
                 .padding(horizontal = 20.dp)
+                .navigationBarsPadding()
                 .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {

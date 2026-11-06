@@ -1,8 +1,13 @@
 package com.example.financetracker.feature.home.components.sheet
 
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyRow
@@ -10,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -33,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
@@ -72,6 +80,8 @@ fun QuickAddTransactionSheet(
     ) -> Unit
 ) {
     val amountFocusRequester = remember { FocusRequester() }
+    val density = LocalDensity.current
+    var maxSheetHeight by remember { mutableStateOf(0.dp) }
 
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var amountText by remember { mutableStateOf("") }
@@ -81,11 +91,16 @@ fun QuickAddTransactionSheet(
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = selectedDateTime,
     )
-    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
+    var selectedExpenseCategoryId by remember { mutableStateOf<String?>(null) }
+    var selectedIncomeCategoryId by remember { mutableStateOf<String?>(null) }
     var submitted by remember { mutableStateOf(false) }
 
     var selectedAccountId by remember { mutableStateOf<String?>(accounts.firstOrNull()?.id) }
     var selectedTargetAccountId by remember { mutableStateOf<String?>(accounts.getOrNull(1)?.id) }
+
+    // Раздельные состояния скролла для обычного счёта и целевого счёта перевода
+    val accountListState = rememberLazyListState()
+    val targetAccountListState = rememberLazyListState()
 
     // Список счетов для зачисления: исключая счет выбранный в "откуда"
     val targetAccounts = remember(accounts, selectedAccountId) {
@@ -110,7 +125,8 @@ fun QuickAddTransactionSheet(
     }
 
     val filteredCategories = categories.filter { category ->
-        val isTransfer = category.iconRes == "swap_horiz" || category.name.contains("перевод", ignoreCase = true)
+        val isTransfer =
+            category.iconRes == "swap_horiz" || category.name.contains("перевод", ignoreCase = true)
         when (selectedType) {
             TransactionType.EXPENSE -> category.type == CategoryType.EXPENSE || isTransfer
             TransactionType.INCOME -> category.type == CategoryType.INCOME || isTransfer
@@ -119,12 +135,9 @@ fun QuickAddTransactionSheet(
     }
 
     LaunchedEffect(categories, selectedType) {
-        if (selectedType == TransactionType.INCOME || selectedType == TransactionType.TRANSFER) {
-            selectedCategoryId = null
-        } else {
-            if (filteredCategories.none { it.id == selectedCategoryId }) {
-                selectedCategoryId = filteredCategories.firstOrNull()?.id
-            }
+        val expenseList = categories.filter { it.type == CategoryType.EXPENSE }
+        if (selectedExpenseCategoryId == null || expenseList.none { it.id == selectedExpenseCategoryId }) {
+            selectedExpenseCategoryId = expenseList.firstOrNull()?.id
         }
     }
 
@@ -140,11 +153,13 @@ fun QuickAddTransactionSheet(
             submitted = true
             val chosenCategory = when (selectedType) {
                 TransactionType.TRANSFER -> null
-                TransactionType.INCOME -> selectedCategoryId
-                TransactionType.EXPENSE -> selectedCategoryId ?: filteredCategories.firstOrNull()?.id
+                TransactionType.INCOME -> selectedIncomeCategoryId
+                TransactionType.EXPENSE -> selectedExpenseCategoryId
+                    ?: filteredCategories.firstOrNull()?.id
             }
             val chosenAccount = selectedAccountId ?: accounts.firstOrNull()?.id
-            val chosenTargetAccount = if (selectedType == TransactionType.TRANSFER) selectedTargetAccountId else null
+            val chosenTargetAccount =
+                if (selectedType == TransactionType.TRANSFER) selectedTargetAccountId else null
             val isCategoryValid = selectedType == TransactionType.INCOME ||
                     selectedType == TransactionType.TRANSFER ||
                     chosenCategory != null
@@ -167,7 +182,15 @@ fun QuickAddTransactionSheet(
             }
         },
         onDismiss = onDismiss,
-        onSheetOpened = { amountFocusRequester.requestFocus() }
+        onSheetOpened = { amountFocusRequester.requestFocus() },
+        modifier = Modifier
+            .onSizeChanged { size ->
+                val h = with(density) { size.height.toDp() }
+                if (h > maxSheetHeight) {
+                    maxSheetHeight = h
+                }
+            }
+            .defaultMinSize(minHeight = maxSheetHeight) // Держит верх этой конкретной шторки неподвижным
     ) { clearFocus ->
         // 1. Селектор типа операции
         TransactionTypeSelector(
@@ -185,10 +208,15 @@ fun QuickAddTransactionSheet(
             onDone = { clearFocus() }
         )
 
-        // 3. Блок категорий ИЛИ Счёт списания (Откуда)
-        if (selectedType == TransactionType.TRANSFER && accounts.isNotEmpty()) {
-            // Если перевод и есть хотя бы 1 счёт — показываем «Откуда»
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // 3. Блок категорий ИЛИ Счёт списания (Откуда) — единый постоянный контейнер с плавной анимацией
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (selectedType == TransactionType.TRANSFER && accounts.isNotEmpty()) {
+                // Если перевод и есть хотя бы 1 счёт — показываем «Откуда»
                 Text(
                     text = "Откуда",
                     style = MaterialTheme.typography.labelMedium,
@@ -210,42 +238,54 @@ fun QuickAddTransactionSheet(
                         )
                     }
                 }
-            }
-        } else if (selectedType != TransactionType.TRANSFER) {
-            // Для Расхода и Дохода — стандартная сетка категорий
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            } else if (selectedType != TransactionType.TRANSFER) {
+                // Для Расхода и Дохода — динамическая адаптивная сетка категорий
                 Text(
                     text = if (selectedType == TransactionType.INCOME) "Категория (необязательно)" else "Категория",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    userScrollEnabled = false
+                val categoryRows = remember(filteredCategories) {
+                    filteredCategories.chunked(4)
+                }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(filteredCategories, key = { it.id }) { category ->
-                        val isSelected = category.id == selectedCategoryId
-                        CategoryIconChip(
-                            icon = getCategoryIcon(category.iconRes),
-                            title = category.name,
-                            isSelected = isSelected,
-                            onClick = {
-                                selectedCategoryId =
-                                    if (isSelected && selectedType == TransactionType.INCOME) {
-                                        null
-                                    } else {
-                                        category.id
-                                    }
+                    categoryRows.forEach { rowCategories ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowCategories.forEach { category ->
+                                val currentSelectedId = if (selectedType == TransactionType.INCOME) {
+                                    selectedIncomeCategoryId
+                                } else {
+                                    selectedExpenseCategoryId
+                                }
+                                val isSelected = category.id == currentSelectedId
+                                Box(
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    CategoryIconChip(
+                                        icon = getCategoryIcon(category.iconRes),
+                                        title = category.name,
+                                        isSelected = isSelected,
+                                        onClick = {
+                                            if (selectedType == TransactionType.INCOME) {
+                                                selectedIncomeCategoryId = if (isSelected) null else category.id
+                                            } else {
+                                                selectedExpenseCategoryId = category.id
+                                            }
+                                        }
+                                    )
+                                }
                             }
-                        )
+                            // Дополняем неполный ряд пустыми весами
+                            repeat(4 - rowCategories.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
                     }
                 }
             }
@@ -295,6 +335,7 @@ fun QuickAddTransactionSheet(
                     if (selectedType == TransactionType.TRANSFER) targetAccounts else accounts
 
                 LazyRow(
+                    state = if (selectedType == TransactionType.TRANSFER) targetAccountListState else accountListState,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(displayedAccounts, key = { it.id }) { account ->

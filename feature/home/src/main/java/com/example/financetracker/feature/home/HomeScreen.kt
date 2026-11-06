@@ -124,7 +124,7 @@ fun HomeScreenContent(
                 modifier = modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     top = contentPadding.calculateTopPadding(),
-                    bottom = contentPadding.calculateBottomPadding() + 16.dp
+                    bottom = contentPadding.calculateBottomPadding() + 88.dp
                 )
             ) {
                 // Общий баланс
