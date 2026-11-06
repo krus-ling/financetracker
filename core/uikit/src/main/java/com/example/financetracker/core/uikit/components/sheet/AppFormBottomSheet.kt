@@ -1,9 +1,6 @@
 package com.example.financetracker.core.uikit.components.sheet
 
-import android.os.Build
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -19,19 +16,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -99,10 +93,10 @@ fun AppFormBottomSheet(
     // Флаг для предотвращения повторных вызовов анимации закрытия
     var isDismissing by remember { mutableStateOf(false) }
 
-    // Реальная высота контента шторки в пикселях для вычисления 30% порога
+    // Реальная высота контента шторки в пикселях для вычисления 20% порога
     var sheetHeightPx by remember { mutableFloatStateOf(1000f) }
 
-    var sheetStateRef: SheetState? = null
+    val sheetStateRef = remember { mutableStateOf<SheetState?>(null) }
     val currentThresholdFraction by rememberUpdatedState(dismissThresholdFraction)
 
     val confirmValueChange: (SheetValue) -> Boolean = remember {
@@ -112,10 +106,10 @@ fun AppFormBottomSheet(
                     true // По кнопке Отмена или по сохранению закрываем всегда
                 } else {
                     val currentOffset = runCatching {
-                        sheetStateRef?.requireOffset()
+                        sheetStateRef.value?.requireOffset()
                     }.getOrNull() ?: Float.MAX_VALUE
-                    // Закрываем свайпом ТОЛЬКО если пользователь протянул шторку вниз минимум на 30% высоты
-                    currentOffset >= (sheetHeightPx * dismissThresholdFraction)
+                    // Закрываем свайпом ТОЛЬКО если пользователь протянул шторку вниз минимум на 20% высоты
+                    currentOffset >= (sheetHeightPx * currentThresholdFraction)
                 }
             } else {
                 true
@@ -127,8 +121,8 @@ fun AppFormBottomSheet(
         skipPartiallyExpanded = true,
         confirmValueChange = confirmValueChange
     )
-    sheetStateRef = defaultSheetState
     val actualSheetState = sheetState ?: defaultSheetState
+    sheetStateRef.value = actualSheetState
 
     ModalBottomSheet(
         onDismissRequest = {
@@ -266,11 +260,8 @@ fun AppFormBottomSheet(
                 .fillMaxWidth()
                 .nestedScroll(nestedScrollConnection)
                 .verticalScroll(scrollState)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
-                    clearAllFocus()
+                .pointerInput(clearAllFocus) {
+                    detectTapGestures(onTap = { clearAllFocus() })
                 }
                 .onSizeChanged { size ->
                     if (size.height > 0) {
