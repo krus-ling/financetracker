@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DatePickerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -111,24 +113,19 @@ fun QuickAddTransactionSheet(
         }
     }
 
-    // Если изменился счёт списания и совпал с целевым — сбрасываем целевой на первый доступный из отфильтрованных
-    LaunchedEffect(selectedAccountId) {
-        if (selectedTargetAccountId == selectedAccountId || targetAccounts.none { it.id == selectedTargetAccountId }) {
-            selectedTargetAccountId = targetAccounts.firstOrNull()?.id
+    val filteredCategories = remember (categories, selectedType) {
+        categories.filter { category ->
+            val isTransfer = category.iconRes == "swap_horiz" ||
+                    category.name.contains("перевод", ignoreCase = true)
+            when (selectedType) {
+                TransactionType.EXPENSE -> category.type == CategoryType.EXPENSE || isTransfer
+                TransactionType.INCOME -> category.type == CategoryType.INCOME || isTransfer
+                TransactionType.TRANSFER -> true
+            }
         }
     }
 
-    val filteredCategories = categories.filter { category ->
-        val isTransfer =
-            category.iconRes == "swap_horiz" || category.name.contains("перевод", ignoreCase = true)
-        when (selectedType) {
-            TransactionType.EXPENSE -> category.type == CategoryType.EXPENSE || isTransfer
-            TransactionType.INCOME -> category.type == CategoryType.INCOME || isTransfer
-            TransactionType.TRANSFER -> true
-        }
-    }
-
-    LaunchedEffect(categories, selectedType) {
+    LaunchedEffect(categories) {
         val expenseList = categories.filter { it.type == CategoryType.EXPENSE }
         if (selectedExpenseCategoryId == null || expenseList.none { it.id == selectedExpenseCategoryId }) {
             selectedExpenseCategoryId = expenseList.firstOrNull()?.id
@@ -202,7 +199,7 @@ fun QuickAddTransactionSheet(
             onDone = { clearFocus() }
         )
 
-        // 3. Блок категорий ИЛИ Счёт списания (Откуда) — единый постоянный контейнер с плавной анимацией
+        // 3. Блок категорий ИЛИ Счёт списания (Откуда)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -211,162 +208,53 @@ fun QuickAddTransactionSheet(
         ) {
             if (selectedType == TransactionType.TRANSFER && accounts.isNotEmpty()) {
                 // Если перевод и есть хотя бы 1 счёт — показываем «Откуда»
-                Text(
-                    text = "Откуда",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                AccountSelectorSection(
+                    title = "Откуда",
+                    accounts = accounts,
+                    selectedAccountId = selectedAccountId,
+                    onAccountSelected = { newAccountId ->
+                        selectedAccountId = newAccountId
+                        if (selectedTargetAccountId == newAccountId) {
+                            selectedTargetAccountId = accounts.firstOrNull { it.id != newAccountId }?.id
+                        }
+                    },
+                    onAddNewAccount = onAddNewAccount,
+                    showAddAccountButton = false
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(accounts, key = { it.id }) { account ->
-                        val isSelected = account.id == selectedAccountId
-                        AccountCardItem(
-                            title = account.name,
-                            balance = account.balance,
-                            accountIcon = Icons.Default.CreditCard,
-                            isSelected = isSelected,
-                            containerColor = if (isSelected) PrimaryTint else MaterialTheme.colorScheme.surfaceVariant.copy(
-                                alpha = 0.3f
-                            ),
-                            contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
-                            onClick = { selectedAccountId = account.id }
-                        )
-                    }
-                }
             } else if (selectedType != TransactionType.TRANSFER) {
                 // Для Расхода и Дохода — динамическая адаптивная сетка категорий
-                Text(
-                    text = if (selectedType == TransactionType.INCOME) "Категория (необязательно)" else "Категория",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                val categoryRows = remember(filteredCategories) {
-                    filteredCategories.chunked(4)
-                }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    categoryRows.forEach { rowCategories ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            rowCategories.forEach { category ->
-                                val currentSelectedId = if (selectedType == TransactionType.INCOME) {
-                                    selectedIncomeCategoryId
-                                } else {
-                                    selectedExpenseCategoryId
-                                }
-                                val isSelected = category.id == currentSelectedId
-                                Box(
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    CategoryIconChip(
-                                        icon = getCategoryIcon(category.iconRes),
-                                        title = category.name,
-                                        isSelected = isSelected,
-                                        onClick = {
-                                            if (selectedType == TransactionType.INCOME) {
-                                                selectedIncomeCategoryId = if (isSelected) null else category.id
-                                            } else {
-                                                selectedExpenseCategoryId = category.id
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                            // Дополняем неполный ряд пустыми весами
-                            repeat(4 - rowCategories.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
+                CategoryGridSection(
+                    categories = filteredCategories,
+                    selectedCategoryId = if (selectedType == TransactionType.INCOME) {
+                        selectedIncomeCategoryId
+                    } else selectedExpenseCategoryId,
+                    isIncome = selectedType == TransactionType.INCOME,
+                    onCategoryClick = { categoryId ->
+                        if (selectedType == TransactionType.INCOME) {
+                            selectedIncomeCategoryId = categoryId
+                        } else {
+                            selectedExpenseCategoryId = categoryId
                         }
                     }
-                }
+                )
             }
         }
 
         // 4. Блок выбора счёта: «Куда» (для перевода) или «Счёт» (для остальных)
-        Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            val title = when {
-                accounts.isEmpty() -> "Счёт"
-                selectedType == TransactionType.TRANSFER -> "Куда"
-                else -> "Счёт"
-            }
-
-            Text(
-                text = if (selectedType == TransactionType.TRANSFER) "Куда" else "Счёт",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            if (accounts.isEmpty()) {
-                // Вообще нет счетов -> предлагаем создать первый счёт
-                LazyRow {
-                    item {
-                        AddAccountCardItem(
-                            title = "Создать счёт",
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                            onClick = onAddNewAccount
-                        )
-                    }
+        AccountSelectorSection(
+            title = if (selectedType == TransactionType.TRANSFER) "Куда" else "Счёт",
+            accounts = if (selectedType == TransactionType.TRANSFER) targetAccounts else accounts,
+            selectedAccountId = if (selectedType == TransactionType.TRANSFER) selectedTargetAccountId else selectedAccountId,
+            onAccountSelected = { id ->
+                if (selectedType == TransactionType.TRANSFER) {
+                    selectedTargetAccountId = id
+                } else {
+                    selectedAccountId = id
                 }
-            } else if (selectedType == TransactionType.TRANSFER && targetAccounts.isEmpty()) {
-                // Перевод, но второго счёта нет -> предлагаем создать второй счёт
-                LazyRow {
-                    item {
-                        AddAccountCardItem(
-                            title = "Добавить счёт",
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                            onClick = onAddNewAccount
-                        )
-                    }
-                }
-            } else {
-                // Стандартный список счетов
-                val displayedAccounts =
-                    if (selectedType == TransactionType.TRANSFER) targetAccounts else accounts
-
-                LazyRow(
-                    state = if (selectedType == TransactionType.TRANSFER) targetAccountListState else accountListState,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(displayedAccounts, key = { it.id }) { account ->
-                        val isSelected = if (selectedType == TransactionType.TRANSFER) {
-                            account.id == selectedTargetAccountId
-                        } else {
-                            account.id == selectedAccountId
-                        }
-                        AccountCardItem(
-                            title = account.name,
-                            balance = account.balance,
-                            accountIcon = Icons.Default.CreditCard,
-                            isSelected = isSelected,
-                            containerColor = if (isSelected) PrimaryTint else MaterialTheme.colorScheme.surfaceVariant.copy(
-                                alpha = 0.3f
-                            ),
-                            // Управляем цветом текста/иконки: если выбрана — тёмный цвет (например, Color.Black или OnPrimaryTint), иначе стандартный цвет темы
-                            contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
-                            onClick = {
-                                if (selectedType == TransactionType.TRANSFER) {
-                                    selectedTargetAccountId = account.id
-                                } else {
-                                    selectedAccountId = account.id
-                                }
-                            }
-                        )
-                    }
-                    item {
-                        AddAccountCardItem(
-                            title = "Добавить счёт",
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                            onClick = onAddNewAccount
-                        )
-                    }
-                }
-            }
-        }
+            },
+            onAddNewAccount = onAddNewAccount,
+            lazyListState = if (selectedType == TransactionType.TRANSFER) targetAccountListState else accountListState
+        )
 
         // 5. Дата и время
         DateTimePickerRow(
@@ -395,36 +283,171 @@ fun QuickAddTransactionSheet(
     }
 
     if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { pickerDateMills ->
-                            // Сохраняем выбранную дату, но оставляем текущее время (часы и минуты)
-                            val calendarPicked = Calendar.getInstance().apply { timeInMillis = pickerDateMills }
-                            val currentCalendar = Calendar.getInstance().apply { timeInMillis = selectedDateTime }
+        TransactionDatePickerDialog(
+            datePickerState = datePickerState,
+            currentDateTime = selectedDateTime,
+            onDateSelected = { selectedDateTime = it },
+            onDismiss = { showDatePicker = false }
+        )
+    }
+}
 
-                            currentCalendar.set(Calendar.YEAR, calendarPicked.get(Calendar.YEAR))
-                            currentCalendar.set(Calendar.MONTH, calendarPicked.get(Calendar.MONTH))
-                            currentCalendar.set(Calendar.DAY_OF_MONTH, calendarPicked.get(Calendar.DAY_OF_MONTH))
-
-                            selectedDateTime = currentCalendar.timeInMillis
-                        }
-                        showDatePicker = false
-                    }
+// Сетка категорий
+@Composable
+private fun CategoryGridSection(
+    categories: List<Category>,
+    selectedCategoryId: String?,
+    isIncome: Boolean,
+    onCategoryClick: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = if (isIncome) "Категория (необязательно)" else "Категория",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        val categoryRows = remember(categories) {
+            categories.chunked(4)
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            categoryRows.forEach { rowCategories ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Отмена")
+                    rowCategories.forEach { category ->
+                        val isSelected = category.id == selectedCategoryId
+                        Box(modifier = Modifier.weight(1f)) {
+                            CategoryIconChip(
+                                icon = getCategoryIcon(category.iconRes),
+                                title = category.name,
+                                isSelected = isSelected,
+                                onClick = {
+                                    if (isIncome) {
+                                        onCategoryClick(if (isSelected) null else category.id)
+                                    } else {
+                                        onCategoryClick(category.id)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    repeat(4 - rowCategories.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
-        ) {
-            DatePicker(state = datePickerState)
         }
+    }
+}
+
+// Универсальная карусель счетов
+@Composable
+private fun AccountSelectorSection(
+    title: String,
+    accounts: List<Account>,
+    selectedAccountId: String?,
+    onAccountSelected: (String) -> Unit,
+    onAddNewAccount: () -> Unit,
+    modifier: Modifier = Modifier,
+    lazyListState: LazyListState = rememberLazyListState(),
+    showAddAccountButton: Boolean = true
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        if (accounts.isEmpty()) {
+            LazyRow {
+                item {
+                    AddAccountCardItem(
+                        title = if (title == "Счёт") "Создать счёт" else "Добавить счёт",
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        onClick = onAddNewAccount
+                    )
+                }
+            }
+        } else {
+            LazyRow(
+                state = lazyListState,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(accounts, key = { it.id }) { account ->
+                    val isSelected = account.id == selectedAccountId
+                    AccountCardItem(
+                        title = account.name,
+                        balance = account.balance,
+                        accountIcon = Icons.Default.CreditCard,
+                        isSelected = isSelected,
+                        containerColor = if (isSelected) PrimaryTint else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
+                        onClick = { onAccountSelected(account.id) }
+                    )
+                }
+                if (showAddAccountButton) {
+                    item {
+                        AddAccountCardItem(
+                            title = "Добавить счёт",
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            onClick = onAddNewAccount
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Диалог даты
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TransactionDatePickerDialog(
+    datePickerState: DatePickerState,
+    currentDateTime: Long,
+    onDateSelected: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    datePickerState.selectedDateMillis?.let { pickerDateMills ->
+                        val calendarPicked = Calendar.getInstance().apply { timeInMillis = pickerDateMills }
+                        val currentCalendar = Calendar.getInstance().apply { timeInMillis = currentDateTime }
+
+                        currentCalendar.set(Calendar.YEAR, calendarPicked.get(Calendar.YEAR))
+                        currentCalendar.set(Calendar.MONTH, calendarPicked.get(Calendar.MONTH))
+                        currentCalendar.set(Calendar.DAY_OF_MONTH, calendarPicked.get(Calendar.DAY_OF_MONTH))
+
+                        onDateSelected(currentCalendar.timeInMillis)
+                    }
+                    onDismiss()
+                }
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Отмена")
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
     }
 }
 
