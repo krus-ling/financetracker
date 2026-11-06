@@ -27,10 +27,12 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.example.financetracker.core.model.Account
+import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.feature.home.components.sheet.QuickAddTransactionSheet
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.AccountDetailScreen
+import com.example.financetracker.feature.home.CategoriesScreen
 import com.example.financetracker.feature.home.HomeScreenContent
 import com.example.financetracker.feature.home.HomeUiState
 import com.example.financetracker.feature.home.HomeViewModel
@@ -65,6 +67,15 @@ fun MainScaffold(
         onUpdateAccount = { account ->
             homeViewModel.updateAccount(account)
         },
+        onSaveCategoryBudget = { categoryId, limit ->
+            homeViewModel.updateCategoryBudget(categoryId, limit)
+        },
+        onCreateCategory = { name, type, iconRes, limit ->
+            homeViewModel.createCategory(name, type, iconRes, limit)
+        },
+        onDeleteCategory = { categoryId ->
+            homeViewModel.deleteCategory(categoryId)
+        },
         onClearError = {
             homeViewModel.clearError()
         }
@@ -78,6 +89,9 @@ fun MainScaffoldContent(
     onAddTransaction: (Double, String?, String, String?, TransactionType, String, Long) -> Unit,
     onCreateAccount: (String, Double) -> Unit,
     onUpdateAccount: (Account) -> Unit,
+    onSaveCategoryBudget: (categoryId: String, limit: Double?) -> Unit = { _, _ -> },
+    onCreateCategory: (name: String, type: CategoryType, iconRes: String, limit: Double?) -> Unit = { _, _, _, _ -> },
+    onDeleteCategory: (categoryId: String) -> Unit = {},
     onClearError: () -> Unit = {}
 ) {
     // 1. Стек навигации Navigation 3 (автоматически переживает поворот экрана и смерть процесса)
@@ -86,7 +100,7 @@ fun MainScaffoldContent(
     val currentHomeUiState by rememberUpdatedState(homeUiState)
 
     // 2. Детальный экран скрывает нижний бар и FAB
-    val isDetailOpen = currentKey is ScreenKey.AccountDetail
+    val isDetailOpen = currentKey is ScreenKey.AccountDetail || currentKey is ScreenKey.Categories
 
     var showQuickAdd by remember { mutableStateOf(false) }
     var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
@@ -162,7 +176,12 @@ fun MainScaffoldContent(
                 }
 
                 is ScreenKey.Profile -> NavEntry(key) {
-                    ProfilePlaceholderScreen(Modifier.padding(innerPadding))
+                    ProfilePlaceholderScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onOpenCategories = {
+                            backStack.add(ScreenKey.Categories)
+                        }
+                    )
                 }
 
                 is ScreenKey.AccountDetail -> NavEntry(key) {
@@ -179,6 +198,16 @@ fun MainScaffoldContent(
                             backStack.removeLastOrNull()
                         }
                     }
+                }
+
+                is ScreenKey.Categories -> NavEntry(key) {
+                    CategoriesScreen(
+                        categories = currentHomeUiState.categories,
+                        onBack = { backStack.removeLastOrNull() },
+                        onSaveBudgetLimit = onSaveCategoryBudget,
+                        onCreateCategory = onCreateCategory,
+                        onDeleteCategory = onDeleteCategory
+                    )
                 }
 
                 else -> NavEntry(key) {}

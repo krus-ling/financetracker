@@ -6,6 +6,7 @@ import com.example.financetracker.core.model.repository.AccountRepository
 import com.example.financetracker.core.model.repository.CategoryRepository
 import com.example.financetracker.core.model.repository.TransactionRepository
 import com.example.financetracker.core.model.Account
+import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -116,6 +117,34 @@ class HomeViewModel(
     fun updateAccount(account: Account) {
         viewModelScope.launch(errorHandler) {
             accountRepository.updateAccount(account)
+        }
+    }
+
+    fun createCategory(
+        name: String,
+        type: CategoryType,
+        iconRes: String = "more_horiz",
+        budgetLimit: Double? = null
+    ) {
+        viewModelScope.launch(errorHandler) {
+            categoryRepository.createCategory(
+                name = name.trim(),
+                type = type,
+                iconRes = iconRes,
+                budgetLimit = budgetLimit
+            )
+        }
+    }
+
+    fun updateCategoryBudget(categoryId: String, budgetLimit: Double?) {
+        viewModelScope.launch(errorHandler) {
+            categoryRepository.updateBudgetLimit(categoryId, budgetLimit)
+        }
+    }
+
+    fun deleteCategory(categoryId: String) {
+        viewModelScope.launch(errorHandler) {
+            categoryRepository.deleteCategory(categoryId)
         }
     }
 }

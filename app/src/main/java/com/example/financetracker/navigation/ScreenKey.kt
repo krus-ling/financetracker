@@ -17,4 +17,7 @@ sealed interface ScreenKey : NavKey {
 
     @Serializable
     data class AccountDetail(val accountId: String) : ScreenKey
+
+    @Serializable
+    data object Categories : ScreenKey
 }
