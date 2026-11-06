@@ -103,9 +103,10 @@ fun AppFormBottomSheet(
     var sheetHeightPx by remember { mutableFloatStateOf(1000f) }
 
     var sheetStateRef: SheetState? = null
-    val defaultSheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { targetValue ->
+    val currentThresholdFraction by rememberUpdatedState(dismissThresholdFraction)
+
+    val confirmValueChange: (SheetValue) -> Boolean = remember {
+        { targetValue ->
             if (targetValue == SheetValue.Hidden) {
                 if (isDismissing) {
                     true // По кнопке Отмена или по сохранению закрываем всегда
@@ -120,9 +121,13 @@ fun AppFormBottomSheet(
                 true
             }
         }
+    }
+
+    val defaultSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = confirmValueChange
     )
     sheetStateRef = defaultSheetState
-
     val actualSheetState = sheetState ?: defaultSheetState
 
     ModalBottomSheet(
@@ -156,20 +161,23 @@ fun AppFormBottomSheet(
 
         // Делаем системный бар снизу полностью прозрачным в окне диалога шторки
         val view = LocalView.current
-        SideEffect {
+        DisposableEffect(view) {
             var parent = view.parent
             while (parent != null) {
                 if (parent is DialogWindowProvider) {
                     val window = parent.window
                     WindowCompat.setDecorFitsSystemWindows(window, false)
-                    window.navigationBarColor = android.graphics.Color.TRANSPARENT
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    @Suppress("DEPRECATION")
+                    run {
+                        window.navigationBarColor = android.graphics.Color.TRANSPARENT
                         window.isNavigationBarContrastEnforced = false
                     }
+
                     break
                 }
                 parent = parent.parent
             }
+            onDispose {  }
         }
 
         val clearAllFocus: () -> Unit = remember(focusManager, keyboardController) {
