@@ -1,6 +1,11 @@
 package com.example.financetracker.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -10,12 +15,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -39,6 +47,7 @@ import com.example.financetracker.feature.home.HomeViewModel
 import com.example.financetracker.feature.home.components.sheet.AddAccountBottomSheet
 import com.example.financetracker.placeholder.AnalyticsPlaceholderScreen
 import com.example.financetracker.placeholder.ProfilePlaceholderScreen
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -94,22 +103,32 @@ fun MainScaffoldContent(
     onDeleteCategory: (categoryId: String) -> Unit = {},
     onClearError: () -> Unit = {}
 ) {
-    // 1. Стек навигации Navigation 3 (автоматически переживает поворот экрана и смерть процесса)
+    // Стек навигации Navigation 3 для детальных экранов (автоматически переживает поворот экрана и смерть процесса)
     val backStack = rememberNavBackStack(ScreenKey.Home)
     val currentKey = backStack.lastOrNull() ?: ScreenKey.Home
     val currentHomeUiState by rememberUpdatedState(homeUiState)
 
-    // 2. Детальный экран скрывает нижний бар и FAB
+    // Детальный экран скрывает нижний бар и FAB
     val isDetailOpen = currentKey is ScreenKey.AccountDetail || currentKey is ScreenKey.Categories
+
+    // Пейджер для горизонтального свайпа между тремя вкладками
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = { NavTab.entries.size }
+    )
+    val coroutineScope = rememberCoroutineScope()
 
     var showQuickAdd by remember { mutableStateOf(false) }
     var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
 
-    // 3. Вычисляем текущую выбранную вкладку из стека
-    val currentTab = when (currentKey) {
-        is ScreenKey.Analytics -> NavTab.ANALYTICS
-        is ScreenKey.Profile -> NavTab.PROFILE
-        else -> NavTab.HOME
+    // Активная вкладка синхронизирована с целевой страницей свайпа
+    val currentTab = NavTab.entries[pagerState.targetPage]
+
+    // Нажатие Назад на Аналитике или Профиле возвращает на Главную
+    BackHandler(enabled = !isDetailOpen && pagerState.currentPage != 0) {
+        coroutineScope.launch {
+            pagerState.animateScrollToPage(0)
+        }
     }
 
     Scaffold(
@@ -118,27 +137,20 @@ fun MainScaffoldContent(
                 BottomNavBar(
                     currentTab,
                     onTabSelected = { tab ->
-                        val targetKey = when (tab) {
-                            NavTab.HOME -> ScreenKey.Home
-                            NavTab.ANALYTICS -> ScreenKey.Analytics
-                            NavTab.PROFILE -> ScreenKey.Profile
-                        }
-                        if (currentKey != targetKey) {
-                            if (targetKey == ScreenKey.Home) {
-                                backStack.clear()
-                                backStack.add(ScreenKey.Home)
-                            } else {
-                                backStack.clear()
-                                backStack.add(ScreenKey.Home)
-                                backStack.add(targetKey)
-                            }
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(tab.ordinal)
                         }
                     }
                 )
             }
         },
         floatingActionButton = {
-            if (!isDetailOpen && currentKey is ScreenKey.Home) {
+            // Кнопка «+» плавно появляется только на Главной вкладке
+            AnimatedVisibility(
+                visible = !isDetailOpen && pagerState.currentPage == 0,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut()
+            ) {
                 FloatingActionButton(
                     onClick = { showQuickAdd = true },
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -152,36 +164,43 @@ fun MainScaffoldContent(
         containerColor = MaterialTheme.colorScheme.background
 
     ) { innerPadding ->
-        // 4. NavDisplay отрисовывает экраны и автоматически управляет системным «Назад»
+        // NavDisplay отрисовывает экраны и автоматически управляет системным «Назад»
         NavDisplay(
             backStack = backStack,
             modifier = Modifier.fillMaxSize(),
             onBack = { backStack.removeLastOrNull() }
         ) { key ->
             when (key) {
-                is ScreenKey.Home -> NavEntry(key) {
-                    HomeScreenContent(
-                        uiState = currentHomeUiState,
-                        contentPadding = innerPadding,
-                        onAccountClick = { accountId ->
-                            backStack.add(ScreenKey.AccountDetail(accountId))
-                        },
-                        onAddAccount = onCreateAccount,
-                        onClearError = onClearError
-                    )
-                }
+                // Основной экран с горизонтальным свайпом вкладок
+                is ScreenKey.Home, is ScreenKey.Analytics, is ScreenKey.Profile -> NavEntry(key) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        beyondViewportPageCount = 1 // Предварительная загрузка соседних вкладок для 120 fps
+                    ) { page ->
+                        when (page) {
+                            0 -> HomeScreenContent(
+                                uiState = currentHomeUiState,
+                                contentPadding = innerPadding,
+                                onAccountClick = { accountId ->
+                                    backStack.add(ScreenKey.AccountDetail(accountId))
+                                },
+                                onAddAccount = onCreateAccount,
+                                onClearError = onClearError
+                            )
 
-                is ScreenKey.Analytics -> NavEntry(key) {
-                    AnalyticsPlaceholderScreen(Modifier.padding(innerPadding))
-                }
+                            1 -> AnalyticsPlaceholderScreen(
+                                Modifier.padding(innerPadding)
+                            )
 
-                is ScreenKey.Profile -> NavEntry(key) {
-                    ProfilePlaceholderScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        onOpenCategories = {
-                            backStack.add(ScreenKey.Categories)
+                            2 -> ProfilePlaceholderScreen(
+                                modifier = Modifier.padding(innerPadding),
+                                onOpenCategories = {
+                                    backStack.add(ScreenKey.Categories)
+                                }
+                            )
                         }
-                    )
+                    }
                 }
 
                 is ScreenKey.AccountDetail -> NavEntry(key) {
