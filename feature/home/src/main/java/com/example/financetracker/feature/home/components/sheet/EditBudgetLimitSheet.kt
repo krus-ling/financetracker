@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
+import com.example.financetracker.core.uikit.util.AmountFormatter
+import com.example.financetracker.core.uikit.util.toAmountOrNull
 
 private val QUICK_LIMITS = listOf(5_000.0, 10_000.0, 25_000.0, 50_000.0)
 
@@ -31,9 +33,7 @@ fun EditBudgetLimitSheet(
 ) {
     var limitText by remember(category.id, category.budgetLimit) {
         mutableStateOf(
-            category.budgetLimit?.let {
-                if (it % 1.0 == 0.0) it.toLong().toString() else it.toString()
-            } ?: ""
+            category.budgetLimit?.let { AmountFormatter.formatForInput(it) } ?: ""
         )
     }
 
@@ -41,7 +41,7 @@ fun EditBudgetLimitSheet(
         title = "Лимит: ${category.name}",
         primaryButtonText = "Сохранить",
         onPrimaryClick = {
-            val amount = limitText.replace(',', '.').toDoubleOrNull()
+            val amount = limitText.toAmountOrNull()
             onSaveLimit(amount)
             true
         },

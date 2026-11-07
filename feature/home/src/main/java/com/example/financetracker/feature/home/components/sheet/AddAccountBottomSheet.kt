@@ -18,6 +18,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
+import com.example.financetracker.core.uikit.util.toAmountOrNull
 
 @ExperimentalMaterial3Api
 @Composable
@@ -40,7 +41,7 @@ fun AddAccountBottomSheet(
         onPrimaryClick = {
             submitted = true
             if (isNameValid) {
-                val balance = balanceText.replace(',', '.').toDoubleOrNull() ?: 0.0
+                val balance = balanceText.toAmountOrNull() ?: 0.0
                 onAddClick(accountName.trim(), balance)
                 true
             } else {

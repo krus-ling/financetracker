@@ -56,6 +56,7 @@ import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
 import com.example.financetracker.core.uikit.components.transaction.TransactionTypeSelector
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.PrimaryTint
+import com.example.financetracker.core.uikit.util.toAmountOrNull
 import java.util.Calendar
 
 @ExperimentalMaterial3Api
@@ -132,7 +133,7 @@ fun QuickAddTransactionSheet(
         }
     }
 
-    val amount = amountText.replace(',', '.').toDoubleOrNull()
+    val amount = amountText.toAmountOrNull()
     val isAmountValid = amount != null && amount.isFinite() && amount > 0.0
     val amountError = submitted && !isAmountValid
 

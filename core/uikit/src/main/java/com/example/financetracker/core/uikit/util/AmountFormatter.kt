@@ -19,4 +19,22 @@ object AmountFormatter {
             formatted
         }
     }
+
+    /**
+     * Форматирует число для поля ввода без лишнего хвоста ".0" для целых чисел
+     */
+    fun formatForInput(amount: Double): String =
+        if (amount % 1.0 == 0.0) amount.toLong().toString() else amount.toString()
+
+    /**
+     * Безопасно парсит введенную строку с точкой или запятой в Double
+     */
+    fun parseToDoubleOrNull(input: String): Double? =
+        input.replace(',', '.').toDoubleOrNull()
 }
+
+/**
+ * Удобное расширение для парсинга сумм в любом месте приложения
+ */
+fun String.toAmountOrNull(): Double? =
+    AmountFormatter.parseToDoubleOrNull(this)

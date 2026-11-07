@@ -209,7 +209,13 @@ fun MainScaffoldContent(
                         AccountDetailScreen(
                             account = account,
                             onBack = { backStack.removeLastOrNull() },
-                            onSave = onUpdateAccount
+                            onSave = onUpdateAccount,
+                            transactions = currentHomeUiState.recentTransaction,
+                            categories = currentHomeUiState.categories,
+                            accounts = currentHomeUiState.accounts,
+                            onActionClick = {
+                                showQuickAdd = true
+                            }
                         )
                     } else {
                         // Если аккаунт не найден (например, удален), корректно возвращаемся назад

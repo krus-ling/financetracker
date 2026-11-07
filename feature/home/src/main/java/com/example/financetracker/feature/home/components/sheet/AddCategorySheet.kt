@@ -31,6 +31,7 @@ import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.uikit.components.category.CategoryIcon
 import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
+import com.example.financetracker.core.uikit.util.toAmountOrNull
 
 private val AVAILABLE_ICONS = listOf(
     "shopping_cart", "restaurant", "directions_bus", "work",
@@ -59,7 +60,7 @@ fun AddCategorySheet(
             isSubmitted = true
             if (isNameValid) {
                 val limit = if (selectedType == CategoryType.EXPENSE) {
-                    limitText.replace(',', '.').toDoubleOrNull()
+                    limitText.toAmountOrNull()
                 } else null
                 onAddCategory(name.trim(), selectedType, selectedIcon, limit)
                 true
