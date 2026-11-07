@@ -10,13 +10,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.Transaction
-import com.example.financetracker.core.uikit.components.account.AccountCardItem
-import com.example.financetracker.core.uikit.components.transaction.TransactionRowItem
-import com.example.financetracker.core.uikit.components.category.getCategoryIcon
-import java.text.SimpleDateFormat
-import java.util.Date
-import androidx.compose.ui.platform.LocalLocale
 import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.core.uikit.components.account.AccountCardItem
+import com.example.financetracker.core.uikit.components.category.getCategoryIcon
+import com.example.financetracker.core.uikit.components.transaction.TransactionRowItem
 
 @Composable
 fun HomeAccountCard(
@@ -38,11 +35,11 @@ fun HomeTransactionRow(
     transaction: Transaction,
     category: Category?,
     account: Account?,
-    targetAccount: Account? = null,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    targetAccount: Account? = null,
 ) {
-    val accountName = account?.name ?: "Основная карта"
+    val accountName = account?.name ?: "Счёт удален"
     val targetAccountName = targetAccount?.name
     val note = transaction.note?.trim()
 

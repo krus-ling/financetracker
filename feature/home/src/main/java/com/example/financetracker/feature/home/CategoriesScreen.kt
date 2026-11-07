@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +28,7 @@ import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -66,6 +68,7 @@ fun CategoriesScreen(
     }
 
     var editingCategory by remember { mutableStateOf<Category?>(null) }
+    var categoryToDelete by remember { mutableStateOf<Category?>(null) }
     var showAddCategorySheet by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -170,8 +173,36 @@ fun CategoriesScreen(
                 editingCategory = null
             },
             onDeleteCategory = {
-                onDeleteCategory(category.id)
                 editingCategory = null
+                categoryToDelete = category
+            }
+        )
+    }
+
+    // Диалог подтверждения удаления категории
+    categoryToDelete?.let { category ->
+        AlertDialog(
+            onDismissRequest = { categoryToDelete = null },
+            title = { Text("Удалить категорию?") },
+            text = {
+                Text("Вы уверены, что хотите удалить категорию «${category.name}»? Это действие нельзя отменить.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteCategory(category.id)
+                        categoryToDelete = null
+                    }
+                ) {
+                    Text("Удалить", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { categoryToDelete = null }
+                ) {
+                    Text("Отмена")
+                }
             }
         )
     }
@@ -224,7 +255,7 @@ private fun CategoryListItem(
                     fontWeight = FontWeight.SemiBold
                 )
                 if (category.type == CategoryType.EXPENSE) {
-                    var limit = category.budgetLimit
+                    val limit = category.budgetLimit
                     if (limit != null && limit > 0) {
                         Text(
                             text = "Лимит: ${AmountFormatter.format(limit)} ₽ / мес",

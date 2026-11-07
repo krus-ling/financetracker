@@ -21,8 +21,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,6 +89,28 @@ fun HomeScreenContent(
         groupTransactionByDay(uiState.recentTransaction)
     }
 
+    // Быстрый доступ О(1) к счетам и категориям по их id
+    val accountsMap = remember(uiState.accounts) {
+        uiState.accounts.associateBy { it.id }
+    }
+    val categoriesMap = remember(uiState.categories) {
+        uiState.categories.associateBy { it.id }
+    }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Для локальных ошибок при уже загруженных данных показываем Snackbar, не скрывая контент
+    LaunchedEffect(uiState.errorMessage) {
+        val error = uiState.errorMessage
+        if (error != null && uiState.accounts.isNotEmpty()) {
+            snackbarHostState.showSnackbar(
+                message = error,
+                duration = SnackbarDuration.Short
+            )
+            onClearError()
+        }
+    }
+
     when {
         uiState.isLoading -> {
             Box(
@@ -95,7 +121,8 @@ fun HomeScreenContent(
             }
         }
 
-        uiState.errorMessage != null -> {
+        // Полноэкранную заглушку показываем только при сбое первичной загрузки, когда нет данных
+        uiState.errorMessage != null && uiState.accounts.isEmpty() -> {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -120,144 +147,148 @@ fun HomeScreenContent(
         }
 
         else -> {
-            LazyColumn(
-                modifier = modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    top = contentPadding.calculateTopPadding(),
-                    bottom = contentPadding.calculateBottomPadding() + 88.dp
-                )
+            Box(
+                modifier = modifier.fillMaxSize()
             ) {
-                // Общий баланс
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 16.dp)
-                    ) {
-                        Text(
-                            text = "Общий баланс",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        AmountText(
-                            amount = uiState.totalBalance,
-                            type = null,
-                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
-                }
-
-                // Карусель счетов
-                item {
-                    Text(
-                        text = "Мои счета",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        top = contentPadding.calculateTopPadding(),
+                        bottom = contentPadding.calculateBottomPadding() + 88.dp
                     )
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(uiState.accounts, key = { it.id }) { account ->
-                            HomeAccountCard(
-                                account = account,
-                                onClick = {
-                                    onAccountClick(account.id)
+                ) {
+                    // Общий баланс
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 16.dp)
+                        ) {
+                            Text(
+                                text = "Общий баланс",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            AmountText(
+                                amount = uiState.totalBalance,
+                                type = null,
+                                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+
+                    // Карусель счетов
+                    item {
+                        Text(
+                            text = "Мои счета",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                        )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(uiState.accounts, key = { it.id }) { account ->
+                                HomeAccountCard(
+                                    account = account,
+                                    onClick = {
+                                        onAccountClick(account.id)
+                                    }
+                                )
+                            }
+                            item {
+                                AddAccountCardItem(
+                                    onClick = { showAddAccountSheet = true }
+                                )
+                            }
+                        }
+                    }
+
+                    // Заголовок ленты операций
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Последние операции",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Все операции",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.clickable {
+                                    // TODO переход на полный экран истории
                                 }
                             )
                         }
-                        item {
-                            AddAccountCardItem(
-                                onClick = { showAddAccountSheet = true }
-                            )
-                        }
-                    }
-                }
-
-                // Заголовок ленты операций
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Последние операции",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "Все операции",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.clickable {
-                                // TODO переход на полный экран истории
-                            }
-                        )
-                    }
-                }
-
-                // Секция ленты операций
-                when {
-                    uiState.recentTransaction.isEmpty() -> {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 32.dp, horizontal = 20.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "Операций пока нет.\nНажмите +, чтобы добавить первую.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
                     }
 
-                    else -> {
-                        groupedDays.forEach { dayGroup ->
-                            // Заголовок дня и сводка доходов/расходов
-                            item(key = "header_${dayGroup.dateTitle}") {
-                                DateHeader(
-                                    title = dayGroup.dateTitle,
-                                    dailyTotal = dayGroup.dailyTotal
-                                )
-                            }
-
-                            // Белая карточка с операциями за этот день
-                            item(key = "card_${dayGroup.dateTitle}") {
-                                Card(
+                    // Секция ленты операций
+                    when {
+                        uiState.recentTransaction.isEmpty() -> {
+                            item {
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 20.dp, vertical = 4.dp),
-                                    shape = RoundedCornerShape(20.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surface
-                                    )
+                                        .padding(vertical = 32.dp, horizontal = 20.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Column {
-                                        dayGroup.transactions.forEach { transaction ->
-                                            val account = uiState.accounts.find { it.id == transaction.accountId }
-                                            val category = uiState.categories.find { it.id == transaction.categoryId }
-                                            val targetAccount = uiState.accounts.find { it.id == transaction.targetAccountId }
+                                    Text(
+                                        text = "Операций пока нет.\nНажмите +, чтобы добавить первую.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
 
-                                            HomeTransactionRow(
-                                                transaction = transaction,
-                                                category = category,
-                                                account = account,
-                                                targetAccount = targetAccount,
-                                                onClick = {
-                                                    // TODO клик по операции
-                                                }
-                                            )
+                        else -> {
+                            groupedDays.forEach { dayGroup ->
+                                // Заголовок дня и сводка доходов/расходов
+                                item(key = "header_${dayGroup.dateTitle}") {
+                                    DateHeader(
+                                        title = dayGroup.dateTitle,
+                                        dailyTotal = dayGroup.dailyTotal
+                                    )
+                                }
+
+                                // Белая карточка с операциями за этот день
+                                item(key = "card_${dayGroup.dateTitle}") {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 20.dp, vertical = 4.dp),
+                                        shape = RoundedCornerShape(20.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surface
+                                        )
+                                    ) {
+                                        Column {
+                                            dayGroup.transactions.forEach { transaction ->
+                                                val account = accountsMap[transaction.accountId]
+                                                val category = categoriesMap[transaction.categoryId]
+                                                val targetAccount = accountsMap[transaction.targetAccountId]
+
+                                                HomeTransactionRow(
+                                                    transaction = transaction,
+                                                    category = category,
+                                                    account = account,
+                                                    targetAccount = targetAccount,
+                                                    onClick = {
+                                                        // TODO клик по операции
+                                                    }
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -265,6 +296,13 @@ fun HomeScreenContent(
                         }
                     }
                 }
+
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = contentPadding.calculateBottomPadding() + 80.dp)
+                )
             }
         }
     }

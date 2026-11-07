@@ -3,69 +3,59 @@ package com.example.financetracker.feature.home.util
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionDayGroup
 import com.example.financetracker.core.model.TransactionType
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-fun groupTransactionByDay(transactions: List<Transaction>): List<TransactionDayGroup> {
+private val RU_LOCALE = Locale.forLanguageTag("ru")
+private val DATE_FORMATTED_SAME_YEAR = DateTimeFormatter.ofPattern("d MMMM, EEEE", RU_LOCALE)
+private val DATE_FORMATTED_WITH_YEAR = DateTimeFormatter.ofPattern("d MMMM yyyy, EEEE", RU_LOCALE)
+
+fun groupTransactionByDay(
+    transactions: List<Transaction>,
+    zoneId: ZoneId = ZoneId.systemDefault()
+): List<TransactionDayGroup> {
     if (transactions.isEmpty()) return emptyList()
 
-    // Группируем транзакции по началу дня
+    val today = LocalDate.now(zoneId)
+
+    // Группируем транзакции по календарному дню через LocalDate
     val groupedByDay = transactions.groupBy { transaction ->
-        Calendar.getInstance().apply {
-            timeInMillis = transaction.dateTime
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
+        Instant.ofEpochMilli(transaction.dateTime).atZone(zoneId).toLocalDate()
     }
 
-    // Для каждого дгя форматируем заголовок и считаем сумму расходов
-    return groupedByDay.map { (dayStartMillis, dayTransactions) ->
-        val incomeTotal = dayTransactions
-            .filter { it.type == TransactionType.INCOME }
-            .sumOf { it.amount }
+    // Сортируем дни от новых к старым и формируем группы
+    return groupedByDay.entries
+        .sortedByDescending { it.key }
+        .map { (date, dayTransactions) ->
+            var incomeTotal = 0.0
+            var expenseTotal = 0.0
 
-        val expenseTotal = dayTransactions
-            .filter { it.type == TransactionType.EXPENSE }
-            .sumOf { it.amount }
+            // Считаем суммы в один проход без создания промежуточных списков
+            for ((_, amount, type) in dayTransactions) {
+                when (type) {
+                    TransactionType.INCOME -> incomeTotal += amount
+                    TransactionType.EXPENSE -> expenseTotal += amount
+                    TransactionType.TRANSFER -> {} // Переводы не меняю общий баланс
+                }
+            }
 
-        val dailyTotal = incomeTotal - expenseTotal
-
-        TransactionDayGroup(
-            dateTitle = formatDayTitle(dayStartMillis),
-            dailyTotal = dailyTotal,
-            // Сортируем операции внутри дня от самых новых к более старым
-            transactions = dayTransactions.sortedByDescending { it.dateTime }
-        )
-    }.sortedByDescending { group ->
-        // Сортируем сами дни от новых к старым
-        group.transactions.firstOrNull()?.dateTime ?: 0L
-    }
+            TransactionDayGroup(
+                dateTitle = formatDayTitle(date, today),
+                dailyTotal = incomeTotal - expenseTotal,
+                // Сортируем операции внутри дня от самых новых к более старым
+                transactions = dayTransactions.sortedByDescending { it.dateTime }
+            )
+        }
 }
 
-private fun formatDayTitle(timestamp: Long): String {
-    val now = Calendar.getInstance()
-    val target = Calendar.getInstance().apply { timeInMillis = timestamp }
+private fun formatDayTitle(date: LocalDate, today: LocalDate): String {
     return when {
-        now.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
-                now.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR) -> {
-            "Сегодня"
-        }
-        now.get(Calendar.YEAR) == target.get(Calendar.YEAR) &&
-                now.get(Calendar.DAY_OF_YEAR) - target.get(Calendar.DAY_OF_YEAR) == 1 -> {
-            "Вчера"
-        }
-        now.get(Calendar.YEAR) == target.get(Calendar.YEAR) -> {
-            // Формат «12 мая, вторник»
-            val format = SimpleDateFormat("d MMMM, EEEE", Locale.forLanguageTag("ru"))
-            format.format(Date(timestamp))
-        }
-        else -> {
-            val formatWithYear = SimpleDateFormat("d MMMM yyyy, EEEE", Locale.forLanguageTag("ru"))
-            formatWithYear.format(Date(timestamp))
-        }
+        date.isEqual(today) -> "Сегодня"
+        date.isEqual(today.minusDays(1)) -> "Вчера"
+        date.year == today.year -> date.format(DATE_FORMATTED_SAME_YEAR)
+        else -> date.format(DATE_FORMATTED_WITH_YEAR)
     }
 }

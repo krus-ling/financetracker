@@ -36,9 +36,18 @@ class HomeViewModel(
 
     // Реактивное состояние экрана
     val uiState: StateFlow<HomeUiState> = combine(
-        accountRepository.getAllAccounts(),
-        transactionRepository.getRecentTransaction(limit = 10),
-        categoryRepository.getAllCategories(),
+        accountRepository.getAllAccounts().catch { e ->
+            _errorState.update { "Ошибка загрузки счетов: ${e.localizedMessage}" }
+            emit(emptyList())
+        },
+        transactionRepository.getRecentTransaction(limit = 10).catch { e ->
+            _errorState.update { "Ошибка загрузки операций: ${e.localizedMessage}" }
+            emit(emptyList())
+        },
+        categoryRepository.getAllCategories().catch { e ->
+            _errorState.update { "Ошибка загрузки категорий: ${e.localizedMessage}" }
+            emit(emptyList())
+        },
         _errorState.asStateFlow()
     ) { accounts, transactions, categories, error ->
         val totalBalance = accounts.sumOf { it.balance }
@@ -49,13 +58,6 @@ class HomeViewModel(
             recentTransaction = transactions,
             totalBalance = totalBalance,
             errorMessage = error
-        )
-    }.catch { throwable ->
-        emit(
-            HomeUiState(
-                isLoading = false,
-                errorMessage = throwable.localizedMessage ?: "Неизвестная ошибка"
-            )
         )
     }.stateIn(
         scope = viewModelScope,
@@ -83,7 +85,17 @@ class HomeViewModel(
         dateTime: Long = System.currentTimeMillis()
     ) {
         val currentAccounts = uiState.value.accounts
-        val selectedAccountId = accountId ?: currentAccounts.firstOrNull()?.id ?: "1"
+        val selectedAccountId = accountId ?: currentAccounts.firstOrNull()?.id
+
+        if (selectedAccountId == null) {
+            _errorState.update { "Не найден счёт для операции. Сначала создайте счёт." }
+            return
+        }
+
+        if (type == TransactionType.TRANSFER && targetAccountId == null) {
+            _errorState.update { "Не выбран счёт зачисления для перевода." }
+            return
+        }
 
         viewModelScope.launch(errorHandler) {
             val transaction = Transaction(
@@ -91,7 +103,7 @@ class HomeViewModel(
                 amount = amount,
                 categoryId = if (type == TransactionType.TRANSFER) "" else (categoryId ?: ""),
                 accountId = selectedAccountId,
-                targetAccountId = targetAccountId,
+                targetAccountId = if (type == TransactionType.TRANSFER) targetAccountId else null,
                 type = type,
                 dateTime = dateTime,
                 note = note.trim()

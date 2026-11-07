@@ -1,9 +1,11 @@
 package com.example.financetracker.feature.home
 
+import androidx.compose.runtime.Immutable
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.Transaction
 
+@Immutable
 data class HomeUiState(
     val isLoading: Boolean = true,
     val accounts: List<Account> = emptyList(),
