@@ -1,4 +1,4 @@
-package com.example.financetracker.placeholder
+package com.example.financetracker.feature.profile
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ProfilePlaceholderScreen(
+fun ProfileScreen(
     modifier: Modifier = Modifier,
     onOpenCategories: () -> Unit = {}
 ) {

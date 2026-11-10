@@ -1,4 +1,4 @@
-package com.example.financetracker.navigation
+package com.example.financetracker.core.navigation
 
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable

@@ -36,6 +36,14 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:model"))
+    implementation(project(":feature:home"))
+    implementation(project(":core:uikit"))
+    implementation(project(":core:database"))
+    implementation(project(":core:navigation"))
+    implementation(project(":feature:analytics"))
+    implementation(project(":feature:profile"))
+
     // AndroidX & Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
@@ -77,11 +85,6 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.logging)
-
-    implementation(project(":core:model"))
-    implementation(project(":feature:home"))
-    implementation(project(":core:uikit"))
-    implementation(project(":core:database"))
 
     // Testing
     testImplementation(libs.junit)

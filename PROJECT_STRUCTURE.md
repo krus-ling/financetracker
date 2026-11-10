@@ -9,238 +9,188 @@ This document provides a detailed walkthrough of the **Finance Tracker** Android
 ```
 finance_tracker/                     # Root of the repository
 ├─ .gitignore                       # Git ignore rules
-├─ README.md                        # Project description (already present)
-├─ settings.gradle.kts              # Gradle settings – includes modules
+├─ README.md                        # Project description
+├─ PROJECT_STRUCTURE.md             # Architecture & module map
+├─ settings.gradle.kts              # Gradle settings – registers all 8 modules
 ├─ build.gradle.kts                 # Top‑level Gradle script (plugins, repositories)
 ├─ gradle/                          # Gradle wrapper & version catalog
 │   ├─ libs.versions.toml           # Version catalog for dependencies
 │   └─ wrapper/                     # Gradle wrapper binaries
-├─ app/                             # Android application module (launches the app)
+├─ app/                             # Application root module (composite root / APK assembler)
 │   ├─ build.gradle.kts
-│   ├─ src/main/                    # Main source set
-│   │   ├─ AndroidManifest.xml
-│   │   ├─ java/com/example/financetracker/
-│   │   │   ├─ FinanceApp.kt        # Application class – Koin start‑up
-│   │   │   ├─ MainActivity.kt      # Host activity – sets the Compose UI
-│   │   │   ├─ navigation/          # Navigation scaffolding (bottom bar, tabs, scaffold)
-│   │   │   │   ├─ MainScaffold.kt   # Root `Scaffold` with BottomNavBar & FAB
-│   │   │   │   ├─ BottomNavBar.kt   # Bottom navigation bar UI
-│   │   │   │   ├─ NavTab.kt         # Enum of navigation tabs (Home, Analytics, Profile)
-│   │   │   │   └─ ...
-│   │   │   ├─ component/           # UI components used across the app
-│   │   │   │   └─ QuickAddTransactionSheet.kt  # Modal bottom sheet for adding a transaction
-│   │   │   └─ placeholder/          # Simple placeholder screens for unfinished features
-│   │   │   └─ placeholder/AnalyticsPlaceholderScreen.kt
-│   │   │   └─ placeholder/ProfilePlaceholderScreen.kt
-│   │   └─ res/                     # Resources (icons, themes, strings, etc.)
-│   └─ ...
-├─ core/                            # Shared library modules (feature‑agnostic)
-│   ├─ model/                       # Plain Kotlin data models (domain layer)
+│   └─ src/main/
+│       ├─ AndroidManifest.xml
+│       └─ java/com/example/financetracker/
+│           ├─ FinanceApp.kt        # Application class – Koin start‑up
+│           ├─ MainActivity.kt      # Host activity – edge-to-edge Compose host
+│           └─ navigation/          # Navigation scaffolding
+│               ├─ MainScaffold.kt   # Root Scaffold orchestrator (HorizontalPager, NavDisplay, BottomSheets)
+│               ├─ BottomNavBar.kt   # Material 3 Bottom Navigation Bar
+│               └─ NavTab.kt         # Enum of root tabs (HOME, ANALYTICS, PROFILE)
+├─ core/                            # Shared lower-level foundation modules
+│   ├─ navigation/                  # Navigation contracts & typed route keys
+│   │   ├─ build.gradle.kts
+│   │   └─ src/main/java/com/example/financetracker/core/navigation/
+│   │       └─ ScreenKey.kt         # Sealed interface ScreenKey (Navigation 3 destinations)
+│   ├─ model/                       # Pure Kotlin domain entities & repository interfaces
 │   │   ├─ build.gradle.kts
 │   │   └─ src/main/java/com/example/financetracker/core/model/
-│   │       ├─ Account.kt            # `data class Account`
-│   │       ├─ Category.kt           # `data class Category`
-│   │       ├─ CategoryType.kt       # Enum (EXPENSE, INCOME)
-│   │       ├─ Transaction.kt        # `data class Transaction`
-│   │       └─ TransactionType.kt    # Enum (EXPENSE, INCOME, TRANSFER)
-│   ├─ database/                    # Room database implementation
+│   │       ├─ Account.kt
+│   │       ├─ AccountType.kt
+│   │       ├─ Category.kt
+│   │       ├─ CategoryType.kt
+│   │       ├─ Transaction.kt
+│   │       ├─ TransactionType.kt
+│   │       └─ repository/          # Domain repository contracts (AccountRepository, etc.)
+│   ├─ database/                    # Room persistence implementation (hidden behind interfaces)
 │   │   ├─ build.gradle.kts
-│   │   ├─ src/main/java/com/example/financetracker/core/database/
-│   │   │   ├─ AppDatabase.kt        # `RoomDatabase` with pre‑populate callback
-│   │   │   ├─ entity/               # Room `@Entity` classes
-│   │   │   │   ├─ AccountEntity.kt
-│   │   │   │   ├─ CategoryEntity.kt
-│   │   │   │   └─ TransactionEntity.kt
-│   │   │   ├─ dao/                  # DAO interfaces (query / insert / update)
-│   │   │   │   ├─ AccountDao.kt
-│   │   │   │   ├─ CategoryDao.kt
-│   │   │   │   └─ TransactionDao.kt
-│   │   │   ├─ converters/           # `@TypeConverter` for enum ↔ String
-│   │   │   │   └─ DatabaseConverters.kt
-│   │   │   ├─ mapper/               # Extension functions converting Entity ↔ Domain model
-│   │   │   │   └─ DatabaseMappers.kt
-│   │   │   ├─ repository/           # Repository layer exposing `Flow` of domain models
-│   │   │   │   ├─ AccountRepository.kt
-│   │   │   │   ├─ CategoryRepository.kt
-│   │   │   │   └─ TransactionRepository.kt
-│   │   │   └─ di/                   # Koin module providing DB, DAOs, and repositories
-│   │   │       └─ DatabaseModule.kt
-│   └─ uikit/                       # UI‑kit (design system) – reusable Compose components & theme
+│   │   └─ src/main/java/com/example/financetracker/core/database/
+│   │       ├─ AppDatabase.kt
+│   │       ├─ dao/
+│   │       ├─ entity/
+│   │       ├─ repository/          # Repository implementations (AccountRepositoryImpl, etc.)
+│   │       └─ di/DatabaseModule.kt
+│   └─ uikit/                       # Reusable UI design system & components
 │       ├─ build.gradle.kts
 │       └─ src/main/java/com/example/financetracker/core/uikit/
-│           ├─ components/
-│           │   ├─ account/          # Account cards & items (AccountCardItem, AddAccountCardItem)
-│           │   ├─ category/         # Category icons & chips (CategoryIcon, CategoryIconChip)
-│           │   ├─ input/            # Input fields & formatters (AmountInputField, ThousandsSeparatorVisualTransformation)
-│           │   ├─ sheet/            # Bottom sheets (AppFormBottomSheet)
-│           │   ├─ text/             # Formatted texts (AmountText)
-│           │   ├─ transaction/      # Transaction list items (TransactionRowItem)
-│           │   └─ info              # Architecture cheat sheet for UI-kit components
-
-│           └─ theme/                # Color palette, typography, and MaterialTheme wrapper
-│               ├─ Color.kt
-│               ├─ Theme.kt
-│               ├─ Type.kt
-│               └─ ...
-├─ feature/                         # Feature‑specific modules (each can be a separate screen)
-│   └─ home/                        # Home screen – dashboard + recent transactions
-│       ├─ build.gradle.kts
-│       ├─ src/main/java/com/example/financetracker/feature/home/
-│       │   ├─ HomeScreen.kt          # Top‑level Compose UI for the Home tab
-│       │   ├─ HomeViewModel.kt       # ViewModel (combines repos, exposes `uiState`)
-│       │   ├─ HomeUiState.kt         # UI state data class
-│       │   ├─ di/                    # Koin module providing the ViewModel
-│       │   │   └─ HomeModule.kt
-│       │   └─ components/            # Small composables used only by Home
-│       │       ├─ HomeComponents.kt   # `HomeAccountCard` and `HomeTransactionRow`
-│       │       ├─ AddAccountBottomSheet.kt
-│       │       ├─ QuickAddTransactionSheet.kt
-│       │       └─ ...
-└─ iterations/                     # Documentation of development iterations (not code)
-    ├─ iteration-1/README.md
-    ├─ iteration-2/README.md
-    └─ iteration-3/README.md
+│           ├─ components/          # Account cards, category chips, inputs, sheets, text
+│           ├─ theme/               # Color, Theme, Type
+│           └─ util/                # AmountFormatter, AmountVisualTransformation
+└─ feature/                         # Horizontally-isolated feature modules (compiled in parallel)
+    ├─ home/                        # Home tab – dashboard, accounts carousel, transactions, details
+    │   ├─ build.gradle.kts
+    │   └─ src/main/java/com/example/financetracker/feature/home/
+    │       ├─ HomeScreen.kt
+    │       ├─ AccountDetailScreen.kt
+    │       ├─ CategoriesScreen.kt
+    │       ├─ HomeViewModel.kt
+    │       └─ components/sheet/
+    ├─ analytics/                   # Analytics tab – diagrams, spending charts & statistics
+    │   ├─ build.gradle.kts
+    │   └─ src/main/java/com/example/financetracker/feature/analytics/
+    │       └─ AnalyticsScreen.kt
+    └─ profile/                     # Profile tab – settings, categories navigation, currency
+        ├─ build.gradle.kts
+        └─ src/main/java/com/example/financetracker/feature/profile/
+            └─ ProfileScreen.kt
 ```
----
-
-## 2. Core Modules
-
-### 2.1 `core:model`
-| File                 | Purpose                                                                                      |
-|----------------------|----------------------------------------------------------------------------------------------|
-| `Account.kt`         | Represents a financial account (id, name, balance, currency).                                |
-| `Category.kt`        | Represents a spending/income category (type, icon, optional budget limit).                   |
-| `CategoryType.kt`    | Enum – **EXPENSE** or **INCOME**.                                                            |
-| `Transaction.kt`     | Represents a transaction (amount, type, linked account/category, timestamp, note).           |
-| `TransactionType.kt` | Enum – **EXPENSE**, **INCOME**, **TRANSFER**.                                                |
-| `build.gradle.kts`   | Minimal Java/Kotlin library module; brings in Kotlinx serialization for model JSON handling. |
-
-### 2.2 `core:database`
-*Provides a persistent Room database and a clean repository API.*
-
-| File                                  | Purpose                                                                                                                                                                         |
-|---------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `AppDatabase.kt`                      | Defines the Room database, lists entities, registers `DatabaseConverters`, and contains a `Callback` that pre‑populates a default account and a few categories on first launch. |
-| `entity/AccountEntity.kt`             | Room `@Entity` for accounts (auto‑generated `Long` primary key).                                                                                                                |
-| `entity/CategoryEntity.kt`            | Room `@Entity` for categories; stores `CategoryType` enum via a type converter.                                                                                                 |
-| `entity/TransactionEntity.kt`         | Room `@Entity` for transactions; foreign‑keys to `AccountEntity` and `CategoryEntity`.                                                                                          |
-| `dao/AccountDao.kt`                   | DAO for CRUD on accounts; provides a `Flow<List<AccountEntity>>`.                                                                                                               |
-| `dao/CategoryDao.kt`                  | DAO for categories; exposes a `Flow<List<CategoryEntity>>`.                                                                                                                     |
-| `dao/TransactionDao.kt`               | DAO for transactions; provides recent‑transaction query (`LIMIT 10`).                                                                                                           |
-| `converters/DatabaseConverters.kt`    | `@TypeConverter` implementations converting `TransactionType` and `CategoryType` enums to/from `String`.                                                                        |
-| `mapper/DatabaseMappers.kt`           | Extension functions mapping between Entity ↔ Domain (`AccountEntity.toDomain()`, `Account.toEntity()`, etc.).                                                                   |
-| `repository/AccountRepository.kt`     | Reads accounts as `Flow<List<Account>>` and inserts new accounts.                                                                                                               |
-| `repository/CategoryRepository.kt`    | Supplies a flow of domain categories.                                                                                                                                           |
-| `repository/TransactionRepository.kt` | Supplies recent transactions flow; adds a transaction while updating the related account balance based on transaction type.                                                     |
-| `di/DatabaseModule.kt`                | Koin module exposing a singleton `AppDatabase`, DAOs, and repository instances.                                                                                                 |
-| `build.gradle.kts`                    | Android library module – pulls in Room, Koin, Coroutines, and core UI dependencies.                                                                                             |
-
-### 2.3 `core:uikit`
-*Design system and reusable UI widgets used across features.*
-
-| File                              | Purpose                                                                                                               |
-|-----------------------------------|-----------------------------------------------------------------------------------------------------------------------|
-| `theme/Color.kt`                  | Central colour definitions (brand, surfaces, text, semantic financial colours, category palette).                     |
-| `theme/Theme.kt`                  | `FinancetrackerTheme` composable that selects light/dark colour schemes and optionally dynamic colour on Android 12+. |
-| `theme/Type.kt`                   | Basic Material typography (`Typography` instance).                                                                    |
-| `build.gradle.kts`                | Android library module – adds Compose BOM, core UI, and a dependency on `core:model`.                                 |
 
 ---
 
-## 3. Feature Modules
+## 2. Architecture & Module Dependency Graph
 
-### 3.1 `feature:home`
-*Main dashboard – shows total balance, accounts carousel, and recent transactions.*
+The project follows a clean **3-layer horizontal modular architecture**. All feature modules (`:feature:*`) are completely decoupled from each other, allowing **100% parallel Gradle compilation**.
 
-| File                           | Purpose                                                                                                                                                                                         |
-|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `HomeScreen.kt`                | Root composable for the Home tab – orchestrates loading state, error handling, balance display, accounts carousel, and transaction list.                                                        |
-| `HomeViewModel.kt`             | ViewModel that combines `AccountRepository`, `TransactionRepository`, and `CategoryRepository` into a single `StateFlow<HomeUiState>`. Handles adding a new transaction via `addTransaction()`. |
-| `HomeUiState.kt`               | Data class representing UI state (loading flag, lists of accounts/categories, recent transactions, total balance, error message).                                                               |
-| `di/HomeModule.kt`             | Koin module that provides `HomeViewModel`.                                                                                                                                                      |
-| `components/HomeComponents.kt` | Small composables: `HomeAccountCard` (wraps `AccountCardItem`) and `HomeTransactionRow` (wraps `TransactionRowItem` with proper formatting).                                                    |
-| `build.gradle.kts`             | Android library module – depends on `core:uikit`, `core:model`, `core:database`, plus Compose, Lifecycle, ViewModel, Koin, Coroutines.                                                          |
+```mermaid
+graph TD
+    subgraph Layer 1: Application (Composite Root)
+        APP[":app<br>(MainActivity, FinanceApp, MainScaffold)"]
+    end
 
----
+    subgraph Layer 2: Feature Layer (Compiled in Parallel)
+        F_HOME[":feature:home<br>(Dashboard, Accounts, Details)"]
+        F_ANALYTICS[":feature:analytics<br>(Charts, Statistics)"]
+        F_PROFILE[":feature:profile<br>(Settings, Categories)"]
+    end
 
-## 4. Application Module (`app`)
+    subgraph Layer 3: Core Foundation
+        C_NAV[":core:navigation<br>(ScreenKey contracts)"]
+        C_UIKIT[":core:uikit<br>(Theme, Components)"]
+        C_MODEL[":core:model<br>(Domain, Repo Interfaces)"]
+        C_DB[":core:database<br>(Room DB, DAOs, Impls)"]
+    end
 
-| File                                        | Purpose                                                                                                                                                                                                |
-|---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `FinanceApp.kt`                             | Subclass of `Application`; starts Koin with `databaseModule` and `homeModule`.                                                                                                                         |
-| `MainActivity.kt`                           | `ComponentActivity` that enables edge‑to‑edge system bars and sets the composable content to `MainScaffold`.                                                                                           |
-| `navigation/MainScaffold.kt`                | Top‑level `Scaffold` that holds the `BottomNavBar`, FAB (opens the quick‑add sheet), and swaps between Home, Analytics placeholder, and Profile placeholder based on selected tab.                     |
-| `navigation/BottomNavBar.kt`                | Implements the bottom navigation bar using Material 3 `NavigationBar` and `NavigationBarItem`.                                                                                                         |
-| `navigation/NavTab.kt`                      | Enum defining three tabs (`HOME`, `ANALYTICS`, `PROFILE`) with route, title, and icon.                                                                                                                 |
-| `component/QuickAddTransactionSheet.kt`     | Modal bottom sheet allowing the user to enter amount, select type (expense/income/transfer), pick a category (icon grid), and add an optional note. Communicates back via callbacks to `MainScaffold`. |
-| `placeholder/AnalyticsPlaceholderScreen.kt` | Simple placeholder UI for the Analytics screen (future implementation).                                                                                                                                |
-| `placeholder/ProfilePlaceholderScreen.kt`   | Simple placeholder UI for the Profile screen.                                                                                                                                                          |
-| `AndroidManifest.xml`                       | Declares the application class, main activity, backup rules, etc.                                                                                                                                      |
-| `res/values/strings.xml`                    | Contains the app name resource.                                                                                                                                                                        |
-| `res/values/themes.xml`                     | Minimal theme definition; actual styling lives in the Compose `FinancetrackerTheme`.                                                                                                                   |
-| `build.gradle.kts`                          | Application module – pulls in AndroidX, Compose, Navigation 3, Koin, Room, Retrofit, Coil, and all core/feature modules.                                                                               |
+    APP --> F_HOME
+    APP --> F_ANALYTICS
+    APP --> F_PROFILE
+    APP --> C_DB
+    APP --> C_UIKIT
+    APP --> C_MODEL
+    APP --> C_NAV
 
----
+    F_HOME --> C_NAV
+    F_HOME --> C_UIKIT
+    F_HOME --> C_MODEL
 
-## 5. Build Configuration
+    F_ANALYTICS --> C_NAV
+    F_ANALYTICS --> C_UIKIT
+    F_ANALYTICS --> C_MODEL
 
-- **Root `settings.gradle.kts`** – Registers modules `:app`, `:core:model`, `:core:database`, `:core:uikit`, `:feature:home`.
-- **Root `build.gradle.kts`** – Declares plugin aliases (Android application/library, Kotlin Compose, serialization, KSP) and disables default version catalog. No direct dependencies here; each sub‑module manages its own.
-- **`gradle/libs.versions.toml`** – Centralised version catalog for all third‑party libraries (AGP, Kotlin, Compose BOM, Koin, Room, Retrofit, Coil, etc.).
-- **Gradle wrapper** – `gradle-wrapper.jar`/`gradle-wrapper.properties` allow reproducible Gradle builds.
+    F_PROFILE --> C_NAV
+    F_PROFILE --> C_UIKIT
+    F_PROFILE --> C_MODEL
 
----
-
-## 6. Documentation & Iterations
-
-The `iterations/` folder stores Markdown files (`iteration-1/README.md`, etc.) that document the development roadmap, completed tasks, and upcoming work. They are not part of the compiled app but useful for project management.
-
----
-
-## 7. How the Pieces Fit Together (Runtime Flow)
-
-1. **App start** – Android launches `MainActivity`. `FinanceApp`'s `onCreate` starts Koin, loading `databaseModule` (creates a singleton `AppDatabase`) and `homeModule` (provides `HomeViewModel`).
-2. `MainActivity.setContent` applies `FinancetrackerTheme` and displays `MainScaffold`.
-3. `MainScaffold` renders the `BottomNavBar`; the default tab is **Home**.
-4. `HomeScreen` obtains `HomeViewModel` via `koinViewModel()`. The ViewModel combines flows from the three repositories into a `HomeUiState` which is observed via `collectAsStateWithLifecycle()`.
-5. UI displays:
-   - Total balance (computed from all accounts).
-   - Accounts carousel using `HomeAccountCard` → `AccountCardItem`.
-   - Recent transaction list using `HomeTransactionRow` → `TransactionRowItem`.
-6. When the FAB is pressed, `showQuickAdd` toggles the `QuickAddTransactionSheet` modal.
-7. The sheet collects user input, validates amount, and on "Add" calls `homeViewModel.addTransaction(...)`.
-8. `HomeViewModel.addTransaction` creates a `Transaction` domain object and asks `TransactionRepository` to insert it.
-9. `TransactionRepository.addTransaction`:
-   - Converts the domain model to a `TransactionEntity`.
-   - Computes the balance delta based on transaction type.
-   - Calls `AccountDao.updateBalance` to adjust the account.
-   - Inserts the transaction via `TransactionDao.insertTransaction`.
-10. Room’s `Flow`s automatically emit new data; `HomeViewModel` recomputes `HomeUiState`, causing the UI to re‑render with updated balances and transaction list.
+    C_DB --> C_MODEL
+    C_UIKIT --> C_MODEL
+```
 
 ---
 
-## 8. Key Design Decisions
+## 3. Core Modules
 
-- **Feature‑based multi‑module**: each functional area lives in its own Gradle module, making the codebase scalable and allowing independent testing.
-- **Clean Architecture**: domain models (`core:model`) are pure Kotlin data classes, completely decoupled from the persistence layer (`core:database`).
-- **Koin for DI**: lightweight and Kotlin‑friendly; modules are defined close to where they are used (DatabaseModule, HomeModule).
-- **Jetpack Compose + Material 3**: UI is fully declarative; theming is handled by a custom `FinancetrackerTheme` that mirrors the Material design system.
-- **Room with Flow**: reactive data streams ensure UI stays in sync with the database without manual callbacks.
-- **Pre‑populate database**: the `Callback` in `AppDatabase` adds a default “Основная карта” account and a handful of categories on first run, providing a ready‑to‑use demo experience.
+### 3.1 `:core:navigation`
+*Provides typed Navigation 3 routes/keys without depending on heavy UI libraries.*
+- `ScreenKey.kt`: `@Serializable` sealed interface defining destinations:
+  - `ScreenKey.Home`
+  - `ScreenKey.Analytics`
+  - `ScreenKey.Profile`
+  - `ScreenKey.AccountDetail(val accountId: String)`
+  - `ScreenKey.Categories`
+
+### 3.2 `:core:model`
+*Pure Kotlin JVM library holding domain models and repository interfaces.*
+- Pure entities: `Account`, `Transaction`, `Category`, `AccountType`, `CategoryType`, `TransactionType`.
+- Repository interfaces: `AccountRepository`, `TransactionRepository`, `CategoryRepository`.
+- No Android SDK or Compose dependencies — compiles in milliseconds.
+
+### 3.3 `:core:database`
+*Room implementation of the persistence layer.*
+- Room database `AppDatabase`, entity tables, DAOs with Kotlin Coroutines `Flow`.
+- Implements domain repository interfaces (`AccountRepositoryImpl`, etc.).
+- Internal implementation details are hidden from feature modules via Koin DI.
+
+### 3.4 `:core:uikit`
+*Design system and shared UI widgets.*
+- `theme/`: `Theme.kt`, `Color.kt`, `Type.kt`.
+- `components/`: Account cards, category icons/chips, bottom sheet wrappers, formatted amount texts.
+- `util/`: `AmountFormatter.kt`, `AmountVisualTransformation.kt`.
 
 ---
 
-## 9. Future Extension Points
+## 4. Feature Modules
 
-| Area                   | What to add                                                                                                                           |
-|------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| **Analytics**          | Replace `AnalyticsPlaceholderScreen` with proper composables (charts, filters) using libraries like MPAndroidChart or Compose‑Charts. |
-| **Profile / Auth**     | Implement user authentication, cloud sync, and profile management (currently placeholder).                                            |
-| **Networking**         | Existing Retrofit/OkHttp dependencies are ready for a sync service – create API interfaces and repository wrappers.                   |
-| **Testing**            | Add unit tests for repositories (using in‑memory Room) and UI tests (Compose test framework).                                         |
-| **DI Expansion**       | Extract feature‑specific modules (`feature:analytics`, `feature:profile`) each with their own Koin modules.                           |
-| **Modular Navigation** | Migrate from the simple enum‑based navigation to Navigation 3 with typed destinations and arguments.                                  |
+Features are strictly isolated horizontally and do **not** depend on each other.
+
+### 4.1 `:feature:home`
+- `HomeScreen.kt`: Dashboard with total balance, accounts carousel, and recent transactions.
+- `AccountDetailScreen.kt`: Account balance, operations filtered by account, editing and deletion.
+- `CategoriesScreen.kt`: Income and expense category limits and management.
+- `HomeViewModel.kt`: Orchestrates reactive `HomeUiState` using repository interfaces.
+
+### 4.2 `:feature:analytics`
+- `AnalyticsScreen.kt`: Visual diagrams, income/expense summaries, category breakdowns.
+
+### 4.3 `:feature:profile`
+- `ProfileScreen.kt`: Settings, profile info, entry points to category management and app preferences.
 
 ---
 
-*Document generated automatically on* **2026‑10‑30** *by Antigravity.*
+## 5. Application Module (`:app`)
+
+- **`MainActivity.kt`**: Sets edge-to-edge window insets and hosts `MainScaffold`.
+- **`FinanceApp.kt`**: `Application` class, bootstraps Koin DI (`databaseModule`, `homeModule`).
+- **`navigation/MainScaffold.kt`**: Root orchestrator:
+  - Hosts `HorizontalPager` with 3 tabs (`NavTab`).
+  - Hosts `NavDisplay` for detailed screens (`AccountDetail`, `Categories`).
+  - Holds modal bottom sheets (`QuickAddTransactionSheet`, `AddAccountBottomSheet`).
+- **`navigation/BottomNavBar.kt`**: Material 3 bottom navigation bar with icons and animated transitions.
+
+---
+
+## 6. How Features Interact (Decoupled Pattern)
+
+Feature modules never import each other. Their coordination is accomplished through:
+1. **Shared Reactive Data (Single Source of Truth):**
+   When `:feature:home` records a transaction via `TransactionRepository.addTransaction(...)`, Room DB emits new data via `Flow`. The `:feature:analytics` module, listening to the same repository flow, updates its charts automatically.
+2. **Navigation via Route Keys & Host Orchestration:**
+   When `:feature:profile` needs to open Categories, it invokes a callback (`onOpenCategories`). The root `:app` module receives it and navigates to `ScreenKey.Categories` via the back stack.

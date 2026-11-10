@@ -37,6 +37,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.core.navigation.ScreenKey
 import com.example.financetracker.feature.home.components.sheet.QuickAddTransactionSheet
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.AccountDetailScreen
@@ -45,8 +46,8 @@ import com.example.financetracker.feature.home.HomeScreenContent
 import com.example.financetracker.feature.home.HomeUiState
 import com.example.financetracker.feature.home.HomeViewModel
 import com.example.financetracker.feature.home.components.sheet.AddAccountBottomSheet
-import com.example.financetracker.placeholder.AnalyticsPlaceholderScreen
-import com.example.financetracker.placeholder.ProfilePlaceholderScreen
+import com.example.financetracker.feature.analytics.AnalyticsScreen
+import com.example.financetracker.feature.profile.ProfileScreen
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -198,11 +199,11 @@ fun MainScaffoldContent(
                                 onClearError = onClearError
                             )
 
-                            1 -> AnalyticsPlaceholderScreen(
+                            1 -> AnalyticsScreen(
                                 Modifier.padding(innerPadding)
                             )
 
-                            2 -> ProfilePlaceholderScreen(
+                            2 -> ProfileScreen(
                                 modifier = Modifier.padding(innerPadding),
                                 onOpenCategories = {
                                     backStack.add(ScreenKey.Categories)
