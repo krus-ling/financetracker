@@ -180,19 +180,19 @@ fun AccountDetailScreen(
                     AccountActionButton(
                         title = "Расход",
                         icon = Icons.Default.ArrowDownward,
-                        onClick = {},
+                        onClick = { onActionClick(TransactionType.EXPENSE) },
                         modifier = Modifier.weight(1f)
                     )
                     AccountActionButton(
                         title = "Доход",
                         icon = Icons.Default.ArrowUpward,
-                        onClick = {},
+                        onClick = { onActionClick(TransactionType.INCOME) },
                         modifier = Modifier.weight(1f)
                     )
                     AccountActionButton(
                         title = "Перевод",
                         icon = Icons.Default.SwapHoriz,
-                        onClick = {},
+                        onClick = { onActionClick(TransactionType.TRANSFER) },
                         modifier = Modifier.weight(1f)
                     )
                 }

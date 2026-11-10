@@ -1,13 +1,12 @@
 package com.example.financetracker.feature.home.components.sheet
 
-
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -37,8 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -66,6 +63,8 @@ fun QuickAddTransactionSheet(
     accounts: List<Account> = emptyList(),
     onDismiss: () -> Unit,
     onAddNewAccount: () -> Unit,
+    initialType: TransactionType = TransactionType.EXPENSE,
+    initialAccountId: String? = null,
     onAddClick: (
         amount: Double,
         categoryId: String?,
@@ -77,10 +76,8 @@ fun QuickAddTransactionSheet(
     ) -> Unit
 ) {
     val amountFocusRequester = remember { FocusRequester() }
-    val density = LocalDensity.current
-    var maxSheetHeight by remember { mutableStateOf(0.dp) }
 
-    var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
+    var selectedType by remember(initialType) { mutableStateOf(initialType) }
     var amountText by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var selectedDateTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -92,7 +89,9 @@ fun QuickAddTransactionSheet(
     var selectedIncomeCategoryId by remember { mutableStateOf<String?>(null) }
     var submitted by remember { mutableStateOf(false) }
 
-    var selectedAccountId by remember { mutableStateOf<String?>(accounts.firstOrNull()?.id) }
+    var selectedAccountId by remember(accounts, initialAccountId) {
+        mutableStateOf(initialAccountId ?: accounts.firstOrNull()?.id)
+    }
     var selectedTargetAccountId by remember { mutableStateOf<String?>(accounts.getOrNull(1)?.id) }
 
     // Раздельные состояния скролла для обычного счёта и целевого счёта перевода
@@ -175,14 +174,7 @@ fun QuickAddTransactionSheet(
         },
         onDismiss = onDismiss,
         onSheetOpened = { amountFocusRequester.requestFocus() },
-        modifier = Modifier
-            .onSizeChanged { size ->
-                val h = with(density) { size.height.toDp() }
-                if (h > maxSheetHeight) {
-                    maxSheetHeight = h
-                }
-            }
-            .defaultMinSize(minHeight = maxSheetHeight)
+        modifier = Modifier.fillMaxHeight()
     ) { clearFocus ->
         // 1. Селектор типа операции
         TransactionTypeSelector(

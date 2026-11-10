@@ -129,6 +129,8 @@ fun MainScaffoldContent(
     val coroutineScope = rememberCoroutineScope()
 
     var showQuickAdd by remember { mutableStateOf(false) }
+    var quickAddType by remember { mutableStateOf(TransactionType.EXPENSE) }
+    var quickAddAccountId by remember { mutableStateOf<String?>(null) }
     var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
 
     // Активная вкладка синхронизирована с целевой страницей свайпа
@@ -162,7 +164,11 @@ fun MainScaffoldContent(
                 exit = scaleOut() + fadeOut()
             ) {
                 FloatingActionButton(
-                    onClick = { showQuickAdd = true },
+                    onClick = {
+                        quickAddType = TransactionType.EXPENSE
+                        quickAddAccountId = null
+                        showQuickAdd = true
+                    },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White
                 ) {
@@ -224,8 +230,10 @@ fun MainScaffoldContent(
                             transactions = currentHomeUiState.recentTransaction,
                             categories = currentHomeUiState.categories,
                             accounts = currentHomeUiState.accounts,
-                            onActionClick = {
+                            onActionClick = { type ->
                                 showQuickAdd = true
+                                quickAddType = type
+                                quickAddAccountId = account.id
                             }
                         )
                     } else {
@@ -255,6 +263,8 @@ fun MainScaffoldContent(
         QuickAddTransactionSheet(
             categories = homeUiState.categories,
             accounts = homeUiState.accounts,
+            initialType = quickAddType,
+            initialAccountId = quickAddAccountId,
             onDismiss = { showQuickAdd = false },
             onAddNewAccount = {
                 showQuickAdd = false
