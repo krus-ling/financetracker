@@ -30,19 +30,21 @@ class TransactionRepositoryImpl(
         val insertedId = transactionDao.insertTransaction(entity)
 
         // 2. Обновляем балансы счетов
-        when (transaction.type) {
-            TransactionType.EXPENSE -> {
-                accountDao.updateBalance(entity.accountId, -transaction.amount)
-            }
-            TransactionType.INCOME -> {
-                accountDao.updateBalance(entity.accountId, transaction.amount)
-            }
-            TransactionType.TRANSFER -> {
-                // Списываем со счёта списания
-                accountDao.updateBalance(entity.accountId, -transaction.amount)
-                // Зачисляем на целевой счёт
-                entity.targetAccountId?.let { targetId ->
-                    accountDao.updateBalance(targetId, transaction.amount)
+        entity.accountId?.let { accountId ->
+            when (transaction.type) {
+                TransactionType.EXPENSE -> {
+                    accountDao.updateBalance(accountId, -transaction.amount)
+                }
+                TransactionType.INCOME -> {
+                    accountDao.updateBalance(accountId, transaction.amount)
+                }
+                TransactionType.TRANSFER -> {
+                    // Списываем со счёта списания
+                    accountDao.updateBalance(accountId, -transaction.amount)
+                    // Зачисляем на целевой счёт
+                    entity.targetAccountId?.let { targetId ->
+                        accountDao.updateBalance(targetId, transaction.amount)
+                    }
                 }
             }
         }

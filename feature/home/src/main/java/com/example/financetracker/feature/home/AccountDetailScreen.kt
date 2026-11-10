@@ -1,5 +1,6 @@
 package com.example.financetracker.feature.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,7 +64,7 @@ fun AccountDetailScreen(
     account: Account,
     onBack: () -> Unit,
     onSave: (Account) -> Unit,
-    onDelete: (String) -> Unit = {},
+    onDelete: (String, Boolean) -> Unit = {_, _ ->},
     transactions: List<Transaction> = emptyList(),
     categories: List<Category> = emptyList(),
     accounts: List<Account> = emptyList(),
@@ -277,15 +280,36 @@ fun AccountDetailScreen(
     }
 
     if (showDeleteDialog) {
+        var deleteTransactions by remember { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Удалить счёт?") },
-            text = { Text("Вы уверены, что хотите удалить счёт «${account.name}»? Все связанные с ним операции также будут удалены.") },
+            text = {
+                Column {
+                    Text("Вы уверены, что хотите удалить счёт «${account.name}»?")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { deleteTransactions = !deleteTransactions }
+                    ) {
+                        Checkbox(
+                            checked = deleteTransactions,
+                            onCheckedChange = { deleteTransactions = it }
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Удалить все связанные операции",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
                         onBack()
-                        onDelete(account.id)
+                        onDelete(account.id, deleteTransactions)
                         showDeleteDialog = false
                     }
                 ) {

@@ -5,7 +5,7 @@ data class Transaction(
     val amount: Double,
     val type: TransactionType,
     val categoryId: String,
-    val accountId: String,
+    val accountId: String? = null,
     val targetAccountId: String? = null,
     val dateTime: Long, // timestamp в миллисекундах или Instant
     val note: String? = null

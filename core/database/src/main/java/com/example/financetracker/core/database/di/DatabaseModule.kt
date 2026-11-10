@@ -20,7 +20,12 @@ val databaseModule = module {
     single { get<AppDatabase>().transactionDao() }
 
     // Репозитории
-    single<AccountRepository> { AccountRepositoryImpl(accountDao = get()) }
+    single<AccountRepository> {
+        AccountRepositoryImpl(
+            accountDao = get(),
+            transactionDao = get()
+        )
+    }
     single<TransactionRepository> {
         TransactionRepositoryImpl(
             appDatabase = get(),

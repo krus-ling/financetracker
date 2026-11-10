@@ -86,8 +86,8 @@ fun MainScaffold(
         onDeleteCategory = { categoryId ->
             homeViewModel.deleteCategory(categoryId)
         },
-        onDeleteAccount = { accountId ->
-            homeViewModel.deleteAccount(accountId)
+        onDeleteAccount = { accountId, deleteTransactions ->
+            homeViewModel.deleteAccount(accountId, deleteTransactions)
         },
         onClearError = {
             homeViewModel.clearError()
@@ -105,7 +105,7 @@ fun MainScaffoldContent(
     onSaveCategoryBudget: (categoryId: String, limit: Double?) -> Unit = { _, _ -> },
     onCreateCategory: (name: String, type: CategoryType, iconRes: String, limit: Double?) -> Unit = { _, _, _, _ -> },
     onDeleteCategory: (categoryId: String) -> Unit = {},
-    onDeleteAccount: (accountId: String) -> Unit = {},
+    onDeleteAccount: (accountId: String, deleteTransactions: Boolean) -> Unit = { _, _ ->},
     onClearError: () -> Unit = {}
 ) {
     // Стек навигации Navigation 3 для детальных экранов (автоматически переживает поворот экрана и смерть процесса)

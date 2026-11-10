@@ -160,9 +160,9 @@ class HomeViewModel(
         }
     }
 
-    fun deleteAccount(accountId: String) {
+    fun deleteAccount(accountId: String, deleteTransactions: Boolean = false) {
         viewModelScope.launch(errorHandler) {
-            accountRepository.deleteAccount(accountId)
+            accountRepository.deleteAccount(accountId, deleteTransactions)
         }
     }
 }

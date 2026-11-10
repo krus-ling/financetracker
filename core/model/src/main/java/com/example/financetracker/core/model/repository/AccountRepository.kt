@@ -10,5 +10,5 @@ interface AccountRepository {
     suspend fun createAccount(name: String, initialBalance: Double, currency: String = "RUB"): Long
     suspend fun updateAccount(account: Account)
     suspend fun deleteAccount(id: Long)
-    suspend fun deleteAccount(id: String)
+    suspend fun deleteAccount(id: String, deleteTransactions: Boolean = false)
 }

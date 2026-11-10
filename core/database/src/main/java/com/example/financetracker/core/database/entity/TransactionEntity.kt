@@ -13,8 +13,7 @@ import com.example.financetracker.core.model.TransactionType
             entity = AccountEntity::class,
             parentColumns = ["id"],
             childColumns = ["accountId"],
-            // Удалили счет - удалились все его операции
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.SET_NULL
         ),
         ForeignKey(
             entity = CategoryEntity::class,
@@ -39,7 +38,7 @@ import com.example.financetracker.core.model.TransactionType
 data class TransactionEntity (
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val accountId: Long,
+    val accountId: Long? = null,
     val targetAccountId: Long? = null,
     val categoryId: Long?,
     val amount: Double,

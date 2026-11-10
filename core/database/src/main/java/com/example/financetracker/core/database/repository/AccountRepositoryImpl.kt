@@ -1,6 +1,7 @@
 package com.example.financetracker.core.database.repository
 
 import com.example.financetracker.core.database.dao.AccountDao
+import com.example.financetracker.core.database.dao.TransactionDao
 import com.example.financetracker.core.database.entity.AccountEntity
 import com.example.financetracker.core.database.mapper.toDomain
 import com.example.financetracker.core.database.mapper.toEntity
@@ -10,7 +11,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class AccountRepositoryImpl(
-    private val accountDao: AccountDao
+    private val accountDao: AccountDao,
+    private val transactionDao: TransactionDao
 ) : AccountRepository {
     override fun getAllAccounts(): Flow<List<Account>> {
         return accountDao.getAllAccounts().map { entities ->
@@ -44,7 +46,11 @@ class AccountRepositoryImpl(
         accountDao.deleteAccountById(id)
     }
 
-    override suspend fun deleteAccount(id: String) {
-        id.toLongOrNull()?.let { deleteAccount(it) }
+    override suspend fun deleteAccount(id: String, deleteTransactions: Boolean) {
+        val accountId = id.toLongOrNull() ?: return
+        if (deleteTransactions) {
+            transactionDao.deleteTransactionsByAccountId(accountId)
+        }
+        accountDao.deleteAccountById(accountId)
     }
 }
