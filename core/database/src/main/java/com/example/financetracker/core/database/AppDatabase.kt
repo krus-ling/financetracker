@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
         CategoryEntity::class,
         TransactionEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(DatabaseConverters::class)

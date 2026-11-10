@@ -12,7 +12,9 @@ fun AccountEntity.toDomain(): Account {
         id = id.toString(),
         name = name,
         balance = balance,
-        currency = currency
+        currency = currency,
+        isDeleted = isDeleted,
+        deletedAt = deletedAt
     )
 }
 
@@ -21,7 +23,9 @@ fun Account.toEntity(): AccountEntity {
         id = id.toLongOrNull() ?: 0L,
         name = name,
         balance = balance,
-        currency = currency
+        currency = currency,
+        isDeleted = isDeleted,
+        deletedAt = deletedAt
     )
 }
 
@@ -54,7 +58,8 @@ fun TransactionEntity.toDomain(): Transaction {
         targetAccountId = targetAccountId?.toString(),
         type = type,
         dateTime = dateTime,
-        note = note
+        note = note,
+        isDeleted = isDeleted,
     )
 }
 
@@ -67,6 +72,7 @@ fun Transaction.toEntity(): TransactionEntity {
         targetAccountId = targetAccountId?.toLongOrNull(),
         type = type,
         dateTime = dateTime,
-        note = note
+        note = note,
+        isDeleted = isDeleted
     )
 }

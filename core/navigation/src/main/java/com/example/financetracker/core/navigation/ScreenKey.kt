@@ -20,4 +20,7 @@ sealed interface ScreenKey : NavKey {
 
     @Serializable
     data object Categories : ScreenKey
+
+    @Serializable
+    data object Trash : ScreenKey
 }

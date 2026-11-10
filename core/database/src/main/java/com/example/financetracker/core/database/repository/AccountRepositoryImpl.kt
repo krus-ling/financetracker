@@ -49,8 +49,33 @@ class AccountRepositoryImpl(
     override suspend fun deleteAccount(id: String, deleteTransactions: Boolean) {
         val accountId = id.toLongOrNull() ?: return
         if (deleteTransactions) {
-            transactionDao.deleteTransactionsByAccountId(accountId)
+            transactionDao.softDeleteTransactionsByAccountId(accountId)
         }
+        accountDao.softDeleteAccount(accountId)
+    }
+
+    override fun getDeletedAccounts(): Flow<List<Account>> {
+        return accountDao.getDeletedAccounts().map { list ->
+            list.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun findDeletedAccountByName(name: String): Account? {
+        val trimmedName = name.trim()
+        return accountDao.getDeletedAccountsList()
+            .firstOrNull { it.name.trim().equals(trimmedName, ignoreCase = true) }
+            ?.toDomain()
+    }
+
+    override suspend fun restoreAccount(id: String) {
+        val accountId = id.toLongOrNull() ?: return
+        accountDao.restoreAccount(accountId)
+        transactionDao.restoreTransactionsByAccountId(accountId)
+    }
+
+    override suspend fun purgeAccount(id: String) {
+        val accountId = id.toLongOrNull() ?: return
+        transactionDao.deleteTransactionsByAccountId(accountId)
         accountDao.deleteAccountById(accountId)
     }
 }

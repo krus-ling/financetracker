@@ -12,5 +12,6 @@ data class HomeUiState(
     val categories: List<Category> = emptyList(),
     val recentTransaction: List<Transaction> = emptyList(),
     val totalBalance: Double = 0.0,
+    val deletedAccounts: List<Account> = emptyList(),
     val errorMessage: String? = null
 )

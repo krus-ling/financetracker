@@ -36,26 +36,19 @@ class HomeViewModel(
 
     // Реактивное состояние экрана
     val uiState: StateFlow<HomeUiState> = combine(
-        accountRepository.getAllAccounts().catch { e ->
-            _errorState.update { "Ошибка загрузки счетов: ${e.localizedMessage}" }
-            emit(emptyList())
-        },
-        transactionRepository.getRecentTransaction(limit = 10).catch { e ->
-            _errorState.update { "Ошибка загрузки операций: ${e.localizedMessage}" }
-            emit(emptyList())
-        },
-        categoryRepository.getAllCategories().catch { e ->
-            _errorState.update { "Ошибка загрузки категорий: ${e.localizedMessage}" }
-            emit(emptyList())
-        },
+        accountRepository.getAllAccounts().catch { emit(emptyList()) },
+        transactionRepository.getRecentTransaction(limit = 10).catch { emit(emptyList()) },
+        categoryRepository.getAllCategories().catch { emit(emptyList()) },
+        accountRepository.getDeletedAccounts().catch { emit(emptyList()) },
         _errorState.asStateFlow()
-    ) { accounts, transactions, categories, error ->
+    ) { accounts, transactions, categories, deletedAccounts, error ->
         val totalBalance = accounts.sumOf { it.balance }
         HomeUiState(
             isLoading = false,
             accounts = accounts,
             categories = categories,
             recentTransaction = transactions,
+            deletedAccounts = deletedAccounts, // <-- передаём в стейт
             totalBalance = totalBalance,
             errorMessage = error
         )
@@ -163,6 +156,22 @@ class HomeViewModel(
     fun deleteAccount(accountId: String, deleteTransactions: Boolean = false) {
         viewModelScope.launch(errorHandler) {
             accountRepository.deleteAccount(accountId, deleteTransactions)
+        }
+    }
+
+    suspend fun findDeletedAccountByName(name: String): Account? {
+        return accountRepository.findDeletedAccountByName(name)
+    }
+
+    fun restoreAccount(accountId: String) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.restoreAccount(accountId)
+        }
+    }
+
+    fun purgeAccount(accountId: String) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.purgeAccount(accountId)
         }
     }
 }

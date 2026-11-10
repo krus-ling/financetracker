@@ -82,6 +82,9 @@ fun HomeScreenContent(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onAddAccount: (name: String, initialBalance: Double) -> Unit = { _, _ -> },
     onAccountClick: (String) -> Unit = {},
+    onCheckDeletedAccount: (suspend (String) -> Account?)? = null,
+    onRestoreDeletedAccount: ((String) -> Unit)? = null,
+    onPurgeDeletedAccount: ((String) -> Unit)? = null,
     onClearError: () -> Unit = {}
 ) {
     var showAddAccountSheet by remember { mutableStateOf(false) }
@@ -312,7 +315,10 @@ fun HomeScreenContent(
             onDismiss = { showAddAccountSheet = false },
             onAddClick = { name, initialBalance ->
                 onAddAccount(name, initialBalance)
-            }
+            },
+            onCheckDeletedAccount = onCheckDeletedAccount,
+            onRestoreDeletedAccount = onRestoreDeletedAccount,
+            onPurgeDeletedAccount = onPurgeDeletedAccount
         )
     }
 }

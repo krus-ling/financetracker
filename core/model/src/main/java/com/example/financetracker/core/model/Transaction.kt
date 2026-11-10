@@ -8,5 +8,6 @@ data class Transaction(
     val accountId: String? = null,
     val targetAccountId: String? = null,
     val dateTime: Long, // timestamp в миллисекундах или Instant
-    val note: String? = null
+    val note: String? = null,
+    val isDeleted: Boolean = false
 )

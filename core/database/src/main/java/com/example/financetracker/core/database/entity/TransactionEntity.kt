@@ -44,5 +44,6 @@ data class TransactionEntity (
     val amount: Double,
     val type: TransactionType,
     val dateTime: Long = System.currentTimeMillis(),
-    val note: String? = null
+    val note: String? = null,
+    val isDeleted: Boolean = false
 )

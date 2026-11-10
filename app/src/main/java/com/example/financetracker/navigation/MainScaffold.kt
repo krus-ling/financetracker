@@ -48,6 +48,7 @@ import com.example.financetracker.feature.home.HomeViewModel
 import com.example.financetracker.feature.home.components.sheet.AddAccountBottomSheet
 import com.example.financetracker.feature.analytics.AnalyticsScreen
 import com.example.financetracker.feature.profile.ProfileScreen
+import com.example.financetracker.feature.profile.TrashScreen
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -89,6 +90,13 @@ fun MainScaffold(
         onDeleteAccount = { accountId, deleteTransactions ->
             homeViewModel.deleteAccount(accountId, deleteTransactions)
         },
+        onCheckDeletedAccount = { name ->
+            homeViewModel.findDeletedAccountByName(name)
+        },
+        onRestoreAccount = { accountId ->
+            homeViewModel.restoreAccount(accountId)
+        },
+        onPurgeAccount = { homeViewModel.purgeAccount(it) },
         onClearError = {
             homeViewModel.clearError()
         }
@@ -106,6 +114,9 @@ fun MainScaffoldContent(
     onCreateCategory: (name: String, type: CategoryType, iconRes: String, limit: Double?) -> Unit = { _, _, _, _ -> },
     onDeleteCategory: (categoryId: String) -> Unit = {},
     onDeleteAccount: (accountId: String, deleteTransactions: Boolean) -> Unit = { _, _ ->},
+    onCheckDeletedAccount: suspend (String) -> Account? = { null },
+    onRestoreAccount: (String) -> Unit = {},
+    onPurgeAccount: (String) -> Unit = {},
     onClearError: () -> Unit = {}
 ) {
     // Стек навигации Navigation 3 для детальных экранов (автоматически переживает поворот экрана и смерть процесса)
@@ -119,7 +130,7 @@ fun MainScaffoldContent(
     val currentHomeUiState by rememberUpdatedState(homeUiState)
 
     // Детальный экран скрывает нижний бар и FAB
-    val isDetailOpen = currentKey is ScreenKey.AccountDetail || currentKey is ScreenKey.Categories
+    val isDetailOpen = currentKey is ScreenKey.AccountDetail || currentKey is ScreenKey.Categories || currentKey is ScreenKey.Trash
 
     // Пейджер для горизонтального свайпа между тремя вкладками
     val pagerState = rememberPagerState(
@@ -202,6 +213,9 @@ fun MainScaffoldContent(
                                     backStack.add(ScreenKey.AccountDetail(accountId))
                                 },
                                 onAddAccount = onCreateAccount,
+                                onCheckDeletedAccount = onCheckDeletedAccount,
+                                onRestoreDeletedAccount = onRestoreAccount,
+                                onPurgeDeletedAccount = onPurgeAccount,
                                 onClearError = onClearError
                             )
 
@@ -213,6 +227,9 @@ fun MainScaffoldContent(
                                 modifier = Modifier.padding(innerPadding),
                                 onOpenCategories = {
                                     backStack.add(ScreenKey.Categories)
+                                },
+                                onOpenTrash = {
+                                    backStack.add(ScreenKey.Trash)
                                 }
                             )
                         }
@@ -251,6 +268,15 @@ fun MainScaffoldContent(
                         onSaveBudgetLimit = onSaveCategoryBudget,
                         onCreateCategory = onCreateCategory,
                         onDeleteCategory = onDeleteCategory
+                    )
+                }
+
+                is ScreenKey.Trash -> NavEntry(key) {
+                    TrashScreen(
+                        deletedAccounts = currentHomeUiState.deletedAccounts,
+                        onBack = navigateBackSafely,
+                        onRestoreAccount = onRestoreAccount,
+                        onPurgeAccount = onPurgeAccount
                     )
                 }
 
@@ -296,6 +322,15 @@ fun MainScaffoldContent(
                 showAddAccountSheet = false
                 // После успешного создания возвращаем шторку операции
                 showQuickAdd = true
+            },
+            onCheckDeletedAccount = onCheckDeletedAccount,
+            onRestoreDeletedAccount = { accountId ->
+                onRestoreAccount(accountId)
+                showAddAccountSheet = false
+                showQuickAdd = true
+            },
+            onPurgeDeletedAccount = { accountId ->
+                onPurgeAccount(accountId)
             }
         )
     }

@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 interface TransactionDao {
 
     // Последние операции с лимитом, для гл экрана
-    @Query("SELECT * FROM TRANSACTIONS ORDER BY dateTime DESC LIMIT :limit")
+    @Query("SELECT * FROM TRANSACTIONS WHERE isDeleted = 0 ORDER BY dateTime DESC LIMIT :limit")
     fun getRecentTransaction(limit: Int = 10): Flow<List<TransactionEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -19,4 +19,11 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions WHERE accountId = :accountId OR targetAccountId = :accountId")
     suspend fun deleteTransactionsByAccountId(accountId: Long)
+
+    // Мягкое удаление и восстановление связанных операций счёта
+    @Query("UPDATE transactions SET isDeleted = 1 WHERE accountId = :accountId OR targetAccountId = :accountId")
+    suspend fun softDeleteTransactionsByAccountId(accountId: Long)
+
+    @Query("UPDATE transactions SET isDeleted = 0 WHERE accountId = :accountId OR targetAccountId = :accountId")
+    suspend fun restoreTransactionsByAccountId(accountId: Long)
 }
