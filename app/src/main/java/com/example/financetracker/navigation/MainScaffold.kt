@@ -85,6 +85,9 @@ fun MainScaffold(
         onDeleteCategory = { categoryId ->
             homeViewModel.deleteCategory(categoryId)
         },
+        onDeleteAccount = { accountId ->
+            homeViewModel.deleteAccount(accountId)
+        },
         onClearError = {
             homeViewModel.clearError()
         }
@@ -101,10 +104,16 @@ fun MainScaffoldContent(
     onSaveCategoryBudget: (categoryId: String, limit: Double?) -> Unit = { _, _ -> },
     onCreateCategory: (name: String, type: CategoryType, iconRes: String, limit: Double?) -> Unit = { _, _, _, _ -> },
     onDeleteCategory: (categoryId: String) -> Unit = {},
+    onDeleteAccount: (accountId: String) -> Unit = {},
     onClearError: () -> Unit = {}
 ) {
     // Стек навигации Navigation 3 для детальных экранов (автоматически переживает поворот экрана и смерть процесса)
     val backStack = rememberNavBackStack(ScreenKey.Home)
+    val navigateBackSafely = {
+        if (backStack.size > 1) {
+            backStack.removeLastOrNull()
+        }
+    }
     val currentKey = backStack.lastOrNull() ?: ScreenKey.Home
     val currentHomeUiState by rememberUpdatedState(homeUiState)
 
@@ -168,7 +177,7 @@ fun MainScaffoldContent(
         NavDisplay(
             backStack = backStack,
             modifier = Modifier.fillMaxSize(),
-            onBack = { backStack.removeLastOrNull() }
+            onBack = navigateBackSafely
         ) { key ->
             when (key) {
                 // Основной экран с горизонтальным свайпом вкладок
@@ -208,8 +217,9 @@ fun MainScaffoldContent(
                     if (account != null) {
                         AccountDetailScreen(
                             account = account,
-                            onBack = { backStack.removeLastOrNull() },
+                            onBack = navigateBackSafely,
                             onSave = onUpdateAccount,
+                            onDelete = onDeleteAccount,
                             transactions = currentHomeUiState.recentTransaction,
                             categories = currentHomeUiState.categories,
                             accounts = currentHomeUiState.accounts,
@@ -220,7 +230,7 @@ fun MainScaffoldContent(
                     } else {
                         // Если аккаунт не найден (например, удален), корректно возвращаемся назад
                         LaunchedEffect(Unit) {
-                            backStack.removeLastOrNull()
+                            navigateBackSafely()
                         }
                     }
                 }
@@ -228,7 +238,7 @@ fun MainScaffoldContent(
                 is ScreenKey.Categories -> NavEntry(key) {
                     CategoriesScreen(
                         categories = currentHomeUiState.categories,
-                        onBack = { backStack.removeLastOrNull() },
+                        onBack = navigateBackSafely,
                         onSaveBudgetLimit = onSaveCategoryBudget,
                         onCreateCategory = onCreateCategory,
                         onDeleteCategory = onDeleteCategory

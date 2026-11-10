@@ -16,8 +16,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -58,12 +61,14 @@ fun AccountDetailScreen(
     account: Account,
     onBack: () -> Unit,
     onSave: (Account) -> Unit,
+    onDelete: (String) -> Unit = {},
     transactions: List<Transaction> = emptyList(),
     categories: List<Category> = emptyList(),
     accounts: List<Account> = emptyList(),
     onActionClick: (TransactionType) -> Unit = {}
 ) {
     var editing by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     // Фильтруем операции, относящиеся только к этому счёту (списание, пополнение или перевод)
     val accountTransactions = remember(transactions, account.id) {
@@ -104,6 +109,15 @@ fun AccountDetailScreen(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Редактировать"
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { showDeleteDialog = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Удалить"
                         )
                     }
                 },
@@ -259,6 +273,35 @@ fun AccountDetailScreen(
             account = account,
             onDismiss = { editing = false },
             onSave = onSave
+        )
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Удалить счёт?") },
+            text = { Text("Вы уверены, что хотите удалить счёт «${account.name}»? Все связанные с ним операции также будут удалены.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onBack()
+                        onDelete(account.id)
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text(
+                        text = "Удалить",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Отмена")
+                }
+            }
         )
     }
 }

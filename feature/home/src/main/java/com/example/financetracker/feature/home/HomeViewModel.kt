@@ -159,4 +159,10 @@ class HomeViewModel(
             categoryRepository.deleteCategory(categoryId)
         }
     }
+
+    fun deleteAccount(accountId: String) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.deleteAccount(accountId)
+        }
+    }
 }
