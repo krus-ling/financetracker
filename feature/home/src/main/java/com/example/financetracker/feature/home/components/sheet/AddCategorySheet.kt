@@ -14,7 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.uikit.components.category.CategoryIcon
 import com.example.financetracker.core.uikit.components.input.AmountInputField
+import com.example.financetracker.core.uikit.components.input.AppTextField
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
 import com.example.financetracker.core.uikit.util.toAmountOrNull
 
@@ -90,18 +90,14 @@ fun AddCategorySheet(
         }
 
         // Название
-        OutlinedTextField(
+        AppTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text("Название") },
-            placeholder = { Text("Например, Хобби или Спорт") },
+            label = "Название",
+            placeholder = "Например, Хобби или Спорт",
             isError = isSubmitted && !isNameValid,
-            supportingText = if (isSubmitted && !isNameValid) {
-                { Text("Введите название категории") }
-            } else null,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            errorMessage = "Введите название категории",
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
 
         // Выбор иконки

@@ -16,7 +16,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,8 +23,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -47,6 +43,7 @@ import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.uikit.components.input.AmountInputField
+import com.example.financetracker.core.uikit.components.input.AppTextField
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
 import com.example.financetracker.core.uikit.components.transaction.AppSegmentedControl
 import com.example.financetracker.core.uikit.util.AmountFormatter
@@ -186,10 +183,10 @@ fun AddAccountBottomSheet(
             // РЕЖИМ 1: Восстановление счёта из корзины
             currentDeleted != null && isRestoreSelected -> {
                 // Заблокированное название
-                OutlinedTextField(
+                AppTextField(
                     value = currentDeleted.name,
                     onValueChange = {},
-                    label = { Text("Название счёта") },
+                    label = "Название счёта",
                     readOnly = true,
                     enabled = false,
                     trailingIcon = {
@@ -198,9 +195,7 @@ fun AddAccountBottomSheet(
                             contentDescription = "Заблокировано",
                             modifier = Modifier.size(18.dp)
                         )
-                    },
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth()
+                    }
                 )
 
                 // Заблокированный баланс из корзины
@@ -290,25 +285,15 @@ fun AddAccountBottomSheet(
             }
             // РЕЖИМ 2: Обычное создание или ввод нового счёта
             else -> {
-                OutlinedTextField(
+                AppTextField(
                     value = accountName,
                     onValueChange = { accountName = it },
-                    label = { Text("Название счёта") },
-                    placeholder = { Text("Например, Наличные") },
-                    singleLine = true,
+                    label = "Название счёта",
+                    placeholder = "Например, Наличные",
                     isError = nameError,
-                    supportingText = if (nameError) {
-                        { Text("Введите название счёта") }
-                    } else null,
+                    errorMessage = "Введите название счёта",
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(nameFocusRequester)
+                    focusRequester = nameFocusRequester
                 )
 
                 AmountInputField(

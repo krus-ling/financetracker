@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +25,7 @@ import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.AccountType
 import com.example.financetracker.core.uikit.components.account.AccountTypeChip
 import com.example.financetracker.core.uikit.components.input.AmountInputField
+import com.example.financetracker.core.uikit.components.input.AppTextField
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.util.AmountFormatter
@@ -67,11 +67,11 @@ fun EditAccountBottomSheet(
         onDismiss = onDismiss,
     ) { clearFocus ->
         // Название счёта
-        OutlinedTextField(
+        AppTextField(
             value = name,
             onValueChange = { if (it.length <= 30) name = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Название") },
+            label = "Название",
+            isError = !isNameValid && name.isNotEmpty(),
             supportingText = {
                 if (!isNameValid && name.isNotEmpty()) {
                     Text("Название не может быть пустым")
@@ -79,8 +79,6 @@ fun EditAccountBottomSheet(
                     Text("${name.length}/30")
                 }
             },
-            isError = !isNameValid && name.isNotEmpty(),
-            singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
 
@@ -105,19 +103,18 @@ fun EditAccountBottomSheet(
         }
 
         // Информационное поле валюты
-        OutlinedTextField(
+        AppTextField(
             value = currencyDisplay,
             onValueChange = {},
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Валюта") },
+            label = "Валюта",
+            readOnly = true,
+            enabled = false,
             trailingIcon = {
                 Icon(
                     imageVector = Icons.Default.Lock,
                     contentDescription = "Валюта заблокирована"
                 )
             },
-            readOnly = true,
-            enabled = false,
             supportingText = { Text("Валюту нельзя изменить: по счёту есть операции") }
         )
 

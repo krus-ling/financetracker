@@ -21,8 +21,6 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DatePickerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -48,6 +46,7 @@ import com.example.financetracker.core.uikit.components.account.AddAccountCardIt
 import com.example.financetracker.core.uikit.components.category.CategoryIconChip
 import com.example.financetracker.core.uikit.components.category.getCategoryIcon
 import com.example.financetracker.core.uikit.components.input.AmountInputField
+import com.example.financetracker.core.uikit.components.input.AppTextField
 import com.example.financetracker.core.uikit.components.input.DateTimePickerRow
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
 import com.example.financetracker.core.uikit.components.transaction.TransactionTypeSelector
@@ -256,22 +255,13 @@ fun QuickAddTransactionSheet(
         )
 
         // 6. Поле заметки
-        OutlinedTextField(
+        AppTextField(
             value = note,
             onValueChange = { if (it.length <= 100) note = it },
-            label = { Text("Заметка (необязательно)") },
-            placeholder = { Text("Например, Лента или такси") },
-            singleLine = true,
+            label = "Заметка (Необязательно)",
+            placeholder = "Например, лента или такси",
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(
-                onDone = { clearFocus() }
-            ),
-            shape = MaterialTheme.shapes.medium,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-            ),
-            modifier = Modifier.fillMaxWidth()
+            keyboardActions = KeyboardActions(onDone = { clearFocus() })
         )
     }
 
