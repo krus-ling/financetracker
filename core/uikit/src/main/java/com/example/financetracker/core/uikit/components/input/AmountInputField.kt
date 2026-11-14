@@ -29,7 +29,10 @@ fun AmountInputField(
     isError: Boolean = false,
     errorMessage: String? = null,
     focusRequester: FocusRequester? = null,
-    onDone: (() -> Unit)? = null
+    onDone: (() -> Unit)? = null,
+    readOnly: Boolean = false,
+    enabled: Boolean = true,
+    trailingIcon: (@Composable () -> Unit)? = null
 ) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -50,6 +53,9 @@ fun AmountInputField(
                 }
             }
         },
+        readOnly = readOnly,
+        enabled = enabled,
+        trailingIcon = trailingIcon,
         label = { Text(label) },
         placeholder = {
             Text(

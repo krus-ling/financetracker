@@ -29,47 +29,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.PrimarySoft
 
 /**
- * Сегментированный переключатель типа финансовой операции (Расход / Доход / Перевод).
+ * Универсальный сегментированный переключатель со скользящей пружинной анимацией.
  *
- * Представляет собой единую капсулу со скользящей пружинной анимацией активного индикатора.
- *
- * Архитектура и особенности:
- * - **Unidirectional Data Flow (UDF)**: компонент не хранит внутреннее состояние выбора,
- *   а принимает текущее значение [selectedType] и передаёт событие изменения через [onTypeSelected].
- * - **Адаптивная геометрия**: через [BoxWithConstraints] автоматически вычисляет ширину
- *   одного сегмента (`maxWidth / 3`) без захардкоженных размеров.
- * - **Физическая анимация**: смещение скользящей плашки анимируется пружиной [Spring]
- *   с мягким отскоком ([Spring.DampingRatioLowBouncy]).
- * - **Оптимизация производительности**: используется лямбда-оверлоад [Modifier.offset],
- *   благодаря чему чтение анимационного стейта отложено до фазы Layout (Placement),
- *   полностью исключая повторную рекомпозицию при движении плашки.
- * - **Плавная смена контраста**: цвет текста анимируется независимо через [animateColorAsState]
- *   для бесшовного перехода из приглушённого цвета темы в белый.
- *
- * @param selectedType Текущий выбранный тип транзакции ([TransactionType.EXPENSE], [TransactionType.INCOME], [TransactionType.TRANSFER]).
- * @param onTypeSelected Обработчик нажатия на сегмент с передачей нового выбранного типа.
- * @param modifier Модификатор для внешнего позиционирования и отступов.
+ * @param items Список вариантов любого типа [T].
+ * @param selectedItem Текущий выбранный элемент.
+ * @param onItemSelected Колбэк при клике на сегмент.
+ * @param label Функция маппинга элемента в текстовую подпись.
  */
 @Composable
-fun TransactionTypeSelector(
-    selectedType: TransactionType,
-    onTypeSelected: (TransactionType) -> Unit,
-    modifier: Modifier = Modifier
+fun <T> AppSegmentedControl(
+    items: List<T>,
+    selectedItem: T,
+    onItemSelected: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    label: (T) -> String = { it.toString() }
 ) {
-    val types = remember {
-        listOf(
-            TransactionType.EXPENSE to "Расход",
-            TransactionType.INCOME to "Доход",
-            TransactionType.TRANSFER to "Перевод"
-        )
-    }
-    val selectedIndex = types.indexOfFirst { it.first == selectedType }.coerceAtLeast(0)
+    if (items.isEmpty()) return
+
+    val selectedIndex = items.indexOf(selectedItem).coerceAtLeast(0)
 
     BoxWithConstraints(
         modifier = modifier
@@ -79,7 +64,7 @@ fun TransactionTypeSelector(
             .background(PrimarySoft)
             .padding(4.dp)
     ) {
-        val tabWidth = maxWidth / types.size
+        val tabWidth = maxWidth / items.size
 
         // Анимация движения плашки
         val indicatorOffset by animateDpAsState(
@@ -106,7 +91,7 @@ fun TransactionTypeSelector(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            types.forEachIndexed { index, (type, label) ->
+            items.forEachIndexed { index, item ->
                 val isSelected = selectedIndex == index
 
                 // Плавное перетекание цвета текста
@@ -125,12 +110,12 @@ fun TransactionTypeSelector(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                         ) {
-                            onTypeSelected(type)
+                            onItemSelected(item)
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = label,
+                        text = label(item),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                         color = textColor
@@ -138,5 +123,55 @@ fun TransactionTypeSelector(
                 }
             }
         }
+    }
+}
+
+/**
+ * Сегментированный переключатель типа финансовой операции (Расход / Доход / Перевод).
+ * Специализированная обёртка для создания операций (обратная совместимость).
+ */
+@Composable
+fun TransactionTypeSelector(
+    selectedType: TransactionType,
+    onTypeSelected: (TransactionType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val types = remember {
+        listOf(
+            TransactionType.EXPENSE to "Расход",
+            TransactionType.INCOME to "Доход",
+            TransactionType.TRANSFER to "Перевод"
+        )
+    }
+    AppSegmentedControl(
+        items = remember { types.map { it.first } },
+        selectedItem = selectedType,
+        onItemSelected = onTypeSelected,
+        label = { type -> types.firstOrNull { it.first == type }?.second.orEmpty() },
+        modifier = modifier
+    )
+}
+
+@Preview(name = "Light Theme", showBackground = true)
+@Composable
+private fun TransactionTypeSelectorLightPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        TransactionTypeSelector(
+            selectedType = TransactionType.EXPENSE,
+            onTypeSelected = {},
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Preview(name = "Dark Theme", showBackground = true)
+@Composable
+private fun TransactionTypeSelectorDarkPreview() {
+    FinancetrackerTheme(darkTheme = true) {
+        TransactionTypeSelector(
+            selectedType = TransactionType.EXPENSE,
+            onTypeSelected = {},
+            modifier = Modifier.padding(16.dp)
+        )
     }
 }

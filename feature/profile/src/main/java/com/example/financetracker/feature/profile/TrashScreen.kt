@@ -1,5 +1,11 @@
 package com.example.financetracker.feature.profile
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,18 +20,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,18 +46,30 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.Account
+import com.example.financetracker.core.model.Category
+import com.example.financetracker.core.model.Transaction
+import com.example.financetracker.core.uikit.components.button.AppPrimaryButton
+import com.example.financetracker.core.uikit.components.button.AppSecondaryButton
+import com.example.financetracker.core.uikit.components.category.getCategoryIcon
 import com.example.financetracker.core.uikit.components.text.AmountText
+import com.example.financetracker.core.uikit.components.transaction.TransactionRowItem
+import com.example.financetracker.core.uikit.theme.Primary
+import com.example.financetracker.core.uikit.theme.PrimarySoft
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -58,9 +81,13 @@ fun TrashScreen(
     onBack: () -> Unit,
     onRestoreAccount: (String) -> Unit,
     onPurgeAccount: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    categories: List<Category> = emptyList(),
+    onGetAccountTransactions: (suspend (String) -> List<Transaction>)? = null,
 ) {
     var accountToPurge by remember { mutableStateOf<Account?>(null) }
+    var expandedAccountId by remember { mutableStateOf<String?>(null) }
+    val categoriesMap = remember(categories) { categories.associateBy { it.id } }
 
     val dateFormat = remember {
         SimpleDateFormat("d MMMM yyyy, HH:mm", Locale("ru"))
@@ -133,25 +160,72 @@ fun TrashScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(deletedAccounts, key = { it.id }) { account ->
+                    val isExpanded = expandedAccountId == account.id
+
+                    // Анимация переворота стрелочки
+                    val chevronRotation by animateFloatAsState(
+                        targetValue = if (isExpanded) 180f else 0f,
+                        label = "chevronRotation"
+                    )
+                    // Кэш операций для этой карточки при раскрытии
+                    var transactions by remember(account.id) { mutableStateOf<List<Transaction>?>(null) }
+                    var isLoading by remember(account.id) { mutableStateOf(false) }
+
+                    LaunchedEffect(isExpanded) {
+                        if (isExpanded && transactions == null) {
+                            isLoading = true
+                            transactions = onGetAccountTransactions?.invoke(account.id) ?: emptyList()
+                            isLoading = false
+                        }
+                    }
+
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .animateContentSize()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                expandedAccountId = if (isExpanded) null else account.id
+                            },
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp)
                         ) {
+                            // 1. Шапка карточки
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
+                                // Круглая иконка счёта
+                                Box(
+                                    modifier = Modifier
+                                        .size(42.dp)
+                                        .clip(CircleShape)
+                                        .background(PrimarySoft),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CreditCard,
+                                        contentDescription = null,
+                                        tint = Primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(
+                                    modifier = Modifier.weight(1f)
+                                ) {
                                     Text(
                                         text = account.name,
                                         style = MaterialTheme.typography.titleMedium,
@@ -172,43 +246,97 @@ fun TrashScreen(
                                     type = null,
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                                 )
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                // Анимированная стрелочка
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = if (isExpanded) "Свернуть" else "Развернуть",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.graphicsLayer { rotationZ = chevronRotation }
+                                )
                             }
 
-                            Spacer(modifier = Modifier.height(14.dp))
+                            // 2. Раскрывающийся контент (только когда карточка развёрнута)
+                            if (isExpanded) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 12.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                FilledTonalButton(
-                                    onClick = { onRestoreAccount(account.id) },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Restore,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Восстановить")
+                                // Лента последних операций
+                                val txList = transactions
+                                when {
+                                    isLoading -> {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 12.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                                        }
+                                    }
+
+                                    txList.isNullOrEmpty() -> {
+                                        Text(
+                                            text = "Операций по счёту не найдено",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(vertical = 4.dp)
+                                        )
+                                    }
+
+                                    else -> {
+                                        Text(
+                                            text = "Последние операции (${txList.size}):",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+
+                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                        ) {
+                                            txList.take(5).forEach { tx ->
+                                                val category = categoriesMap[tx.categoryId]
+                                                TransactionRowItem(
+                                                    categoryName = category?.name ?: "Операция",
+                                                    categoryDetails = tx.note.orEmpty().ifBlank { "Без описания" },
+                                                    amount = tx.amount,
+                                                    type = tx.type,
+                                                    categoryIcon = getCategoryIcon(category?.iconRes),
+                                                    onClick = {}
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
 
-                                OutlinedButton(
-                                    onClick = { accountToPurge = account },
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.error
-                                    )
+                                Spacer(modifier = Modifier.height(14.dp))
+
+                                // Кнопки действий
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.DeleteForever,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
+                                    AppPrimaryButton(
+                                        text = "Восстановить",
+                                        onClick = { onRestoreAccount(account.id) },
+                                        modifier = Modifier.weight(1.2f)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Удалить")
+                                    AppSecondaryButton(
+                                        text = "Удалить",
+                                        onClick = { accountToPurge = account },
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
                             }
                         }

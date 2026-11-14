@@ -23,7 +23,9 @@ class TransactionRepositoryImpl(
         }
     }
 
-    override suspend fun addTransaction(transaction: Transaction): Long = appDatabase.withTransaction {
+    override suspend fun addTransaction(
+        transaction: Transaction
+    ): Long = appDatabase.withTransaction {
         val entity = transaction.toEntity()
 
         // 1. Сохраняем операцию
@@ -50,5 +52,15 @@ class TransactionRepositoryImpl(
         }
 
         insertedId
+    }
+
+    override suspend fun getTransactionsByAccountId(
+        accountId: String,
+        limit: Int
+    ): List<Transaction> {
+        val id = accountId.toLongOrNull() ?: return emptyList()
+        return transactionDao
+            .getTransactionsByAccountId(id, limit)
+            .map { it.toDomain() }
     }
 }

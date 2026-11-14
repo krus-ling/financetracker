@@ -85,6 +85,7 @@ fun HomeScreenContent(
     onCheckDeletedAccount: (suspend (String) -> Account?)? = null,
     onRestoreDeletedAccount: ((String) -> Unit)? = null,
     onPurgeDeletedAccount: ((String) -> Unit)? = null,
+    onGetAccountTransactions: (suspend (String) -> List<Transaction>)? = null,
     onClearError: () -> Unit = {}
 ) {
     var showAddAccountSheet by remember { mutableStateOf(false) }
@@ -318,7 +319,9 @@ fun HomeScreenContent(
             },
             onCheckDeletedAccount = onCheckDeletedAccount,
             onRestoreDeletedAccount = onRestoreDeletedAccount,
-            onPurgeDeletedAccount = onPurgeDeletedAccount
+            onPurgeDeletedAccount = onPurgeDeletedAccount,
+            onGetAccountTransactions = onGetAccountTransactions,
+            categories = uiState.categories
         )
     }
 }

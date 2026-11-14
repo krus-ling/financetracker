@@ -174,4 +174,8 @@ class HomeViewModel(
             accountRepository.purgeAccount(accountId)
         }
     }
+
+    suspend fun getAccountTransactions(accountId: String, limit: Int = 10): List<Transaction> {
+        return transactionRepository.getTransactionsByAccountId(accountId, limit)
+    }
 }

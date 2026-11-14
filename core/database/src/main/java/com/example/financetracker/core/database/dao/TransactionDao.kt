@@ -26,4 +26,7 @@ interface TransactionDao {
 
     @Query("UPDATE transactions SET isDeleted = 0 WHERE accountId = :accountId OR targetAccountId = :accountId")
     suspend fun restoreTransactionsByAccountId(accountId: Long)
+
+    @Query("SELECT * FROM transactions WHERE accountId = :accountId OR targetAccountId = :accountId ORDER BY dateTime DESC LIMIT :limit")
+    suspend fun getTransactionsByAccountId(accountId: Long, limit: Int = 10): List<TransactionEntity>
 }

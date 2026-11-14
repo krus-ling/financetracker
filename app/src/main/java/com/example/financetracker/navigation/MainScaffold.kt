@@ -36,6 +36,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.CategoryType
+import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.navigation.ScreenKey
 import com.example.financetracker.feature.home.components.sheet.QuickAddTransactionSheet
@@ -96,7 +97,12 @@ fun MainScaffold(
         onRestoreAccount = { accountId ->
             homeViewModel.restoreAccount(accountId)
         },
-        onPurgeAccount = { homeViewModel.purgeAccount(it) },
+        onPurgeAccount = {
+            homeViewModel.purgeAccount(it)
+        },
+        onGetAccountTransactions = { accountId ->
+            homeViewModel.getAccountTransactions(accountId)
+        },
         onClearError = {
             homeViewModel.clearError()
         }
@@ -117,6 +123,7 @@ fun MainScaffoldContent(
     onCheckDeletedAccount: suspend (String) -> Account? = { null },
     onRestoreAccount: (String) -> Unit = {},
     onPurgeAccount: (String) -> Unit = {},
+    onGetAccountTransactions: suspend (String) -> List<Transaction> = { emptyList() },
     onClearError: () -> Unit = {}
 ) {
     // Стек навигации Navigation 3 для детальных экранов (автоматически переживает поворот экрана и смерть процесса)
@@ -216,6 +223,7 @@ fun MainScaffoldContent(
                                 onCheckDeletedAccount = onCheckDeletedAccount,
                                 onRestoreDeletedAccount = onRestoreAccount,
                                 onPurgeDeletedAccount = onPurgeAccount,
+                                onGetAccountTransactions = onGetAccountTransactions,
                                 onClearError = onClearError
                             )
 
@@ -274,9 +282,11 @@ fun MainScaffoldContent(
                 is ScreenKey.Trash -> NavEntry(key) {
                     TrashScreen(
                         deletedAccounts = currentHomeUiState.deletedAccounts,
+                        categories = currentHomeUiState.categories,
                         onBack = navigateBackSafely,
                         onRestoreAccount = onRestoreAccount,
-                        onPurgeAccount = onPurgeAccount
+                        onPurgeAccount = onPurgeAccount,
+                        onGetAccountTransactions = onGetAccountTransactions
                     )
                 }
 
@@ -331,7 +341,9 @@ fun MainScaffoldContent(
             },
             onPurgeDeletedAccount = { accountId ->
                 onPurgeAccount(accountId)
-            }
+            },
+            onGetAccountTransactions = onGetAccountTransactions,
+            categories = currentHomeUiState.categories
         )
     }
 }

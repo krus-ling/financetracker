@@ -6,4 +6,5 @@ import kotlinx.coroutines.flow.Flow
 interface TransactionRepository {
     fun getRecentTransaction(limit: Int = 10): Flow<List<Transaction>>
     suspend fun addTransaction(transaction: Transaction): Long
+    suspend fun getTransactionsByAccountId(accountId: String, limit: Int = 10): List<Transaction>
 }

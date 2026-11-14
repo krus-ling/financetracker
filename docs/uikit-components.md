@@ -93,7 +93,7 @@
 ---
 
 ### 7. `transaction/` — Элементы ленты операций
-- **`TransactionTypeSelector.kt`**
+- **`AppSegmentControl.kt`**
   - Сегментированный переключатель типа операции («Расход», «Доход», «Перевод»).
   - Плавная пружинная анимация скользящей плашки (`animateDpAsState` + `Modifier.offset { IntOffset(...) }`).
 - **`TransactionRowItem.kt`**
