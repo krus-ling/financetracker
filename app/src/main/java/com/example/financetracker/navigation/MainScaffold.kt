@@ -151,6 +151,15 @@ fun MainScaffoldContent(
     var quickAddAccountId by remember { mutableStateOf<String?>(null) }
     var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
 
+    var reopenAddAccountSheetOnReturn by rememberSaveable { mutableStateOf(false) }
+    // При возврате на ScreenKey.Home снова показываем шторку:
+    LaunchedEffect(currentKey) {
+        if (currentKey is ScreenKey.Home && reopenAddAccountSheetOnReturn) {
+            reopenAddAccountSheetOnReturn = false
+            showAddAccountSheet = true
+        }
+    }
+
     // Активная вкладка синхронизирована с целевой страницей свайпа
     val currentTab = NavTab.entries[pagerState.targetPage]
 
@@ -246,6 +255,7 @@ fun MainScaffoldContent(
 
                 is ScreenKey.AccountDetail -> NavEntry(key) {
                     val account = currentHomeUiState.accounts.find { it.id == key.accountId }
+                        ?: currentHomeUiState.deletedAccounts.find { it.id == key.accountId }
                     if (account != null) {
                         AccountDetailScreen(
                             account = account,
@@ -254,12 +264,13 @@ fun MainScaffoldContent(
                             onDelete = onDeleteAccount,
                             transactions = currentHomeUiState.recentTransaction,
                             categories = currentHomeUiState.categories,
-                            accounts = currentHomeUiState.accounts,
+                            accounts = currentHomeUiState.accounts + currentHomeUiState.deletedAccounts,
                             onActionClick = { type ->
                                 showQuickAdd = true
                                 quickAddType = type
                                 quickAddAccountId = account.id
-                            }
+                            },
+                            onGetAccountTransactions = onGetAccountTransactions
                         )
                     } else {
                         // Если аккаунт не найден (например, удален), корректно возвращаемся назад
@@ -286,7 +297,10 @@ fun MainScaffoldContent(
                         onBack = navigateBackSafely,
                         onRestoreAccount = onRestoreAccount,
                         onPurgeAccount = onPurgeAccount,
-                        onGetAccountTransactions = onGetAccountTransactions
+                        onGetAccountTransactions = onGetAccountTransactions,
+                        onOpenAccountDetails = { accountId ->
+                            backStack.add(ScreenKey.AccountDetail(accountId))
+                        }
                     )
                 }
 
@@ -343,7 +357,14 @@ fun MainScaffoldContent(
                 onPurgeAccount(accountId)
             },
             onGetAccountTransactions = onGetAccountTransactions,
-            categories = currentHomeUiState.categories
+            categories = currentHomeUiState.categories,
+            deletedAccounts = currentHomeUiState.deletedAccounts,
+            onOpenAccountDetails = { accountId ->
+                reopenAddAccountSheetOnReturn = true
+                showAddAccountSheet = false
+                showQuickAdd = false
+                backStack.add(ScreenKey.AccountDetail(accountId))
+            }
         )
     }
 }

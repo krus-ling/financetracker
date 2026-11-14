@@ -1,5 +1,6 @@
 package com.example.financetracker.feature.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,8 +12,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
@@ -22,25 +25,32 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,10 +63,13 @@ import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountActionButton
 import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.components.text.DateHeader
+import com.example.financetracker.core.uikit.theme.Expense
+import com.example.financetracker.core.uikit.theme.ExpenseSoft
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.components.HomeTransactionRow
 import com.example.financetracker.feature.home.components.sheet.EditAccountBottomSheet
 import com.example.financetracker.feature.home.util.groupTransactionByDay
+import java.nio.file.WatchEvent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,14 +81,24 @@ fun AccountDetailScreen(
     transactions: List<Transaction> = emptyList(),
     categories: List<Category> = emptyList(),
     accounts: List<Account> = emptyList(),
-    onActionClick: (TransactionType) -> Unit = {}
+    onActionClick: (TransactionType) -> Unit = {},
+    onGetAccountTransactions: (suspend (String) -> List<Transaction>)? = null
 ) {
     var editing by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
+    var loadedTransactions by remember(account.id) { mutableStateOf<List<Transaction>?>(null) }
+
+    LaunchedEffect(account.id) {
+        if (onGetAccountTransactions != null) {
+            loadedTransactions = onGetAccountTransactions(account.id)
+        }
+    }
+
+    val effectiveTransactions = loadedTransactions ?: transactions
     // Фильтруем операции, относящиеся только к этому счёту (списание, пополнение или перевод)
-    val accountTransactions = remember(transactions, account.id) {
-        transactions.filter { it.accountId == account.id || it.targetAccountId == account.id }
+    val accountTransactions = remember(effectiveTransactions, account.id) {
+        effectiveTransactions.filter { it.accountId == account.id || it.targetAccountId == account.id }
     }
 
     val groupedDays = remember(accountTransactions) {
@@ -106,22 +129,24 @@ fun AccountDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = { editing = true }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Редактировать"
-                        )
-                    }
+                    if (!account.isDeleted) {
+                        IconButton(
+                            onClick = { editing = true }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Редактировать"
+                            )
+                        }
 
-                    IconButton(
-                        onClick = { showDeleteDialog = true }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "Удалить"
-                        )
+                        IconButton(
+                            onClick = { showDeleteDialog = true }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = "Удалить"
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -153,11 +178,32 @@ fun AccountDetailScreen(
                             .fillMaxWidth()
                             .padding(24.dp)
                     ) {
-                        Text(
-                            text = "Текущий баланс · ${account.type.title}",
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Текущий баланс · ${account.type.title}",
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+
+                            if (account.isDeleted) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.White.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "В корзине",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
 
                         Spacer(Modifier.height(8.dp))
 
@@ -172,35 +218,63 @@ fun AccountDetailScreen(
             }
 
             // Кнопки быстрых действий
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .padding(top = 18.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    AccountActionButton(
-                        title = "Расход",
-                        icon = Icons.Default.ArrowDownward,
-                        onClick = { onActionClick(TransactionType.EXPENSE) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    AccountActionButton(
-                        title = "Доход",
-                        icon = Icons.Default.ArrowUpward,
-                        onClick = { onActionClick(TransactionType.INCOME) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    AccountActionButton(
-                        title = "Перевод",
-                        icon = Icons.Default.SwapHoriz,
-                        onClick = { onActionClick(TransactionType.TRANSFER) },
-                        modifier = Modifier.weight(1f)
-                    )
+            if (!account.isDeleted) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .padding(top = 18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        AccountActionButton(
+                            title = "Расход",
+                            icon = Icons.Default.ArrowDownward,
+                            onClick = { onActionClick(TransactionType.EXPENSE) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        AccountActionButton(
+                            title = "Доход",
+                            icon = Icons.Default.ArrowUpward,
+                            onClick = { onActionClick(TransactionType.INCOME) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        AccountActionButton(
+                            title = "Перевод",
+                            icon = Icons.Default.SwapHoriz,
+                            onClick = { onActionClick(TransactionType.TRANSFER) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            } else {
+                item {
+                    Spacer(Modifier.height(12.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Счёт находится в корзине. Операции доступны только для просмотра.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
-
 
             // Заголовок ленты операций
             item {
@@ -283,49 +357,115 @@ fun AccountDetailScreen(
         var deleteTransactions by remember { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Удалить счёт?") },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(24.dp),
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(ExpenseSoft),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = null,
+                        tint = Expense,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Удалить счёт?",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            },
             text = {
-                Column {
-                    Text("Вы уверены, что хотите удалить счёт «${account.name}»?")
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "Счёт «${account.name}» будет перемещён в корзину. Вы сможете восстановить его позже в профиле.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
                             .clickable { deleteTransactions = !deleteTransactions }
                     ) {
-                        Checkbox(
-                            checked = deleteTransactions,
-                            onCheckedChange = { deleteTransactions = it }
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "Удалить все связанные операции",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(
+                                checked = deleteTransactions,
+                                onCheckedChange = { deleteTransactions = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = Expense,
+                                    checkmarkColor = Color.White
+                                )
+                            )
+
+                            Spacer(Modifier.width(8.dp))
+
+                            Text(
+                                text = "Удалить связанные операции",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        onBack()
-                        onDelete(account.id, deleteTransactions)
-                        showDeleteDialog = false
-                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Удалить",
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    // Отмена — 1/3 ширины
+                    TextButton(
+                        onClick = { showDeleteDialog = false },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Отмена",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                    // В корзину — 2/3 ширины
+                    Button(
+                        onClick = {
+                            onBack()
+                            onDelete(account.id, deleteTransactions)
+                            showDeleteDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Expense,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(2f)
+                    ) {
+                        Text(
+                            text = "В корзину",
+                            maxLines = 1
+                        )
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(
-                    onClick = { showDeleteDialog = false }
-                ) {
-                    Text("Отмена")
-                }
-            }
+            dismissButton = null
         )
     }
 }

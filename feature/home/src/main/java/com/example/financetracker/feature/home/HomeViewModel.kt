@@ -175,7 +175,7 @@ class HomeViewModel(
         }
     }
 
-    suspend fun getAccountTransactions(accountId: String, limit: Int = 10): List<Transaction> {
+    suspend fun getAccountTransactions(accountId: String, limit: Int = 100): List<Transaction> {
         return transactionRepository.getTransactionsByAccountId(accountId, limit)
     }
 }

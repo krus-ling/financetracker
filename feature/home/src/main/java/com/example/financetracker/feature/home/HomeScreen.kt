@@ -30,6 +30,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,7 +90,19 @@ fun HomeScreenContent(
     onGetAccountTransactions: (suspend (String) -> List<Transaction>)? = null,
     onClearError: () -> Unit = {}
 ) {
-    var showAddAccountSheet by remember { mutableStateOf(false) }
+    var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
+    var reopenAddAccountSheetOnReturn by rememberSaveable { mutableStateOf(false) }
+
+    // Когда возвращаемся на экран и стоит флаг — снова открываем шторку
+    LaunchedEffect(Unit) {
+        if (reopenAddAccountSheetOnReturn) {
+            reopenAddAccountSheetOnReturn = false
+            showAddAccountSheet = true
+        }
+    }
+
+    val addAccountStateHolder = rememberSaveableStateHolder()
+
     val groupedDays = remember(uiState.recentTransaction) {
         groupTransactionByDay(uiState.recentTransaction)
     }
@@ -312,17 +326,30 @@ fun HomeScreenContent(
     }
 
     if (showAddAccountSheet) {
-        AddAccountBottomSheet(
-            onDismiss = { showAddAccountSheet = false },
-            onAddClick = { name, initialBalance ->
-                onAddAccount(name, initialBalance)
-            },
-            onCheckDeletedAccount = onCheckDeletedAccount,
-            onRestoreDeletedAccount = onRestoreDeletedAccount,
-            onPurgeDeletedAccount = onPurgeDeletedAccount,
-            onGetAccountTransactions = onGetAccountTransactions,
-            categories = uiState.categories
-        )
+        addAccountStateHolder.SaveableStateProvider(key = "add_account_sheet") {
+            AddAccountBottomSheet(
+                onDismiss = {
+                    showAddAccountSheet = false
+                    addAccountStateHolder.removeState("add_account_sheet")
+                },
+                onAddClick = { name, initialBalance ->
+                    onAddAccount(name, initialBalance)
+                    showAddAccountSheet = false
+                    addAccountStateHolder.removeState("add_account_sheet")
+                },
+                onCheckDeletedAccount = onCheckDeletedAccount,
+                onRestoreDeletedAccount = onRestoreDeletedAccount,
+                onPurgeDeletedAccount = onPurgeDeletedAccount,
+                onGetAccountTransactions = onGetAccountTransactions,
+                categories = uiState.categories,
+                deletedAccounts = uiState.deletedAccounts,
+                onOpenAccountDetails = { accountId ->
+                    reopenAddAccountSheetOnReturn = true
+                    showAddAccountSheet = false
+                    onAccountClick(accountId)
+                }
+            )
+        }
     }
 }
 

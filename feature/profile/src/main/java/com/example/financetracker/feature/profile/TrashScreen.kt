@@ -4,7 +4,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,38 +23,39 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -68,6 +68,8 @@ import com.example.financetracker.core.uikit.components.button.AppSecondaryButto
 import com.example.financetracker.core.uikit.components.category.getCategoryIcon
 import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.components.transaction.TransactionRowItem
+import com.example.financetracker.core.uikit.theme.Expense
+import com.example.financetracker.core.uikit.theme.ExpenseSoft
 import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimarySoft
 import java.text.SimpleDateFormat
@@ -84,9 +86,10 @@ fun TrashScreen(
     modifier: Modifier = Modifier,
     categories: List<Category> = emptyList(),
     onGetAccountTransactions: (suspend (String) -> List<Transaction>)? = null,
+    onOpenAccountDetails: ((String) -> Unit)? = null,
 ) {
     var accountToPurge by remember { mutableStateOf<Account?>(null) }
-    var expandedAccountId by remember { mutableStateOf<String?>(null) }
+    var expandedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     val categoriesMap = remember(categories) { categories.associateBy { it.id } }
 
     val dateFormat = remember {
@@ -290,7 +293,7 @@ fun TrashScreen(
 
                                     else -> {
                                         Text(
-                                            text = "Последние операции (${txList.size}):",
+                                            text = "Последние операции:",
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -314,6 +317,36 @@ fun TrashScreen(
                                                     categoryIcon = getCategoryIcon(category?.iconRes),
                                                     onClick = {}
                                                 )
+                                            }
+
+                                            if (onOpenAccountDetails != null) {
+
+                                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clickable { onOpenAccountDetails(account.id) }
+                                                        .padding(vertical = 10.dp, horizontal = 12.dp),
+                                                    horizontalArrangement = Arrangement.Center,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = "Все операции (${txList.size})",
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+
+                                                    Spacer(Modifier.width(4.dp))
+
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(12.dp),
+                                                        tint = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -349,28 +382,95 @@ fun TrashScreen(
     accountToPurge?.let { account ->
         AlertDialog(
             onDismissRequest = { accountToPurge = null },
-            title = { Text("Удалить счёт навсегда?") },
-            text = {
-                Text("Счёт «${account.name}» и связанные с ним операции будут безвозвратно удалены. Это действие нельзя отменить.")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onPurgeAccount(account.id)
-                        accountToPurge = null
-                    }
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(24.dp),
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(ExpenseSoft),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Удалить навсегда",
-                        color = MaterialTheme.colorScheme.error
+                    Icon(
+                        imageVector = Icons.Default.DeleteForever,
+                        contentDescription = null,
+                        tint = Expense,
+                        modifier = Modifier.size(26.dp)
                     )
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { accountToPurge = null }) {
-                    Text("Отмена")
+            title = {
+                Text(
+                    text = "Удалить счёт навсегда?",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Счёт «${account.name}» будет полностью удалён из памяти устройства.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Связанные с этим счётом операции также будут безвозвратно удалены. Это действие нельзя отменить.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
                 }
-            }
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Отмена — 1/3 ширины
+                    TextButton(
+                        onClick = { accountToPurge = null },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Отмена",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                    // Удалить навсегда — 2/3 ширины
+                    Button(
+                        onClick = {
+                            onPurgeAccount(account.id)
+                            accountToPurge = null
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Expense,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(2f)
+                    ) {
+                        Text(
+                            text = "Удалить навсегда",
+                            maxLines = 1
+                        )
+                    }
+                }
+            },
+            dismissButton = null
         )
     }
 }
