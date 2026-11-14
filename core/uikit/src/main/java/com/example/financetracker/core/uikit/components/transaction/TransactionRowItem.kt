@@ -7,8 +7,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,12 +39,12 @@ import com.example.financetracker.core.uikit.theme.PrimaryTint
 fun TransactionRowItem(
     // чтобы строка операции была универсальной, принимает данные извне
     categoryName: String, // текст названия
-    categoryDetails: String, // второстепенный текст
     amount: Double, // сумма
     type: TransactionType, // тип транзакции
     categoryIcon: ImageVector, // иконка
     onClick: () -> Unit, // функцию обратного вызова при клике
     modifier: Modifier = Modifier,
+    categoryDetails: String? = null, // второстепенный текст
     iconBackgroundColor: Color = PrimaryTint,
     iconTint: Color = Primary,
 ) {
@@ -63,30 +67,38 @@ fun TransactionRowItem(
         )
 
         // В центре: колонка с названием и второстепенным текстом
-        //Column выстраивает элементы друг под другом - вертикально
+        // Column выстраивает элементы друг под другом - вертикально
         Column(
             modifier = Modifier
-                .weight(1f) //занять всё свободное пространство между левой и правой колонкой
+                .weight(1f) // занять всё свободное пространство между левой и правой колонкой
                 .padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = if (!categoryDetails.isNullOrBlank()) {
+                Arrangement.spacedBy(4.dp)
+            } else {
+                Arrangement.Center
+            }
         ) {
             Text(
-                text = categoryName, //название категории
+                text = categoryName, // название категории
                 style = TextStyle(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
-                )
-            )
-            Text(
-                text = categoryDetails, // второстепенный текст
-                style = TextStyle(
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            if (!categoryDetails.isNullOrBlank()) {
+                Text(
+                    text = categoryDetails, // второстепенный текст
+                    style = TextStyle(
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
 
         // Справа: колонка с суммой
@@ -101,47 +113,107 @@ fun TransactionRowItem(
     }
 }
 
-@Preview(name = "Transaction Row Light", showBackground = true)
 @Composable
-fun TransactionRowItemLightPreview() {
-    FinancetrackerTheme(darkTheme = false) {
+private fun TransactionPreviewList() {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // 1. Расход с описанием
         TransactionRowItem(
-            categoryName = "Продукты",
-            categoryDetails = "Лента · Основная карта",
-            amount = -2070.00,
+            categoryName = "Супермаркеты",
+            categoryDetails = "Перекрёсток · Основная карта",
+            amount = 2450.00,
             type = TransactionType.EXPENSE,
             categoryIcon = Icons.Default.ShoppingCart,
-            onClick = {},
+            onClick = {}
         )
-    }
-}
 
-@Preview(name = "Transaction Row Dark", showBackground = true, backgroundColor = 0xFF121816)
-@Composable
-fun TransactionRowItemDarkPreview() {
-    FinancetrackerTheme(darkTheme = true) {
-        TransactionRowItem(
-            categoryName = "Продукты",
-            categoryDetails = "Лента · Основная карта",
-            amount = -2070.00,
-            type = TransactionType.INCOME,
-            categoryIcon = Icons.Default.ShoppingCart,
-            onClick = {},
-        )
-    }
-}
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
-@Preview(name = "Transaction Row Dark", showBackground = true, backgroundColor = 0xFF121816)
-@Composable
-fun TransactionRowItemDark2Preview() {
-    FinancetrackerTheme(darkTheme = true) {
+        // 2. Перевод между счетами
         TransactionRowItem(
-            categoryName = "Продукты",
-            categoryDetails = "Лента · Основная карта",
-            amount = -2070.00,
+            categoryName = "Перевод",
+            categoryDetails = "Основная карта -> Накопительный",
+            amount = 15000.00,
             type = TransactionType.TRANSFER,
-            categoryIcon = Icons.Default.ShoppingCart,
-            onClick = {},
+            categoryIcon = Icons.Default.SwapHoriz,
+            onClick = {}
         )
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+        // 3. Доход с описанием (категория + заметка)
+        TransactionRowItem(
+            categoryName = "Основная карта",
+            categoryDetails = "Зарплата · Аванс за ноябрь",
+            amount = 55000.00,
+            type = TransactionType.INCOME,
+            categoryIcon = Icons.AutoMirrored.Filled.TrendingUp,
+            onClick = {}
+        )
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+        // 4. Доход БЕЗ описания (только счёт, строго по центру по высоте)
+        TransactionRowItem(
+            categoryName = "Тинькофф Black",
+            categoryDetails = null,
+            amount = 3000.00,
+            type = TransactionType.INCOME,
+            categoryIcon = Icons.AutoMirrored.Filled.TrendingUp,
+            onClick = {}
+        )
+    }
+}
+
+@Preview(name = "Все операции — Светлая тема", showBackground = true)
+@Composable
+private fun TransactionRowAllLightPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            TransactionPreviewList()
+        }
+    }
+}
+
+@Preview(name = "Все операции — Тёмная тема", showBackground = true, backgroundColor = 0xFF121816)
+@Composable
+private fun TransactionRowAllDarkPreview() {
+    FinancetrackerTheme(darkTheme = true) {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            TransactionPreviewList()
+        }
+    }
+}
+
+@Preview(name = "Доход без описания (по центру) — Светлая", showBackground = true)
+@Composable
+private fun TransactionRowIncomeNoDetailsLightPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            TransactionRowItem(
+                categoryName = "Тинькофф Black",
+                categoryDetails = null,
+                amount = 3000.00,
+                type = TransactionType.INCOME,
+                categoryIcon = Icons.AutoMirrored.Filled.TrendingUp,
+                onClick = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Доход без описания (по центру) — Тёмная", showBackground = true, backgroundColor = 0xFF121816)
+@Composable
+private fun TransactionRowIncomeNoDetailsDarkPreview() {
+    FinancetrackerTheme(darkTheme = true) {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            TransactionRowItem(
+                categoryName = "Тинькофф Black",
+                categoryDetails = null,
+                amount = 3000.00,
+                type = TransactionType.INCOME,
+                categoryIcon = Icons.AutoMirrored.Filled.TrendingUp,
+                onClick = {}
+            )
+        }
     }
 }
