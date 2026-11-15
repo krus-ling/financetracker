@@ -1,4 +1,4 @@
-package com.example.financetracker.feature.home.components.sheet
+package com.example.financetracker.feature.profile.components.sheet
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row

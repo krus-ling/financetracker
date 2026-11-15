@@ -1,4 +1,4 @@
-package com.example.financetracker.feature.home.components.sheet
+package com.example.financetracker.feature.profile.components.sheet
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,8 +34,11 @@ import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
 import com.example.financetracker.core.uikit.util.toAmountOrNull
 
 private val AVAILABLE_ICONS = listOf(
-    "shopping_cart", "restaurant", "directions_bus", "work",
-    "home", "theater_comedy", "favorite", "more_horiz"
+    "ic_category_groceries", "ic_category_cafe", "ic_category_transport",
+    "ic_category_housing", "ic_category_internet", "ic_category_health",
+    "ic_category_entertainment", "ic_category_clothing", "ic_category_gifts",
+    "ic_category_salary", "ic_category_freelance", "ic_category_percent",
+    "ic_category_cashback", "ic_category_other"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

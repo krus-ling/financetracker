@@ -1,4 +1,4 @@
-package com.example.financetracker.feature.home
+package com.example.financetracker.feature.profile
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
@@ -47,8 +46,8 @@ import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.uikit.components.category.CategoryIcon
 import com.example.financetracker.core.uikit.util.AmountFormatter
-import com.example.financetracker.feature.home.components.sheet.AddCategorySheet
-import com.example.financetracker.feature.home.components.sheet.EditBudgetLimitSheet
+import com.example.financetracker.feature.profile.components.sheet.AddCategorySheet
+import com.example.financetracker.feature.profile.components.sheet.EditBudgetLimitSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -246,8 +245,6 @@ private fun CategoryListItem(
         ) {
             CategoryIcon(
                 iconRes = category.iconRes,
-                backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                iconTint = MaterialTheme.colorScheme.primary,
                 size = 42.dp
             )
             Column(modifier = Modifier.weight(1f)) {

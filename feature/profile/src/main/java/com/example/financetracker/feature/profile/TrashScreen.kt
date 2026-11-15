@@ -314,7 +314,7 @@ fun TrashScreen(
                                                     categoryDetails = tx.note.orEmpty().ifBlank { "Без описания" },
                                                     amount = tx.amount,
                                                     type = tx.type,
-                                                    categoryIcon = getCategoryIcon(category?.iconRes),
+                                                    iconRes = category?.iconRes,
                                                     onClick = {}
                                                 )
                                             }

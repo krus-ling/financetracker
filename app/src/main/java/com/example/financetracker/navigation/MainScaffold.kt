@@ -42,7 +42,7 @@ import com.example.financetracker.core.navigation.ScreenKey
 import com.example.financetracker.feature.home.components.sheet.QuickAddTransactionSheet
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.AccountDetailScreen
-import com.example.financetracker.feature.home.CategoriesScreen
+import com.example.financetracker.feature.profile.CategoriesScreen
 import com.example.financetracker.feature.home.HomeScreenContent
 import com.example.financetracker.feature.home.HomeUiState
 import com.example.financetracker.feature.home.HomeViewModel

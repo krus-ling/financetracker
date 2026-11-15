@@ -14,6 +14,8 @@ import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountCardItem
 import com.example.financetracker.core.uikit.components.category.getCategoryIcon
 import com.example.financetracker.core.uikit.components.transaction.TransactionRowItem
+import com.example.financetracker.core.uikit.theme.TransferBlue
+import com.example.financetracker.core.uikit.theme.TransferSoft
 
 @Composable
 fun HomeAccountCard(
@@ -45,9 +47,9 @@ fun HomeTransactionRow(
 
     val title: String
     val subtitle: String
-    val icon: ImageVector
 
     when (transaction.type) {
+
         TransactionType.INCOME -> {
             title = accountName
             subtitle = when {
@@ -57,17 +59,30 @@ fun HomeTransactionRow(
                 else -> ""
             }
 
-            icon = if (!category?.iconRes.isNullOrEmpty()) {
-                getCategoryIcon(category.iconRes)
-            } else {
-                Icons.AutoMirrored.Filled.TrendingUp
-            }
+            TransactionRowItem(
+                categoryName = title,
+                categoryDetails = subtitle,
+                amount = transaction.amount,
+                type = transaction.type,
+                iconRes = category?.iconRes ?: "ic_category_salary",
+                onClick = onClick,
+                modifier = modifier
+            )
         }
 
         TransactionType.EXPENSE -> {
             title = category?.name ?: "Разное"
             subtitle = if (!note.isNullOrEmpty()) "$accountName · $note" else accountName
-            icon = getCategoryIcon(category?.iconRes)
+
+            TransactionRowItem(
+                categoryName = title,
+                categoryDetails = subtitle,
+                amount = transaction.amount,
+                type = transaction.type,
+                iconRes = category?.iconRes ?: "ic_category_other",
+                onClick = onClick,
+                modifier = modifier
+            )
         }
 
         TransactionType.TRANSFER -> {
@@ -78,17 +93,18 @@ fun HomeTransactionRow(
                 accountName
             }
             subtitle = if (!note.isNullOrEmpty()) "$transferRoute · $note" else transferRoute
-            icon = Icons.Default.SwapHoriz
+
+            TransactionRowItem(
+                categoryName = title,
+                categoryDetails = subtitle,
+                amount = transaction.amount,
+                type = transaction.type,
+                categoryIcon = Icons.Default.SwapHoriz,
+                iconBackgroundColor = TransferSoft,
+                iconTint = TransferBlue,
+                onClick = onClick,
+                modifier = modifier
+            )
         }
     }
-
-    TransactionRowItem(
-        categoryName = title,
-        categoryDetails = subtitle,
-        amount = transaction.amount,
-        type = transaction.type,
-        categoryIcon = icon,
-        onClick = onClick,
-        modifier = modifier
-    )
 }

@@ -22,14 +22,25 @@ class CategoryRepositoryImpl(
     override suspend fun checkAndSeedDefaultCategories() {
         if (categoryDao.getCount() == 0) {
             val defaultCategories = listOf(
-                CategoryEntity(name = "Продукты", type = CategoryType.EXPENSE, iconRes = "shopping_cart", isSystem = true),
-                CategoryEntity(name = "Кафе", type = CategoryType.EXPENSE, iconRes = "restaurant", isSystem = true),
-                CategoryEntity(name = "Транспорт", type = CategoryType.EXPENSE, iconRes = "directions_bus", isSystem = true),
-                CategoryEntity(name = "Зарплата", type = CategoryType.INCOME, iconRes = "work", isSystem = true),
-                CategoryEntity(name = "Дом", type = CategoryType.EXPENSE, iconRes = "home", isSystem = true),
-                CategoryEntity(name = "Развлечения", type = CategoryType.EXPENSE, iconRes = "theater_comedy", isSystem = true),
-                CategoryEntity(name = "Здоровье", type = CategoryType.EXPENSE, iconRes = "favorite", isSystem = true),
-                CategoryEntity(name = "Другое", type = CategoryType.EXPENSE, iconRes = "more_horiz", isSystem = true)
+                // Категории расходов (EXPENSE)
+                CategoryEntity(name = "Продукты", type = CategoryType.EXPENSE, iconRes = "ic_category_groceries", isSystem = true),
+                CategoryEntity(name = "Кафе и рестораны", type = CategoryType.EXPENSE, iconRes = "ic_category_cafe", isSystem = true),
+                CategoryEntity(name = "Транспорт", type = CategoryType.EXPENSE, iconRes = "ic_category_transport", isSystem = true),
+                CategoryEntity(name = "Жильё", type = CategoryType.EXPENSE, iconRes = "ic_category_housing", isSystem = true),
+                CategoryEntity(name = "Связь и интернет", type = CategoryType.EXPENSE, iconRes = "ic_category_internet", isSystem = true),
+                CategoryEntity(name = "Здоровье", type = CategoryType.EXPENSE, iconRes = "ic_category_health", isSystem = true),
+                CategoryEntity(name = "Развлечения", type = CategoryType.EXPENSE, iconRes = "ic_category_entertainment", isSystem = true),
+                CategoryEntity(name = "Одежда", type = CategoryType.EXPENSE, iconRes = "ic_category_clothing", isSystem = true),
+                CategoryEntity(name = "Подарки", type = CategoryType.EXPENSE, iconRes = "ic_category_gifts", isSystem = true),
+                CategoryEntity(name = "Другое", type = CategoryType.EXPENSE, iconRes = "ic_category_other", isSystem = true),
+
+                // Категории доходов (INCOME)
+                CategoryEntity(name = "Зарплата", type = CategoryType.INCOME, iconRes = "ic_category_salary", isSystem = true),
+                CategoryEntity(name = "Фриланс", type = CategoryType.INCOME, iconRes = "ic_category_freelance", isSystem = true),
+                CategoryEntity(name = "Проценты", type = CategoryType.INCOME, iconRes = "ic_category_percent", isSystem = true),
+                CategoryEntity(name = "Кешбэк", type = CategoryType.INCOME, iconRes = "ic_category_cashback", isSystem = true),
+                CategoryEntity(name = "Подарки", type = CategoryType.INCOME, iconRes = "ic_category_gifts", isSystem = true),
+                CategoryEntity(name = "Другое", type = CategoryType.INCOME, iconRes = "ic_category_other", isSystem = true)
             )
             categoryDao.insertAll(defaultCategories)
         }

@@ -1,6 +1,7 @@
 package com.example.financetracker.feature.home.components.sheet
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,10 +9,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -31,7 +38,10 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
@@ -44,13 +54,13 @@ import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountCardItem
 import com.example.financetracker.core.uikit.components.account.AddAccountCardItem
 import com.example.financetracker.core.uikit.components.category.CategoryIconChip
-import com.example.financetracker.core.uikit.components.category.getCategoryIcon
 import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.input.AppTextField
 import com.example.financetracker.core.uikit.components.input.DateTimePickerRow
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
 import com.example.financetracker.core.uikit.components.transaction.TransactionTypeSelector
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
+import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
 import com.example.financetracker.core.uikit.util.toAmountOrNull
 import java.util.Calendar
@@ -289,37 +299,120 @@ private fun CategoryGridSection(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        val categoryRows = remember(categories) {
-            categories.chunked(4)
+
+        // Разбиваем категории на страницы ровно по 8 штук (2 ряда x 4 колонки)
+        val pages = remember(categories) {
+            categories.chunked(8)
         }
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            categoryRows.forEach { rowCategories ->
-                Row(
+
+        if (pages.isNotEmpty()) {
+            val pagerState = rememberPagerState(pageCount = { pages.size })
+
+            // Автоматический скролл к странице, где находится выбранная категория
+            val selectedPageIndex = remember(categories, selectedCategoryId) {
+                val index = categories.indexOfFirst { it.id == selectedCategoryId }
+                if (index >= 0) index / 8 else 0
+            }
+
+            LaunchedEffect(selectedPageIndex) {
+                if (selectedPageIndex in pages.indices && pagerState.currentPage != selectedPageIndex) {
+                    pagerState.animateScrollToPage(selectedPageIndex)
+                }
+            }
+
+            HorizontalPager(
+                state = pagerState,
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier.fillMaxWidth()
+            ) { pageIndex ->
+                val pageCategories = pages[pageIndex]
+
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    rowCategories.forEach { category ->
-                        val isSelected = category.id == selectedCategoryId
-                        Box(modifier = Modifier.weight(1f)) {
-                            CategoryIconChip(
-                                icon = getCategoryIcon(category.iconRes),
-                                title = category.name,
-                                isSelected = isSelected,
-                                onClick = {
-                                    if (isIncome) {
-                                        onCategoryClick(if (isSelected) null else category.id)
-                                    } else {
-                                        onCategoryClick(category.id)
+                    // Всегда ровно 2 ряда
+                    for (rowIndex in 0..1) {
+                        val rowCategories = pageCategories.drop(rowIndex * 4).take(4)
+
+                        if (rowCategories.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowCategories.forEach { category ->
+                                    val isSelected = category.id == selectedCategoryId
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        CategoryIconChip(
+                                            iconRes = category.iconRes,
+                                            title = category.name,
+                                            isSelected = isSelected,
+                                            onClick = {
+                                                if (isIncome) {
+                                                    onCategoryClick(if (isSelected) null else category.id)
+                                                } else {
+                                                    onCategoryClick(category.id)
+                                                }
+                                            }
+                                        )
                                     }
                                 }
-                            )
+                                repeat(4 - rowCategories.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        } else {
+                            // Если второго ряда нет — рендерим невидимый ряд с такой же высотой
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .alpha(0f)
+                                ) {
+                                    CategoryIconChip(
+                                        iconRes = null,
+                                        title = " ",
+                                        isSelected = false,
+                                        onClick = {}
+                                    )
+                                }
+                                repeat(3) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
                         }
                     }
-                    repeat(4 - rowCategories.size) {
-                        Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+
+            // Точки-индикаторы страниц (показываются только если страниц > 1)
+            if (pages.size > 1) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(pages.size) { iteration ->
+                        val isCurrentPage = pagerState.currentPage == iteration
+                        val color = if (isCurrentPage) {
+                            Primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        }
+                        val width = if (isCurrentPage) 16.dp else 6.dp
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 3.dp)
+                                .height(6.dp)
+                                .width(width)
+                                .clip(CircleShape)
+                                .background(color)
+                        )
                     }
                 }
             }
