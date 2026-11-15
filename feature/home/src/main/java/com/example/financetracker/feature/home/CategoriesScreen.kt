@@ -172,9 +172,11 @@ fun CategoriesScreen(
                 onSaveBudgetLimit(category.id, limit)
                 editingCategory = null
             },
-            onDeleteCategory = {
-                editingCategory = null
-                categoryToDelete = category
+            onDeleteCategory = if (category.isSystem) null else {
+                {
+                    editingCategory = null
+                    categoryToDelete = category
+                }
             }
         )
     }

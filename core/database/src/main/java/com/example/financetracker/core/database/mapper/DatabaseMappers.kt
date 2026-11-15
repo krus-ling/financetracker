@@ -35,7 +35,8 @@ fun CategoryEntity.toDomain(): Category {
         name = name,
         type = type,
         iconRes = iconRes,
-        budgetLimit = budgetLimit
+        budgetLimit = budgetLimit,
+        isSystem = isSystem
     )
 }
 
@@ -45,7 +46,8 @@ fun Category.toEntity(): CategoryEntity {
         name = name,
         type = type,
         iconRes = iconRes,
-        budgetLimit = budgetLimit
+        budgetLimit = budgetLimit,
+        isSystem = isSystem
     )
 }
 

@@ -113,14 +113,10 @@ fun QuickAddTransactionSheet(
     }
 
     val filteredCategories = remember (categories, selectedType) {
-        categories.filter { category ->
-            val isTransfer = category.iconRes == "swap_horiz" ||
-                    category.name.contains("перевод", ignoreCase = true)
-            when (selectedType) {
-                TransactionType.EXPENSE -> category.type == CategoryType.EXPENSE || isTransfer
-                TransactionType.INCOME -> category.type == CategoryType.INCOME || isTransfer
-                TransactionType.TRANSFER -> true
-            }
+        when (selectedType) {
+            TransactionType.EXPENSE -> categories.filter { it.type == CategoryType.EXPENSE }
+            TransactionType.INCOME -> categories.filter { it.type == CategoryType.INCOME }
+            TransactionType.TRANSFER -> emptyList()
         }
     }
 

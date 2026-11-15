@@ -14,6 +14,9 @@ interface AccountDao {
     @Query("SELECT * FROM accounts WHERE isDeleted = 0")
     fun getAllAccounts(): Flow<List<AccountEntity>>
 
+    @Query("SELECT COUNT(*) FROM accounts")
+    suspend fun getCount(): Int
+
     @Query("SELECT * FROM accounts WHERE id = :id LIMIT 1")
     suspend fun getAccountById(id: Long): AccountEntity?
 

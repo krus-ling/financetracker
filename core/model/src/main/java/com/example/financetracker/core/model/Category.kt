@@ -5,5 +5,6 @@ data class Category(
     val name: String,
     val type: CategoryType,
     val iconRes: String,
-    val budgetLimit: Double? = null
+    val budgetLimit: Double? = null,
+    val isSystem: Boolean = false
 )

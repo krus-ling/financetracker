@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 interface AccountRepository {
     fun getAllAccounts(): Flow<List<Account>>
     fun getDeletedAccounts(): Flow<List<Account>> // список счетов в корзине
+    suspend fun checkAndSeedDefaultAccount()
     suspend fun getAccountById(id: Long): Account?
     suspend fun getAccountById(id: String): Account?
     suspend fun findDeletedAccountByName(name: String): Account?

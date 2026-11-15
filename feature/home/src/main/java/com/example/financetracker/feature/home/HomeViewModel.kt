@@ -60,6 +60,7 @@ class HomeViewModel(
 
     init {
         viewModelScope.launch(errorHandler) {
+            accountRepository.checkAndSeedDefaultAccount()
             categoryRepository.checkAndSeedDefaultCategories()
         }
     }

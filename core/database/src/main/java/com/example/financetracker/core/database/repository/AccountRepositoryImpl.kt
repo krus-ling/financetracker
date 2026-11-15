@@ -24,6 +24,20 @@ class AccountRepositoryImpl(
         return accountDao.getAccountById(id)?.toDomain()
     }
 
+    override suspend fun checkAndSeedDefaultAccount() {
+        if (accountDao.getCount() == 0) {
+            accountDao.insertAccount(
+                AccountEntity(
+                    name = "Основная карта",
+                    balance = 0.0,
+                    currency = "RUB",
+                    colorHex = "#0F5C4A",
+                    isDeleted = false
+                )
+            )
+        }
+    }
+
     override suspend fun getAccountById(id: String): Account? {
         return id.toLongOrNull()?.let { getAccountById(it) }
     }
