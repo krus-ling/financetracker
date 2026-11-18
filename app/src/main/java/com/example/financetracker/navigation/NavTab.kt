@@ -6,8 +6,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.graphics.vector.ImageVector
 
-enum class NavTab(val route: String, val title: String, val icon: ImageVector) {
-    HOME("home", "Главная", Icons.Filled.Home),
-    ANALYTICS("analytics", "Аналитика", Icons.Filled.Analytics),
-    PROFILE("profile", "Профиль", Icons.Filled.Person)
+enum class NavTab(val title: String, val icon: ImageVector) {
+    HOME("Главная", Icons.Filled.Home),
+    ANALYTICS("Аналитика", Icons.Filled.Analytics),
+    PROFILE("Профиль", Icons.Filled.Person)
 }

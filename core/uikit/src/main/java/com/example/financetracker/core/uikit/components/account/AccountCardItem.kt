@@ -1,5 +1,6 @@
 package com.example.financetracker.core.uikit.components.account
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,18 +25,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.financetracker.core.uikit.components.category.CategoryIcon
+import com.example.financetracker.core.uikit.components.icon.AppCircleIcon
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
-import java.util.Locale
-import androidx.compose.foundation.BorderStroke
+import com.example.financetracker.core.uikit.util.AmountFormatter
+import kotlin.math.abs
 
-private val RuAccountSymbols = DecimalFormatSymbols(Locale.forLanguageTag("ru")).apply {
-    groupingSeparator = ' ' // разделять тысячи пробелом
-    decimalSeparator = ',' // в качестве разделителя целой и дробной части использовать ,
-}
 
 /**
  * Карточка счёта для горизонтальной карусели на главном экране.
@@ -51,15 +47,8 @@ fun AccountCardItem(
     contentColor: Color? = null, // параметр для цвета текста
     onClick: () -> Unit // Функция обратного вызова
 ) {
-    // Оформление чисел по шаблону: если после запятой "00", скрываем их
     val formattedBalance = remember(balance) {
-        val decimalFormat = DecimalFormat("#,##0.00", RuAccountSymbols)
-        val formatted = decimalFormat.format(balance)
-        if (formatted.endsWith(",00")) {
-            formatted.removeSuffix(",00")
-        } else {
-            formatted
-        }
+        AmountFormatter.format(balance)
     }
 
     // Если цвет текста не передан явно, берем стандартный из темы
@@ -94,7 +83,7 @@ fun AccountCardItem(
                 PrimaryTint
             }
             // Иконка в левом верхнем углу
-            CategoryIcon(
+            AppCircleIcon(
                 icon = accountIcon,
                 backgroundColor = iconBgColor,
                 iconTint = Primary, // цвет иконки
@@ -133,7 +122,7 @@ fun AccountCardItemLightPreview() {
     FinancetrackerTheme(darkTheme = false) {
         AccountCardItem(
             title = "Основная карта",
-            balance = 86780.0,
+            balance = -86780.0,
             accountIcon = Icons.Default.CreditCard,
             onClick = {}
         )

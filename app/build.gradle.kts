@@ -36,6 +36,14 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:model"))
+    implementation(project(":feature:home"))
+    implementation(project(":core:uikit"))
+    implementation(project(":core:database"))
+    implementation(project(":core:navigation"))
+    implementation(project(":feature:analytics"))
+    implementation(project(":feature:profile"))
+
     // AndroidX & Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
@@ -71,20 +79,15 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
-    // Network & Remote (Retrofit / OkHttp)
-    implementation(libs.retrofit)
-    implementation(libs.converter.kotlinx.serialization)
-    implementation(libs.okhttp)
-    implementation(libs.logging.interceptor)
-
-    implementation(project(":core:model"))
-    implementation(project(":feature:home"))
-    implementation(project(":core:uikit"))
-    implementation(project(":core:database"))
+    // Network & Remote (Ktor Client)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.client.logging)
 
     // Testing
     testImplementation(libs.junit)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

@@ -1,37 +1,50 @@
 package com.example.financetracker.feature.home.components.sheet
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DatePickerState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.Account
@@ -39,15 +52,18 @@ import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountCardItem
+import com.example.financetracker.core.uikit.components.account.AddAccountCardItem
 import com.example.financetracker.core.uikit.components.category.CategoryIconChip
-import com.example.financetracker.core.uikit.components.category.getCategoryIcon
 import com.example.financetracker.core.uikit.components.input.AmountInputField
+import com.example.financetracker.core.uikit.components.input.AppTextField
 import com.example.financetracker.core.uikit.components.input.DateTimePickerRow
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
+import com.example.financetracker.core.uikit.components.transaction.TransactionTypeSelector
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
-import androidx.compose.ui.graphics.Color
+import com.example.financetracker.core.uikit.util.toAmountOrNull
+import java.util.Calendar
 
 @ExperimentalMaterial3Api
 @Composable
@@ -55,68 +71,73 @@ fun QuickAddTransactionSheet(
     categories: List<Category>,
     accounts: List<Account> = emptyList(),
     onDismiss: () -> Unit,
-    onAddClick: (amount: Double, categoryId: String?, accountId: String, type: TransactionType, note: String) -> Unit
+    onAddNewAccount: () -> Unit,
+    initialType: TransactionType = TransactionType.EXPENSE,
+    initialAccountId: String? = null,
+    onAddClick: (
+        amount: Double,
+        categoryId: String?,
+        accountId: String,
+        targetAccountId: String?,
+        type: TransactionType,
+        note: String,
+        dateTime: Long
+    ) -> Unit
 ) {
     val amountFocusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
 
-    var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
+    var selectedType by remember(initialType) { mutableStateOf(initialType) }
     var amountText by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
-    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
-    var selectedAccountId by remember { mutableStateOf<String?>(accounts.firstOrNull()?.id) }
+    var selectedDateTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = selectedDateTime,
+    )
+    var selectedExpenseCategoryId by remember { mutableStateOf<String?>(null) }
+    var selectedIncomeCategoryId by remember { mutableStateOf<String?>(null) }
     var submitted by remember { mutableStateOf(false) }
 
-    // Резервный список счетов
-    val fallbackAccounts = remember {
-        listOf(
-            Account(id = "1", name = "Основная карта", balance = 43965.72, currency = "RUB"),
-            Account(id = "2", name = "наличные", balance = 5000.0, currency = "RUB")
-        )
+    var selectedAccountId by remember(accounts, initialAccountId) {
+        mutableStateOf(initialAccountId ?: accounts.firstOrNull()?.id)
     }
-    val actualAccounts = accounts.ifEmpty { fallbackAccounts }
+    var selectedTargetAccountId by remember { mutableStateOf<String?>(accounts.getOrNull(1)?.id) }
 
-    LaunchedEffect(actualAccounts) {
-        if (selectedAccountId == null) {
-            selectedAccountId = actualAccounts.firstOrNull()?.id
+    // Раздельные состояния скролла для обычного счёта и целевого счёта перевода
+    val accountListState = rememberLazyListState()
+    val targetAccountListState = rememberLazyListState()
+
+    // Список счетов для зачисления: исключая счет выбранный в "откуда"
+    val targetAccounts = remember(accounts, selectedAccountId) {
+        accounts.filter { it.id != selectedAccountId }
+    }
+
+    // Инициализация при изменении списка счетов
+    LaunchedEffect(accounts) {
+        if (selectedAccountId == null || accounts.none { it.id == selectedAccountId }) {
+            selectedAccountId = accounts.firstOrNull()?.id
+        }
+        if (selectedTargetAccountId == null || targetAccounts.none { it.id == selectedTargetAccountId }) {
+            selectedTargetAccountId = targetAccounts.firstOrNull()?.id
         }
     }
 
-    val fallbackCategories = remember {
-        listOf(
-            Category(id = "1", name = "Продукты", type = CategoryType.EXPENSE, iconRes = "shopping_cart", budgetLimit = null),
-            Category(id = "2", name = "Кафе", type = CategoryType.EXPENSE, iconRes = "restaurant", budgetLimit = null),
-            Category(id = "3", name = "Транспорт", type = CategoryType.EXPENSE, iconRes = "directions_bus", budgetLimit = null),
-            Category(id = "4", name = "Переводы", type = CategoryType.EXPENSE, iconRes = "swap_horiz", budgetLimit = null),
-            Category(id = "5", name = "Дом", type = CategoryType.EXPENSE, iconRes = "home", budgetLimit = null),
-            Category(id = "6", name = "Досуг", type = CategoryType.EXPENSE, iconRes = "theater_comedy", budgetLimit = null),
-            Category(id = "7", name = "Здоровье", type = CategoryType.EXPENSE, iconRes = "favorite", budgetLimit = null),
-            Category(id = "8", name = "Другое", type = CategoryType.EXPENSE, iconRes = "more_horiz", budgetLimit = null)
-        )
-    }
-
-    val actualCategories = categories.ifEmpty { fallbackCategories }
-
-    val filteredCategories = actualCategories.filter { category ->
-        val isTransfer = category.iconRes == "swap_horiz" || category.name.contains("перевод", ignoreCase = true)
+    val filteredCategories = remember (categories, selectedType) {
         when (selectedType) {
-            TransactionType.EXPENSE -> category.type == CategoryType.EXPENSE || isTransfer
-            TransactionType.INCOME -> category.type == CategoryType.INCOME || isTransfer
-            TransactionType.TRANSFER -> true
+            TransactionType.EXPENSE -> categories.filter { it.type == CategoryType.EXPENSE }
+            TransactionType.INCOME -> categories.filter { it.type == CategoryType.INCOME }
+            TransactionType.TRANSFER -> emptyList()
         }
     }
 
-    LaunchedEffect(selectedType) {
-        if (selectedType == TransactionType.INCOME) {
-            selectedCategoryId = null
-        } else {
-            if (filteredCategories.none { it.id == selectedCategoryId }) {
-                selectedCategoryId = filteredCategories.firstOrNull()?.id
-            }
+    LaunchedEffect(categories) {
+        val expenseList = categories.filter { it.type == CategoryType.EXPENSE }
+        if (selectedExpenseCategoryId == null || expenseList.none { it.id == selectedExpenseCategoryId }) {
+            selectedExpenseCategoryId = expenseList.firstOrNull()?.id
         }
     }
 
-    val amount = amountText.replace(',', '.').toDoubleOrNull()
+    val amount = amountText.toAmountOrNull()
     val isAmountValid = amount != null && amount.isFinite() && amount > 0.0
     val amountError = submitted && !isAmountValid
 
@@ -126,62 +147,45 @@ fun QuickAddTransactionSheet(
         cancelButtonText = "Назад",
         onPrimaryClick = {
             submitted = true
-            val chosenCategory = if (selectedType == TransactionType.INCOME) {
-                selectedCategoryId
-            } else {
-                selectedCategoryId ?: filteredCategories.firstOrNull()?.id
+            val chosenCategory = when (selectedType) {
+                TransactionType.TRANSFER -> null
+                TransactionType.INCOME -> selectedIncomeCategoryId
+                TransactionType.EXPENSE -> selectedExpenseCategoryId
+                    ?: filteredCategories.firstOrNull()?.id
             }
-            val chosenAccount = selectedAccountId ?: actualAccounts.firstOrNull()?.id
-            val isCategoryValid = selectedType == TransactionType.INCOME || chosenCategory != null
+            val chosenAccount = selectedAccountId ?: accounts.firstOrNull()?.id
+            val chosenTargetAccount =
+                if (selectedType == TransactionType.TRANSFER) selectedTargetAccountId else null
+            val isCategoryValid = selectedType == TransactionType.INCOME ||
+                    selectedType == TransactionType.TRANSFER ||
+                    chosenCategory != null
+            val isTransferValid = selectedType != TransactionType.TRANSFER ||
+                    (chosenAccount != null && chosenTargetAccount != null && chosenAccount != chosenTargetAccount)
 
-            if (isAmountValid && isCategoryValid && chosenAccount != null) {
-                onAddClick(amount, chosenCategory, chosenAccount, selectedType, note)
+            if (isAmountValid && isCategoryValid && chosenAccount != null && isTransferValid) {
+                onAddClick(
+                    amount,
+                    chosenCategory,
+                    chosenAccount,
+                    chosenTargetAccount,
+                    selectedType,
+                    note,
+                    selectedDateTime
+                )
                 true
             } else {
                 false
             }
         },
         onDismiss = onDismiss,
-        onSheetOpened = { amountFocusRequester.requestFocus() }
-    ) {
+        onSheetOpened = { amountFocusRequester.requestFocus() },
+        modifier = Modifier.fillMaxHeight()
+    ) { clearFocus ->
         // 1. Селектор типа операции
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf(
-                TransactionType.EXPENSE to "Расход",
-                TransactionType.INCOME to "Доход",
-                TransactionType.TRANSFER to "Перевод"
-            ).forEach { (type, label) ->
-                FilterChip(
-                    selected = selectedType == type,
-                    onClick = {
-                        selectedType = type
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PrimaryTint,
-                        selectedLabelColor = Primary,
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = selectedType == type,
-                        borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                        selectedBorderColor = Primary
-                    ),
-                    label = {
-                        Text(
-                            text = label,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
+        TransactionTypeSelector(
+            selectedType = selectedType,
+            onTypeSelected = { selectedType = it }
+        )
 
         // 2. Поле ввода суммы
         AmountInputField(
@@ -190,58 +194,270 @@ fun QuickAddTransactionSheet(
             isError = amountError,
             errorMessage = "Введите сумму больше нуля",
             focusRequester = amountFocusRequester,
-            onDone = { focusManager.clearFocus(force = true) }
+            onDone = { clearFocus() }
         )
 
-        // 3. Сетка категорий (2 ряда по 4 иконки)
+        // 3. Блок категорий ИЛИ Счёт списания (Откуда)
         Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = if (selectedType == TransactionType.INCOME) "Категория (необязательно)" else "Категория",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                userScrollEnabled = false
-            ) {
-                items(filteredCategories, key = { it.id }) { category ->
-                    val isSelected = category.id == selectedCategoryId
-                    CategoryIconChip(
-                        icon = getCategoryIcon(category.iconRes),
-                        title = category.name,
-                        isSelected = isSelected,
-                        onClick = {
-                            selectedCategoryId = if (isSelected && selectedType == TransactionType.INCOME) {
-                                null
-                            } else {
-                                category.id
-                            }
+            if (selectedType == TransactionType.TRANSFER && accounts.isNotEmpty()) {
+                // Если перевод и есть хотя бы 1 счёт — показываем «Откуда»
+                AccountSelectorSection(
+                    title = "Откуда",
+                    accounts = accounts,
+                    selectedAccountId = selectedAccountId,
+                    onAccountSelected = { newAccountId ->
+                        selectedAccountId = newAccountId
+                        if (selectedTargetAccountId == newAccountId) {
+                            selectedTargetAccountId = accounts.firstOrNull { it.id != newAccountId }?.id
                         }
-                    )
-                }
+                    },
+                    onAddNewAccount = onAddNewAccount,
+                    showAddAccountButton = false
+                )
+            } else if (selectedType != TransactionType.TRANSFER) {
+                // Для Расхода и Дохода — динамическая адаптивная сетка категорий
+                CategoryGridSection(
+                    categories = filteredCategories,
+                    selectedCategoryId = if (selectedType == TransactionType.INCOME) {
+                        selectedIncomeCategoryId
+                    } else selectedExpenseCategoryId,
+                    isIncome = selectedType == TransactionType.INCOME,
+                    onCategoryClick = { categoryId ->
+                        if (selectedType == TransactionType.INCOME) {
+                            selectedIncomeCategoryId = categoryId
+                        } else {
+                            selectedExpenseCategoryId = categoryId
+                        }
+                    }
+                )
             }
         }
 
-        // 4. Выбор счёта
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "Счёт",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        // 4. Блок выбора счёта: «Куда» (для перевода) или «Счёт» (для остальных)
+        AccountSelectorSection(
+            title = if (selectedType == TransactionType.TRANSFER) "Куда" else "Счёт",
+            accounts = if (selectedType == TransactionType.TRANSFER) targetAccounts else accounts,
+            selectedAccountId = if (selectedType == TransactionType.TRANSFER) selectedTargetAccountId else selectedAccountId,
+            onAccountSelected = { id ->
+                if (selectedType == TransactionType.TRANSFER) {
+                    selectedTargetAccountId = id
+                } else {
+                    selectedAccountId = id
+                }
+            },
+            onAddNewAccount = onAddNewAccount,
+            lazyListState = if (selectedType == TransactionType.TRANSFER) targetAccountListState else accountListState
+        )
 
+        // 5. Дата и время
+        DateTimePickerRow(
+            dateTime = selectedDateTime,
+            onClick = { showDatePicker = true }
+        )
+
+        // 6. Поле заметки
+        AppTextField(
+            value = note,
+            onValueChange = { if (it.length <= 100) note = it },
+            label = "Заметка (Необязательно)",
+            placeholder = "Например, лента или такси",
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { clearFocus() })
+        )
+    }
+
+    if (showDatePicker) {
+        TransactionDatePickerDialog(
+            datePickerState = datePickerState,
+            currentDateTime = selectedDateTime,
+            onDateSelected = { selectedDateTime = it },
+            onDismiss = { showDatePicker = false }
+        )
+    }
+}
+
+// Сетка категорий
+@Composable
+private fun CategoryGridSection(
+    categories: List<Category>,
+    selectedCategoryId: String?,
+    isIncome: Boolean,
+    onCategoryClick: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = if (isIncome) "Категория (необязательно)" else "Категория",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        // Разбиваем категории на страницы ровно по 8 штук (2 ряда x 4 колонки)
+        val pages = remember(categories) {
+            categories.chunked(8)
+        }
+
+        if (pages.isNotEmpty()) {
+            val pagerState = rememberPagerState(pageCount = { pages.size })
+
+            // Автоматический скролл к странице, где находится выбранная категория
+            val selectedPageIndex = remember(categories, selectedCategoryId) {
+                val index = categories.indexOfFirst { it.id == selectedCategoryId }
+                if (index >= 0) index / 8 else 0
+            }
+
+            LaunchedEffect(selectedPageIndex) {
+                if (selectedPageIndex in pages.indices && pagerState.currentPage != selectedPageIndex) {
+                    pagerState.animateScrollToPage(selectedPageIndex)
+                }
+            }
+
+            HorizontalPager(
+                state = pagerState,
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier.fillMaxWidth()
+            ) { pageIndex ->
+                val pageCategories = pages[pageIndex]
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Всегда ровно 2 ряда
+                    for (rowIndex in 0..1) {
+                        val rowCategories = pageCategories.drop(rowIndex * 4).take(4)
+
+                        if (rowCategories.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowCategories.forEach { category ->
+                                    val isSelected = category.id == selectedCategoryId
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        CategoryIconChip(
+                                            iconRes = category.iconRes,
+                                            title = category.name,
+                                            isSelected = isSelected,
+                                            onClick = {
+                                                if (isIncome) {
+                                                    onCategoryClick(if (isSelected) null else category.id)
+                                                } else {
+                                                    onCategoryClick(category.id)
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                                repeat(4 - rowCategories.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        } else {
+                            // Если второго ряда нет — рендерим невидимый ряд с такой же высотой
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .alpha(0f)
+                                ) {
+                                    CategoryIconChip(
+                                        iconRes = null,
+                                        title = " ",
+                                        isSelected = false,
+                                        onClick = {}
+                                    )
+                                }
+                                repeat(3) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Точки-индикаторы страниц (показываются только если страниц > 1)
+            if (pages.size > 1) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(pages.size) { iteration ->
+                        val isCurrentPage = pagerState.currentPage == iteration
+                        val color = if (isCurrentPage) {
+                            Primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        }
+                        val width = if (isCurrentPage) 16.dp else 6.dp
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 3.dp)
+                                .height(6.dp)
+                                .width(width)
+                                .clip(CircleShape)
+                                .background(color)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Универсальная карусель счетов
+@Composable
+private fun AccountSelectorSection(
+    title: String,
+    accounts: List<Account>,
+    selectedAccountId: String?,
+    onAccountSelected: (String) -> Unit,
+    onAddNewAccount: () -> Unit,
+    modifier: Modifier = Modifier,
+    lazyListState: LazyListState = rememberLazyListState(),
+    showAddAccountButton: Boolean = true
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        if (accounts.isEmpty()) {
+            LazyRow {
+                item {
+                    AddAccountCardItem(
+                        title = if (title == "Счёт") "Создать счёт" else "Добавить счёт",
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        onClick = onAddNewAccount
+                    )
+                }
+            }
+        } else {
             LazyRow(
+                state = lazyListState,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(actualAccounts, key = { it.id }) { account ->
+                items(accounts, key = { it.id }) { account ->
                     val isSelected = account.id == selectedAccountId
                     AccountCardItem(
                         title = account.name,
@@ -249,40 +465,61 @@ fun QuickAddTransactionSheet(
                         accountIcon = Icons.Default.CreditCard,
                         isSelected = isSelected,
                         containerColor = if (isSelected) PrimaryTint else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        // Управляем цветом текста/иконки: если выбрана — тёмный цвет (например, Color.Black или OnPrimaryTint), иначе стандартный цвет темы
                         contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
-                        onClick = { selectedAccountId = account.id }
+                        onClick = { onAccountSelected(account.id) }
                     )
+                }
+                if (showAddAccountButton) {
+                    item {
+                        AddAccountCardItem(
+                            title = "Добавить счёт",
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            onClick = onAddNewAccount
+                        )
+                    }
                 }
             }
         }
+    }
+}
 
-        // 5. Дата и время
-        DateTimePickerRow(
-            dateText = "Сегодня, 15:42",
-            onClick = { /* Клик по дате */ }
-        )
+// Диалог даты
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TransactionDatePickerDialog(
+    datePickerState: DatePickerState,
+    currentDateTime: Long,
+    onDateSelected: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    datePickerState.selectedDateMillis?.let { pickerDateMills ->
+                        val calendarPicked = Calendar.getInstance().apply { timeInMillis = pickerDateMills }
+                        val currentCalendar = Calendar.getInstance().apply { timeInMillis = currentDateTime }
 
-        // 6. Поле заметки
-        OutlinedTextField(
-            value = note,
-            onValueChange = { note = it },
-            label = { Text("Заметка (необязательно)") },
-            placeholder = { Text("Например, Лента или такси") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    focusManager.clearFocus(force = true)
+                        currentCalendar.set(Calendar.YEAR, calendarPicked.get(Calendar.YEAR))
+                        currentCalendar.set(Calendar.MONTH, calendarPicked.get(Calendar.MONTH))
+                        currentCalendar.set(Calendar.DAY_OF_MONTH, calendarPicked.get(Calendar.DAY_OF_MONTH))
+
+                        onDateSelected(currentCalendar.timeInMillis)
+                    }
+                    onDismiss()
                 }
-            ),
-            shape = MaterialTheme.shapes.medium,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Отмена")
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
     }
 }
 
@@ -295,7 +532,8 @@ private fun QuickAddTransactionSheetLightPreview() {
             categories = emptyList(),
             accounts = emptyList(),
             onDismiss = {},
-            onAddClick = { _, _, _, _, _ -> }
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
         )
     }
 }
@@ -313,7 +551,8 @@ private fun QuickAddTransactionSheetDarkPreview() {
             categories = emptyList(),
             accounts = emptyList(),
             onDismiss = {},
-            onAddClick = { _, _, _, _, _ -> }
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
         )
     }
 }

@@ -12,7 +12,9 @@ fun AccountEntity.toDomain(): Account {
         id = id.toString(),
         name = name,
         balance = balance,
-        currency = currency
+        currency = currency,
+        isDeleted = isDeleted,
+        deletedAt = deletedAt
     )
 }
 
@@ -21,7 +23,9 @@ fun Account.toEntity(): AccountEntity {
         id = id.toLongOrNull() ?: 0L,
         name = name,
         balance = balance,
-        currency = currency
+        currency = currency,
+        isDeleted = isDeleted,
+        deletedAt = deletedAt
     )
 }
 
@@ -31,7 +35,8 @@ fun CategoryEntity.toDomain(): Category {
         name = name,
         type = type,
         iconRes = iconRes,
-        budgetLimit = budgetLimit
+        budgetLimit = budgetLimit,
+        isSystem = isSystem
     )
 }
 
@@ -41,7 +46,8 @@ fun Category.toEntity(): CategoryEntity {
         name = name,
         type = type,
         iconRes = iconRes,
-        budgetLimit = budgetLimit
+        budgetLimit = budgetLimit,
+        isSystem = isSystem
     )
 }
 
@@ -50,10 +56,12 @@ fun TransactionEntity.toDomain(): Transaction {
         id = id.toString(),
         amount = amount,
         categoryId = categoryId?.toString() ?: "",
-        accountId = accountId.toString(),
+        accountId = accountId?.toString(),
+        targetAccountId = targetAccountId?.toString(),
         type = type,
         dateTime = dateTime,
-        note = note
+        note = note,
+        isDeleted = isDeleted,
     )
 }
 
@@ -62,9 +70,11 @@ fun Transaction.toEntity(): TransactionEntity {
         id = id.toLongOrNull() ?: 0L,
         amount = amount,
         categoryId = categoryId.toLongOrNull(),
-        accountId = accountId.toLongOrNull() ?: 0L,
+        accountId = accountId?.toLongOrNull(),
+        targetAccountId = targetAccountId?.toLongOrNull(),
         type = type,
         dateTime = dateTime,
-        note = note
+        note = note,
+        isDeleted = isDeleted
     )
 }

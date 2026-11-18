@@ -1,5 +1,6 @@
 package com.example.financetracker.core.uikit.components.account
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,7 @@ fun AddAccountCardItem(
     accountIcon: ImageVector = Icons.Default.Add,
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
+    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
     onClick: () -> Unit
 ) {
     Card(
@@ -49,6 +51,7 @@ fun AddAccountCardItem(
             .height(100.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = border,
         onClick = onClick,
     ) {
         Column(

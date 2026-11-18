@@ -25,7 +25,6 @@ dependencies {
     // Подключение базовых модулей
     implementation(project(":core:uikit"))
     implementation(project(":core:model"))
-    implementation(project(":core:database"))
 
     // Compose & UI
     implementation(platform(libs.androidx.compose.bom))

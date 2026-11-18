@@ -2,9 +2,9 @@ package com.example.financetracker.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.financetracker.core.database.repository.AccountRepository
-import com.example.financetracker.core.database.repository.CategoryRepository
-import com.example.financetracker.core.database.repository.TransactionRepository
+import com.example.financetracker.core.model.repository.AccountRepository
+import com.example.financetracker.core.model.repository.CategoryRepository
+import com.example.financetracker.core.model.repository.TransactionRepository
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.Transaction
@@ -36,32 +36,34 @@ class HomeViewModel(
 
     // Реактивное состояние экрана
     val uiState: StateFlow<HomeUiState> = combine(
-        accountRepository.getAllAccounts(),
-        transactionRepository.getRecentTransaction(limit = 10),
-        categoryRepository.getAllCategories(),
+        accountRepository.getAllAccounts().catch { emit(emptyList()) },
+        transactionRepository.getRecentTransaction(limit = 10).catch { emit(emptyList()) },
+        categoryRepository.getAllCategories().catch { emit(emptyList()) },
+        accountRepository.getDeletedAccounts().catch { emit(emptyList()) },
         _errorState.asStateFlow()
-    ) { accounts, transactions, categories, error ->
+    ) { accounts, transactions, categories, deletedAccounts, error ->
         val totalBalance = accounts.sumOf { it.balance }
         HomeUiState(
             isLoading = false,
             accounts = accounts,
             categories = categories,
             recentTransaction = transactions,
+            deletedAccounts = deletedAccounts, // <-- передаём в стейт
             totalBalance = totalBalance,
             errorMessage = error
-        )
-    }.catch { throwable ->
-        emit(
-            HomeUiState(
-                isLoading = false,
-                errorMessage = throwable.localizedMessage ?: "Неизвестная ошибка"
-            )
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = HomeUiState(isLoading = true)
     )
+
+    init {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.checkAndSeedDefaultAccount()
+            categoryRepository.checkAndSeedDefaultCategories()
+        }
+    }
 
     fun clearError() {
         _errorState.value = null
@@ -72,19 +74,32 @@ class HomeViewModel(
         categoryId: String?,
         type: TransactionType,
         note: String,
-        accountId: String? = null
+        accountId: String? = null,
+        targetAccountId: String? = null,
+        dateTime: Long = System.currentTimeMillis()
     ) {
         val currentAccounts = uiState.value.accounts
-        val selectedAccountId = accountId ?: currentAccounts.firstOrNull()?.id ?: "1"
+        val selectedAccountId = accountId ?: currentAccounts.firstOrNull()?.id
+
+        if (selectedAccountId == null) {
+            _errorState.update { "Не найден счёт для операции. Сначала создайте счёт." }
+            return
+        }
+
+        if (type == TransactionType.TRANSFER && targetAccountId == null) {
+            _errorState.update { "Не выбран счёт зачисления для перевода." }
+            return
+        }
 
         viewModelScope.launch(errorHandler) {
             val transaction = Transaction(
                 id = "0",
                 amount = amount,
-                categoryId = categoryId ?: "",
+                categoryId = if (type == TransactionType.TRANSFER) "" else (categoryId ?: ""),
                 accountId = selectedAccountId,
+                targetAccountId = if (type == TransactionType.TRANSFER) targetAccountId else null,
                 type = type,
-                dateTime = System.currentTimeMillis(),
+                dateTime = dateTime,
                 note = note.trim()
             )
             transactionRepository.addTransaction(transaction)
@@ -109,5 +124,59 @@ class HomeViewModel(
         viewModelScope.launch(errorHandler) {
             accountRepository.updateAccount(account)
         }
+    }
+
+    fun createCategory(
+        name: String,
+        type: CategoryType,
+        iconRes: String = "more_horiz",
+        budgetLimit: Double? = null
+    ) {
+        viewModelScope.launch(errorHandler) {
+            categoryRepository.createCategory(
+                name = name.trim(),
+                type = type,
+                iconRes = iconRes,
+                budgetLimit = budgetLimit
+            )
+        }
+    }
+
+    fun updateCategoryBudget(categoryId: String, budgetLimit: Double?) {
+        viewModelScope.launch(errorHandler) {
+            categoryRepository.updateBudgetLimit(categoryId, budgetLimit)
+        }
+    }
+
+    fun deleteCategory(categoryId: String) {
+        viewModelScope.launch(errorHandler) {
+            categoryRepository.deleteCategory(categoryId)
+        }
+    }
+
+    fun deleteAccount(accountId: String, deleteTransactions: Boolean = false) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.deleteAccount(accountId, deleteTransactions)
+        }
+    }
+
+    suspend fun findDeletedAccountByName(name: String): Account? {
+        return accountRepository.findDeletedAccountByName(name)
+    }
+
+    fun restoreAccount(accountId: String) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.restoreAccount(accountId)
+        }
+    }
+
+    fun purgeAccount(accountId: String) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.purgeAccount(accountId)
+        }
+    }
+
+    suspend fun getAccountTransactions(accountId: String, limit: Int = 100): List<Transaction> {
+        return transactionRepository.getTransactionsByAccountId(accountId, limit)
     }
 }

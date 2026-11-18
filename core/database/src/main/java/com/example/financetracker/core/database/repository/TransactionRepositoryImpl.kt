@@ -1,0 +1,66 @@
+package com.example.financetracker.core.database.repository
+
+import androidx.room.withTransaction
+import com.example.financetracker.core.database.AppDatabase
+import com.example.financetracker.core.database.dao.AccountDao
+import com.example.financetracker.core.database.dao.TransactionDao
+import com.example.financetracker.core.database.mapper.toDomain
+import com.example.financetracker.core.database.mapper.toEntity
+import com.example.financetracker.core.model.Transaction
+import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.core.model.repository.TransactionRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+class TransactionRepositoryImpl(
+    private val appDatabase: AppDatabase,
+    private val transactionDao: TransactionDao,
+    private val accountDao: AccountDao
+) : TransactionRepository {
+    override fun getRecentTransaction(limit: Int): Flow<List<Transaction>> {
+        return transactionDao.getRecentTransaction(limit).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun addTransaction(
+        transaction: Transaction
+    ): Long = appDatabase.withTransaction {
+        val entity = transaction.toEntity()
+
+        // 1. Сохраняем операцию
+        val insertedId = transactionDao.insertTransaction(entity)
+
+        // 2. Обновляем балансы счетов
+        entity.accountId?.let { accountId ->
+            when (transaction.type) {
+                TransactionType.EXPENSE -> {
+                    accountDao.updateBalance(accountId, -transaction.amount)
+                }
+                TransactionType.INCOME -> {
+                    accountDao.updateBalance(accountId, transaction.amount)
+                }
+                TransactionType.TRANSFER -> {
+                    // Списываем со счёта списания
+                    accountDao.updateBalance(accountId, -transaction.amount)
+                    // Зачисляем на целевой счёт
+                    entity.targetAccountId?.let { targetId ->
+                        accountDao.updateBalance(targetId, transaction.amount)
+                    }
+                }
+            }
+        }
+
+        insertedId
+    }
+
+    override suspend fun getTransactionsByAccountId(
+        accountId: String,
+        limit: Int
+    ): List<Transaction> {
+        val id = accountId.toLongOrNull() ?: return emptyList()
+        return transactionDao
+            .getTransactionsByAccountId(id, limit)
+            .map { it.toDomain() }
+    }
+}
