@@ -65,7 +65,6 @@ import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.uikit.components.button.AppPrimaryButton
 import com.example.financetracker.core.uikit.components.button.AppSecondaryButton
-import com.example.financetracker.core.uikit.components.category.getCategoryIcon
 import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.components.transaction.TransactionRowItem
 import com.example.financetracker.core.uikit.theme.Expense

@@ -35,6 +35,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.financetracker.core.uikit.components.icon.AppCircleIcon
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 
 /**
@@ -46,8 +47,8 @@ fun CategoryIcon(
     modifier: Modifier = Modifier,
     size: Dp = 44.dp
 ) {
-    CategoryIcon(
-        painter = painterResource(id = style.iconResId),
+    AppCircleIcon(
+        iconRes = style.iconResId,
         backgroundColor = style.backgroundColor,
         iconTint = style.iconColor,
         modifier = modifier,
@@ -68,76 +69,13 @@ fun CategoryIcon(
     size: Dp = 44.dp
 ) {
     val style = CategoryStyleRegistry.getStyle(iconRes)
-    CategoryIcon(
-        painter = painterResource(id = style.iconResId),
+    AppCircleIcon(
+        iconRes = style.iconResId,
         backgroundColor = backgroundColor ?: style.backgroundColor,
         iconTint = iconTint ?: style.iconColor,
         modifier = modifier,
         size = size
     )
-}
-
-/**
- * Базовый компонент с [Painter] (для XML-векторов и картинок).
- */
-@Composable
-fun CategoryIcon(
-    painter: Painter,
-    backgroundColor: Color,
-    iconTint: Color,
-    modifier: Modifier = Modifier,
-    size: Dp = 44.dp
-) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(backgroundColor),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painter,
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(size * 0.52f)
-        )
-    }
-}
-
-/**
- * Перегрузка с [ImageVector] (для обратной совместимости с системными иконками Material Icons).
- */
-@Composable
-fun CategoryIcon(
-    icon: ImageVector,
-    backgroundColor: Color,
-    iconTint: Color,
-    modifier: Modifier = Modifier,
-    size: Dp = 44.dp
-) {
-    CategoryIcon(
-        painter = rememberVectorPainter(image = icon),
-        backgroundColor = backgroundColor,
-        iconTint = iconTint,
-        modifier = modifier,
-        size = size
-    )
-}
-
-/**
- * Вспомогательный маппер для мест, где всё ещё требуется [ImageVector] (например, в дефолтных fallback).
- */
-fun getCategoryIcon(iconRes: String?): ImageVector = when (iconRes) {
-    "shopping_cart", "ic_category_groceries" -> Icons.Default.ShoppingCart
-    "restaurant", "ic_category_cafe" -> Icons.Default.Restaurant
-    "directions_bus", "ic_category_transport" -> Icons.Default.DirectionsBus
-    "work", "ic_category_salary" -> Icons.Default.Work
-    "swap_horiz" -> Icons.Default.SwapHoriz
-    "home", "ic_category_housing" -> Icons.Default.Home
-    "theater_comedy", "ic_category_entertainment" -> Icons.Default.TheaterComedy
-    "favorite", "ic_category_health" -> Icons.Default.Favorite
-    "more_horiz", "ic_category_other" -> Icons.Default.MoreHoriz
-    else -> Icons.Default.ShoppingCart
 }
 
 @Preview(name = "Все категории — Светлая тема", showBackground = true)

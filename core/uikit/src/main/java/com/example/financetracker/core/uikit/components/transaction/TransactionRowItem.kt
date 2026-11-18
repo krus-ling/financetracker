@@ -23,6 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.category.CategoryIcon
+import com.example.financetracker.core.uikit.components.icon.AppCircleIcon
 import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 
@@ -61,7 +62,7 @@ fun TransactionRowItem(
                 size = 44.dp
             )
         } else {
-            CategoryIcon(
+            AppCircleIcon(
                 icon = categoryIcon ?: Icons.Default.SwapHoriz,
                 backgroundColor = iconBackgroundColor ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                 iconTint = iconTint ?: MaterialTheme.colorScheme.primary,

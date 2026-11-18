@@ -31,3 +31,4 @@
 - [Итерация 1: Формирование ТЗ и прототипирование](../iterations/iteration-1/README.md)
 - [Итерация 2: Scaffolding, зависимости и чистая архитектура](../iterations/iteration-2/README.md)
 - [Итерация 3: Многомодульность, Room DB и навигация](../iterations/iteration-3/README.md)
+- [Итерация 4: Дашборд, счета и бюджеты](../iterations/iteration-4/README.md)

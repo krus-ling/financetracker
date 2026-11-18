@@ -1,6 +1,7 @@
-package com.example.financetracker.feature.profile.component
+package com.example.financetracker.feature.profile.components
 
 import android.content.res.Configuration
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,89 +30,145 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.financetracker.core.uikit.components.icon.AppCircleIcon
 import com.example.financetracker.core.uikit.theme.Expense
 import com.example.financetracker.core.uikit.theme.ExpenseSoft
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.PrimarySoft
 
+/**
+ * Универсальный элемент списка в настройках / профиле.
+ */
 @Composable
 fun ProfileItemCard(
-    title: String, //заголовок пункта
-    subtitle: String, //текст подзаголовка
-    icon: ImageVector, //векторная иконка
-    onClick: () -> Unit, //параметр, который выполнится при нажатии на карточку
+    title: String, // заголовок пункта
+    subtitle: String, // текст подзаголовка
+    painter: Painter, // векторная иконка
+    onClick: () -> Unit, // параметр, который выполнится при нажатии на карточку
     modifier: Modifier = Modifier,
-    iconTint: Color = MaterialTheme.colorScheme.primary, //цвет иконки по умолчанию
-    iconBackgroundColor: Color = PrimarySoft, //цвет кругляшка-подложки за иконкой
-    showDivider: Boolean = false //флаг: нужно ли рисовать тонкую разделительную линию под этой карточкой
+    iconTint: Color = MaterialTheme.colorScheme.primary, // цвет иконки по умолчанию
+    iconBackgroundColor: Color = PrimarySoft, // цвет кругляшка-подложки за иконкой
+    showDivider: Boolean = false // флаг: нужно ли рисовать тонкую разделительную линию под этой карточкой
 ) {
-    Column(modifier = modifier.fillMaxWidth()) { //всё, что находится внутри него, выстраивается сверху вниз
+    Column(modifier = modifier.fillMaxWidth()) { // всё, что находится внутри него, выстраивается сверху вниз
         Row(
             modifier = Modifier
-                .fillMaxWidth() //делает этот ряд на всю ширину
-                .clickable(onClick = onClick) //делает всю строку интерактивной
-                .padding(horizontal = 16.dp, vertical = 12.dp), //16dp слева/справа и 12dp сверху/снизу
-            verticalAlignment = Alignment.CenterVertically, //по центру
-            horizontalArrangement = Arrangement.spacedBy(14.dp) //между всеми элементами расстояние в 14dp
+                .fillMaxWidth() // делает этот ряд на всю ширину
+                .clickable(onClick = onClick) // делает всю строку интерактивной
+                .padding(horizontal = 16.dp, vertical = 12.dp), // 16dp слева/справа и 12dp сверху/снизу
+            verticalAlignment = Alignment.CenterVertically, // по центру
+            horizontalArrangement = Arrangement.spacedBy(14.dp) // между всеми элементами расстояние в 14dp
         ) {
             // Круглая подложка под иконку
-            Box(
-                modifier = Modifier
-                    .size(42.dp) //размер подложки иконки: квадратик 42 на 42 dp
-                    .clip(CircleShape) //обрезает этот квадратик по форме круга
-                    .background(iconBackgroundColor), //круг цветом фона
-                contentAlignment = Alignment.Center //центрирует иконку
-            ) {
-                Icon(
-                    imageVector = icon, //передает саму иконку
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(22.dp) //задает размер рисунка иконки 22 на 22 dp
-                )
-            }
+            AppCircleIcon(
+                painter = painter,
+                backgroundColor = iconBackgroundColor,
+                iconTint = iconTint,
+                size = 42.dp
+            )
 
             // Текстовый блок: Заголовок и подзаголовок
             Column(
-                modifier = Modifier.weight(1f) //Занимает всё оставшееся свободное пространство в строке между иконкой слева и стрелочкой справа
+                modifier = Modifier.weight(1f) // Занимает всё оставшееся свободное пространство в строке между иконкой слева и стрелочкой справа
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium, //средний стиль заголовка
-                    fontWeight = FontWeight.SemiBold, //полужирный текст
-                    color = MaterialTheme.colorScheme.onSurface //задает цвет текста в зависимости от темы (в светлой теме — темно-серый/чёрный, в темной — светлый)
+                    style = MaterialTheme.typography.titleMedium, // средний стиль заголовка
+                    fontWeight = FontWeight.SemiBold, // полужирный текст
+                    color = MaterialTheme.colorScheme.onSurface, // задает цвет текста в зависимости от темы (в светлой теме — темно-серый/чёрный, в темной — светлый)
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodySmall, //более мелкий шрифт
-                    color = MaterialTheme.colorScheme.onSurfaceVariant //красит подзаголовок в приглушенный цвет
+                    style = MaterialTheme.typography.bodySmall, // более мелкий шрифт
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // красит подзаголовок в приглушенный цвет
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
             // Стрелочка вправо
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos, //иконка стрелочки «вперед»
+                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos, // иконка стрелочки «вперед»
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), //цвет стрелочки из цвета второстепенного текста, но с прозрачностью 0.5f
-                modifier = Modifier.size(14.dp) //фиксирует размер стрелочки 14 на 14 dp
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), // цвет стрелочки из цвета второстепенного текста, но с прозрачностью 0.5f
+                modifier = Modifier.size(14.dp) // фиксирует размер стрелочки 14 на 14 dp
             )
         }
 
         // Тонкий разделитель с отступом слева (чтобы не заходить под иконку)
-        if (showDivider) { //если элемент не последний в группе, то рисуем полоску
-            HorizontalDivider( //линия-разделитель
+        if (showDivider) { // если элемент не последний в группе, то рисуем полоску
+            HorizontalDivider( // линия-разделитель
                 modifier = Modifier.padding(start = 72.dp, end = 16.dp),
-                //сдвигает линию на 72dp вправо от начала строки
+                // сдвигает линию на 72dp вправо от начала строки
                 // Этот отступ равен ширине иконки с её отступами,
                 // поэтому линия начинается под текстом и не пересекает иконку слева
                 thickness = 1.dp, //линия толщиной в 1 пиксель
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f) //цвет границы берется полупрозрачностью
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f) // цвет границы берется полупрозрачностью
             )
         }
     }
+}
+
+/**
+ * Перегрузка для системных векторных иконок [ImageVector] (Icons.Default / Icons.Filled).
+ */
+@Composable
+fun ProfileItemCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+    iconBackgroundColor: Color = PrimarySoft,
+    showDivider: Boolean = false
+) {
+    ProfileItemCard(
+        title = title,
+        subtitle = subtitle,
+        painter = rememberVectorPainter(image = icon), // превращаем ImageVector в Painter
+        onClick = onClick,
+        modifier = modifier,
+        iconTint = iconTint,
+        iconBackgroundColor = iconBackgroundColor,
+        showDivider = showDivider
+    )
+}
+
+/**
+ * Перегрузка для XML-векторов и картинок из ресурсов (@DrawableRes).
+ */
+@Composable
+fun ProfileItemCard(
+    title: String,
+    subtitle: String,
+    @DrawableRes iconRes: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+    iconBackgroundColor: Color = PrimarySoft,
+    showDivider: Boolean = false
+) {
+    ProfileItemCard(
+        title = title,
+        subtitle = subtitle,
+        painter = painterResource(id = iconRes), // превращаем resId в Painter
+        onClick = onClick,
+        modifier = modifier,
+        iconTint = iconTint,
+        iconBackgroundColor = iconBackgroundColor,
+        showDivider = showDivider
+    )
 }
 
 @Preview(name = "1. Категории (Светлая)", showBackground = true)

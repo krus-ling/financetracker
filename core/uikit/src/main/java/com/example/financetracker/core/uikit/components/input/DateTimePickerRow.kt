@@ -27,6 +27,7 @@ import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
+import com.example.financetracker.core.uikit.components.icon.AppCircleIcon
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -61,7 +62,7 @@ fun DateTimePickerRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            CategoryIcon(
+            AppCircleIcon(
                 icon = Icons.Default.DateRange,
                 backgroundColor = PrimaryTint,
                 iconTint = Primary,

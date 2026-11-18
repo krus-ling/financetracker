@@ -24,7 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.financetracker.core.uikit.theme.Expense
+import com.example.financetracker.core.uikit.theme.ExpenseSoft
+import com.example.financetracker.feature.profile.components.ProfileItemCard
 
 @Composable
 fun ProfileScreen(
@@ -68,94 +72,39 @@ fun ProfileScreen(
                 .padding(bottom = 8.dp)
         )
 
-        // Категории и бюджеты
+        // Сгруппированный блок настроек «Финансы»
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onOpenCategories),
+            modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
             shape = MaterialTheme.shapes.medium
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Category,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Категории и бюджеты",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Управление категориями и лимитами",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
+            ProfileItemCard(
+                title = "Категории и бюджеты",
+                subtitle = "Управление категориями и лимитами",
+                icon = Icons.Filled.Category,
+                onClick = onOpenCategories,
+                showDivider = true
+            )
+            ProfileItemCard(
+                title = "Корзина",
+                subtitle = "Удалённые счета и операции",
+                icon = Icons.Filled.DeleteOutline,
+                iconTint = Expense,
+                iconBackgroundColor = ExpenseSoft,
+                onClick = onOpenTrash,
+                showDivider = false
+            )
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Корзина
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onOpenTrash),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.DeleteOutline,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Корзина",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Удалённые счета и операции",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
+@Preview(showBackground = true)
+@Composable
+private fun ProfileScreenPreview() {
+    com.example.financetracker.core.uikit.theme.FinancetrackerTheme {
+        ProfileScreen()
     }
 }
