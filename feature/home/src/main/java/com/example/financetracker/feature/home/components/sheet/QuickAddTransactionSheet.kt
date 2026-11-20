@@ -1,6 +1,16 @@
 package com.example.financetracker.feature.home.components.sheet
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,6 +64,7 @@ import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountCardItem
 import com.example.financetracker.core.uikit.components.account.AddAccountCardItem
+import com.example.financetracker.core.uikit.components.button.AppMiniActionButton
 import com.example.financetracker.core.uikit.components.category.CategoryIconChip
 import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.input.AppTextField
@@ -141,42 +153,51 @@ fun QuickAddTransactionSheet(
     val isAmountValid = amount != null && amount.isFinite() && amount > 0.0
     val amountError = submitted && !isAmountValid
 
+    var isNoteFocused by remember { mutableStateOf(false) }
+    val dateWeight by animateFloatAsState(
+        targetValue = if (isNoteFocused) 0.0001f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "dateWeight"
+    )
+
+    val trySubmitTransaction: () -> Boolean = {
+        submitted = true
+        val chosenCategory = when (selectedType) {
+            TransactionType.TRANSFER -> null
+            TransactionType.INCOME -> selectedIncomeCategoryId
+            TransactionType.EXPENSE -> selectedExpenseCategoryId
+                ?: filteredCategories.firstOrNull()?.id
+        }
+        val chosenAccount = selectedAccountId ?: accounts.firstOrNull()?.id
+        val chosenTargetAccount =
+            if (selectedType == TransactionType.TRANSFER) selectedTargetAccountId else null
+        val isCategoryValid = selectedType == TransactionType.INCOME ||
+                selectedType == TransactionType.TRANSFER ||
+                chosenCategory != null
+        val isTransferValid = selectedType != TransactionType.TRANSFER ||
+                (chosenAccount != null && chosenTargetAccount != null && chosenAccount != chosenTargetAccount)
+
+        if (isAmountValid && isCategoryValid && chosenAccount != null && isTransferValid) {
+            onAddClick(
+                amount,
+                chosenCategory,
+                chosenAccount,
+                chosenTargetAccount,
+                selectedType,
+                note,
+                selectedDateTime
+            )
+            true
+        } else {
+            false
+        }
+    }
+
     AppFormBottomSheet(
         title = "Новая операция",
         primaryButtonText = "Добавить",
         cancelButtonText = "Назад",
-        onPrimaryClick = {
-            submitted = true
-            val chosenCategory = when (selectedType) {
-                TransactionType.TRANSFER -> null
-                TransactionType.INCOME -> selectedIncomeCategoryId
-                TransactionType.EXPENSE -> selectedExpenseCategoryId
-                    ?: filteredCategories.firstOrNull()?.id
-            }
-            val chosenAccount = selectedAccountId ?: accounts.firstOrNull()?.id
-            val chosenTargetAccount =
-                if (selectedType == TransactionType.TRANSFER) selectedTargetAccountId else null
-            val isCategoryValid = selectedType == TransactionType.INCOME ||
-                    selectedType == TransactionType.TRANSFER ||
-                    chosenCategory != null
-            val isTransferValid = selectedType != TransactionType.TRANSFER ||
-                    (chosenAccount != null && chosenTargetAccount != null && chosenAccount != chosenTargetAccount)
-
-            if (isAmountValid && isCategoryValid && chosenAccount != null && isTransferValid) {
-                onAddClick(
-                    amount,
-                    chosenCategory,
-                    chosenAccount,
-                    chosenTargetAccount,
-                    selectedType,
-                    note,
-                    selectedDateTime
-                )
-                true
-            } else {
-                false
-            }
-        },
+        onPrimaryClick = trySubmitTransaction,
         onDismiss = onDismiss,
         onSheetOpened = { amountFocusRequester.requestFocus() },
         modifier = Modifier.fillMaxHeight()
@@ -194,7 +215,24 @@ fun QuickAddTransactionSheet(
             isError = amountError,
             errorMessage = "Введите сумму больше нуля",
             focusRequester = amountFocusRequester,
-            onDone = { clearFocus() }
+            onDone = { clearFocus() },
+            trailingIcon = {
+                AnimatedVisibility(
+                    visible = isAmountValid,
+                    enter = fadeIn() + expandHorizontally(expandFrom = Alignment.End),
+                    exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.End)
+                ) {
+                    AppMiniActionButton(
+                        onClick = {
+                            if (trySubmitTransaction()) {
+                                clearFocus()
+                                onDismiss()
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = 6.dp)
+                    )
+                }
+            }
         )
 
         // 3. Блок категорий ИЛИ Счёт списания (Откуда)
@@ -254,21 +292,37 @@ fun QuickAddTransactionSheet(
             lazyListState = if (selectedType == TransactionType.TRANSFER) targetAccountListState else accountListState
         )
 
-        // 5. Дата и время
-        DateTimePickerRow(
-            dateTime = selectedDateTime,
-            onClick = { showDatePicker = true }
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(if (dateWeight > 0.05f) 10.dp else 0.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 5. Дата
+            if (dateWeight > 0.05f) {
+                DateTimePickerRow(
+                    dateTime = selectedDateTime,
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier
+                        .weight(dateWeight)
+                        .alpha((dateWeight - 0.2f).coerceIn(0f, 1f))
+                )
+            }
 
-        // 6. Поле заметки
-        AppTextField(
-            value = note,
-            onValueChange = { if (it.length <= 100) note = it },
-            label = "Заметка (Необязательно)",
-            placeholder = "Например, лента или такси",
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { clearFocus() })
-        )
+            // 6. Поле заметки
+            AppTextField(
+                value = note,
+                onValueChange = { if (it.length <= 100) note = it },
+                label = "Заметка",
+                placeholder = "Необязательно",
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { clearFocus() }),
+                modifier = Modifier
+                    .weight(1f)
+                    .onFocusChanged { focusState ->
+                        isNoteFocused = focusState.isFocused
+                    }
+            )
+        }
     }
 
     if (showDatePicker) {
@@ -484,7 +538,6 @@ private fun AccountSelectorSection(
 }
 
 // Диалог даты
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TransactionDatePickerDialog(
     datePickerState: DatePickerState,
