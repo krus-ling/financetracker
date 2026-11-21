@@ -1,4 +1,4 @@
-package com.example.financetracker.feature.home
+package com.example.financetracker.feature.home.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -66,10 +66,9 @@ import com.example.financetracker.core.uikit.components.text.DateHeader
 import com.example.financetracker.core.uikit.theme.Expense
 import com.example.financetracker.core.uikit.theme.ExpenseSoft
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
-import com.example.financetracker.feature.home.components.HomeTransactionRow
-import com.example.financetracker.feature.home.components.sheet.EditAccountBottomSheet
+import com.example.financetracker.feature.home.presentation.components.HomeTransactionRow
+import com.example.financetracker.feature.home.presentation.components.sheet.EditAccountBottomSheet
 import com.example.financetracker.feature.home.util.groupTransactionByDay
-import java.nio.file.WatchEvent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,4 +1,4 @@
-package com.example.financetracker.feature.home.components.sheet
+package com.example.financetracker.feature.home.presentation.components.sheet
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement

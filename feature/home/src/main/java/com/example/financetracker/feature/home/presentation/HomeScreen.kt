@@ -1,4 +1,4 @@
-package com.example.financetracker.feature.home
+package com.example.financetracker.feature.home.presentation
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,11 +49,12 @@ import com.example.financetracker.core.uikit.components.account.AddAccountCardIt
 import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.components.text.DateHeader
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
-import com.example.financetracker.feature.home.components.HomeAccountCard
-import com.example.financetracker.feature.home.components.HomeTransactionRow
-import com.example.financetracker.feature.home.components.sheet.AddAccountBottomSheet
+import com.example.financetracker.feature.home.presentation.components.HomeAccountCard
+import com.example.financetracker.feature.home.presentation.components.HomeTransactionRow
+import com.example.financetracker.feature.home.presentation.components.sheet.AddAccountBottomSheet
 import com.example.financetracker.feature.home.util.groupTransactionByDay
 import org.koin.androidx.compose.koinViewModel
+import kotlin.collections.get
 
 @Composable
 fun HomeScreen(

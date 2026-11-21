@@ -1,4 +1,4 @@
-package com.example.financetracker.feature.home
+package com.example.financetracker.feature.home.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

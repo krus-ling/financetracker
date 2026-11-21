@@ -1,4 +1,4 @@
-package com.example.financetracker.feature.home.components.sheet
+package com.example.financetracker.feature.home.presentation.components.sheet
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -8,8 +8,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +74,8 @@ import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
 import com.example.financetracker.core.uikit.util.toAmountOrNull
+import com.example.financetracker.feature.home.presentation.components.fastinput.FastInputSection
+import com.example.financetracker.feature.home.presentation.components.fastinput.FastInputTriggerChip
 import java.util.Calendar
 
 @ExperimentalMaterial3Api
@@ -159,6 +160,7 @@ fun QuickAddTransactionSheet(
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "dateWeight"
     )
+    var isFastInputExpanded by rememberSaveable { mutableStateOf(false) }
 
     val trySubmitTransaction: () -> Boolean = {
         submitted = true
@@ -195,6 +197,15 @@ fun QuickAddTransactionSheet(
 
     AppFormBottomSheet(
         title = "Новая операция",
+        titleTrailingContent = {
+            AnimatedVisibility(
+                visible = !isFastInputExpanded,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                FastInputTriggerChip(onClick = { isFastInputExpanded = true })
+            }
+        },
         primaryButtonText = "Добавить",
         cancelButtonText = "Назад",
         onPrimaryClick = trySubmitTransaction,
@@ -202,6 +213,32 @@ fun QuickAddTransactionSheet(
         onSheetOpened = { amountFocusRequester.requestFocus() },
         modifier = Modifier.fillMaxHeight()
     ) { clearFocus ->
+
+        // 0. Быстрый ввод
+        FastInputSection(
+            isExpanded = isFastInputExpanded,
+            onExpandedChange = { isFastInputExpanded = it },
+            categories = categories,
+            accounts = accounts,
+            defaultAccountId = selectedAccountId ?: accounts.firstOrNull()?.id,
+            onDraftParsed = { draft ->
+                if (draft.rawText.isNotBlank()) {
+                    draft.amount?.let { amt ->
+                        amountText = if (amt % 1.0 == 0.0) amt.toLong().toString() else amt.toString()
+                    }
+                    selectedType = draft.type
+                    if (draft.type == TransactionType.INCOME) {
+                        selectedIncomeCategoryId = draft.categoryId
+                    } else {
+                        draft.categoryId?.let { selectedExpenseCategoryId = it }
+                    }
+                    draft.accountId?.let { selectedAccountId = it }
+                    draft.date?.let { selectedDateTime = it }
+                    note = draft.note
+                }
+            }
+        )
+
         // 1. Селектор типа операции
         TransactionTypeSelector(
             selectedType = selectedType,
@@ -305,6 +342,7 @@ fun QuickAddTransactionSheet(
                     modifier = Modifier
                         .weight(dateWeight)
                         .alpha((dateWeight - 0.2f).coerceIn(0f, 1f))
+                        .padding(top = 8.dp)
                 )
             }
 

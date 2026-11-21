@@ -1,4 +1,4 @@
-package com.example.financetracker.feature.home
+package com.example.financetracker.feature.home.presentation
 
 import androidx.compose.runtime.Immutable
 import com.example.financetracker.core.model.Account

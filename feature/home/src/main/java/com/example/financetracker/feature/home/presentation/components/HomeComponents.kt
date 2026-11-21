@@ -1,4 +1,4 @@
-package com.example.financetracker.feature.home.components
+package com.example.financetracker.feature.home.presentation.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard

@@ -1,6 +1,6 @@
 package com.example.financetracker.feature.home.di
 
-import com.example.financetracker.feature.home.HomeViewModel
+import com.example.financetracker.feature.home.presentation.HomeViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
