@@ -14,6 +14,8 @@ interface TransactionDao {
     @Query("SELECT * FROM TRANSACTIONS WHERE isDeleted = 0 ORDER BY dateTime DESC LIMIT :limit")
     fun getRecentTransaction(limit: Int = 10): Flow<List<TransactionEntity>>
 
+
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: TransactionEntity): Long
 

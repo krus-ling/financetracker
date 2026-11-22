@@ -103,6 +103,9 @@ fun MainScaffold(
         onGetAccountTransactions = { accountId ->
             homeViewModel.getAccountTransactions(accountId)
         },
+        onLoadMore = {
+            homeViewModel.loadMoreTransactions()
+        },
         onClearError = {
             homeViewModel.clearError()
         }
@@ -124,6 +127,7 @@ fun MainScaffoldContent(
     onRestoreAccount: (String) -> Unit = {},
     onPurgeAccount: (String) -> Unit = {},
     onGetAccountTransactions: suspend (String) -> List<Transaction> = { emptyList() },
+    onLoadMore: () -> Unit = {},
     onClearError: () -> Unit = {}
 ) {
     // Стек навигации Navigation 3 для детальных экранов (автоматически переживает поворот экрана и смерть процесса)
@@ -225,15 +229,16 @@ fun MainScaffoldContent(
                             0 -> HomeScreenContent(
                                 uiState = currentHomeUiState,
                                 contentPadding = innerPadding,
+                                onAddAccount = onCreateAccount,
                                 onAccountClick = { accountId ->
                                     backStack.add(ScreenKey.AccountDetail(accountId))
                                 },
-                                onAddAccount = onCreateAccount,
                                 onCheckDeletedAccount = onCheckDeletedAccount,
                                 onRestoreDeletedAccount = onRestoreAccount,
                                 onPurgeDeletedAccount = onPurgeAccount,
                                 onGetAccountTransactions = onGetAccountTransactions,
-                                onClearError = onClearError
+                                onLoadMore = onLoadMore,
+                                onClearError = onClearError,
                             )
 
                             1 -> AnalyticsScreen(

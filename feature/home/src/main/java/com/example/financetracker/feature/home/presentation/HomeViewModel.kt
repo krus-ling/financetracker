@@ -9,13 +9,18 @@ import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.feature.home.util.groupTransactionByDay
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -34,23 +39,56 @@ class HomeViewModel(
         _errorState.update { throwable.localizedMessage ?: "Произошла неизвестная ошибка" }
     }
 
+    private data class PagingData(
+        val transactions: List<Transaction> = emptyList(),
+        val hasMore: Boolean = true,
+        val isLoadingMore: Boolean = false
+    )
+
+    // Стейты управления лимитом
+    private val _transactionLimit = MutableStateFlow(PAGE_SIZE)
+    private val _isLoadingMore = MutableStateFlow(false)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val transactionPagingFlow = combine(
+        _transactionLimit.flatMapLatest { limit ->
+            transactionRepository.getRecentTransaction(limit = limit)
+                .catch { emit(emptyList()) }
+                .onEach { _isLoadingMore.value = false }
+                .map { list ->
+                    val hasMore = list.size >= limit
+                    Pair(list, hasMore)
+                }
+        },
+        _isLoadingMore
+    ) { (list, hasMore), isLoadingMore ->
+        PagingData(
+            transactions = list,
+            hasMore = hasMore,
+            isLoadingMore = isLoadingMore
+        )
+    }
+
     // Реактивное состояние экрана
     val uiState: StateFlow<HomeUiState> = combine(
         accountRepository.getAllAccounts().catch { emit(emptyList()) },
-        transactionRepository.getRecentTransaction(limit = 10).catch { emit(emptyList()) },
+        transactionPagingFlow,
         categoryRepository.getAllCategories().catch { emit(emptyList()) },
         accountRepository.getDeletedAccounts().catch { emit(emptyList()) },
         _errorState.asStateFlow()
-    ) { accounts, transactions, categories, deletedAccounts, error ->
+    ) { accounts, paging, categories, deletedAccounts, error ->
         val totalBalance = accounts.sumOf { it.balance }
         HomeUiState(
             isLoading = false,
             accounts = accounts,
             categories = categories,
-            recentTransaction = transactions,
-            deletedAccounts = deletedAccounts, // <-- передаём в стейт
+            recentTransaction = paging.transactions,
+            groupedDays = groupTransactionByDay(paging.transactions),
+            deletedAccounts = deletedAccounts,
             totalBalance = totalBalance,
-            errorMessage = error
+            errorMessage = error,
+            isLoadingMore = paging.isLoadingMore,
+            hasMoreTransactions = paging.hasMore
         )
     }.stateIn(
         scope = viewModelScope,
@@ -176,7 +214,19 @@ class HomeViewModel(
         }
     }
 
+    fun loadMoreTransactions() {
+        val state = uiState.value
+        if (state.isLoading || state.isLoadingMore || !state.hasMoreTransactions) return
+
+        _isLoadingMore.value = true
+        _transactionLimit.update { currentLimit -> currentLimit + PAGE_SIZE }
+    }
+
     suspend fun getAccountTransactions(accountId: String, limit: Int = 100): List<Transaction> {
         return transactionRepository.getTransactionsByAccountId(accountId, limit)
+    }
+
+    companion object {
+        private const val PAGE_SIZE = 30
     }
 }
