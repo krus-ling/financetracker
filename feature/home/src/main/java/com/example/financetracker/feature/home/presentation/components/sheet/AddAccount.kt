@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.Transaction
-import com.example.financetracker.core.uikit.components.account.DeletedAccountCard
 import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.input.AppTextField
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
@@ -60,12 +59,17 @@ import com.example.financetracker.feature.home.presentation.components.HomeTrans
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.graphics.Color
 import com.example.financetracker.core.model.AccountType
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.core.uikit.components.account.AccountBalanceCard
 import com.example.financetracker.core.uikit.components.account.DeletedAccountBanner
 import com.example.financetracker.feature.home.presentation.components.TransactionDayGroupView
 import com.example.financetracker.feature.home.util.groupTransactionByDay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @ExperimentalMaterial3Api
 @Composable
@@ -236,18 +240,24 @@ fun AddAccountBottomSheet(
         if (isViewingAllTransactions && currentDeleted != null) {
 
             // Карточка счета
-            DeletedAccountCard(
-                account = currentDeleted,
+            AccountBalanceCard(
+                title = "Текущий баланс · ${currentDeleted.type.title}",
+                balance = currentDeleted.balance,
+                subtitle = currentDeleted.deletedAt?.let {
+                    val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+                    "Удалён: ${dateFormat.format(Date(it))}"
+                },
                 trailingContent = {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.errorContainer
+                        color = Color.White.copy(alpha = 0.2f)
                     ) {
                         Text(
                             text = "В корзине",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }

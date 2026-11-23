@@ -14,6 +14,9 @@ data class HomeUiState(
     val recentTransaction: List<Transaction> = emptyList(),
     val groupedDays: List<TransactionDayGroup> = emptyList(),
     val totalBalance: Double = 0.0,
+    val monthlyIncome: Double = 0.0,
+    val monthlyExpense: Double = 0.0,
+    val currentMonthName: String = "",
     val deletedAccounts: List<Account> = emptyList(),
     val errorMessage: String? = null,
     val isLoadingMore: Boolean = false, // Дозагрузка истории

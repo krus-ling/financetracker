@@ -7,11 +7,13 @@ import com.example.financetracker.core.model.repository.CategoryRepository
 import com.example.financetracker.core.model.repository.TransactionRepository
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.CategoryType
+import com.example.financetracker.core.model.MonthlySummary
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.feature.home.util.groupTransactionByDay
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +26,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
 
 class HomeViewModel(
     private val accountRepository: AccountRepository,
@@ -49,6 +53,47 @@ class HomeViewModel(
     private val _transactionLimit = MutableStateFlow(PAGE_SIZE)
     private val _isLoadingMore = MutableStateFlow(false)
 
+    // Временные границы текущего календарного месяца (с 1-го числа 00:00:00 до 1-го числа следующего)
+    private val currentMonthRange: Pair<Long, Long>
+        get() {
+            val zoneId = ZoneId.systemDefault()
+            val now = LocalDate.now(zoneId)
+            val startOfMonth = now
+                .withDayOfMonth(1)
+                .atStartOfDay(zoneId)
+                .toInstant()
+                .toEpochMilli()
+            val startOfNextMonth = now
+                .plusMonths(1)
+                .withDayOfMonth(1)
+                .atStartOfDay(zoneId)
+                .toInstant()
+                .toEpochMilli()
+            return Pair(startOfMonth, startOfNextMonth)
+        }
+
+    // Название текущего месяца на русском в винительном падеже («за ноябрь», «за май» и т.д.)
+    private val currentMonthName: String
+        get() {
+            val months = listOf(
+                "январь", "февраль", "март", "апрель", "май", "июнь",
+                "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"
+            )
+            val index = LocalDate.now().monthValue - 1
+            return months.getOrElse(index) { "месяц" }
+        }
+
+    // Поток активных и удалённых счетов
+    private val accountFlow = combine(
+        accountRepository.getAllAccounts().catch { emit(emptyList()) },
+        accountRepository.getDeletedAccounts().catch { emit(emptyList()) }
+    ) { active, deleted -> Pair(active, deleted) }
+
+    // Реактивный поток доходов и расходов за текущий месяц
+    private val monthlySummaryFlow: Flow<MonthlySummary> =
+        transactionRepository.getMonthlySummary(currentMonthRange.first, currentMonthRange.second)
+            .catch { emit(MonthlySummary()) }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val transactionPagingFlow = combine(
         _transactionLimit.flatMapLatest { limit ->
@@ -71,12 +116,12 @@ class HomeViewModel(
 
     // Реактивное состояние экрана
     val uiState: StateFlow<HomeUiState> = combine(
-        accountRepository.getAllAccounts().catch { emit(emptyList()) },
+        accountFlow,
         transactionPagingFlow,
         categoryRepository.getAllCategories().catch { emit(emptyList()) },
-        accountRepository.getDeletedAccounts().catch { emit(emptyList()) },
+        monthlySummaryFlow,
         _errorState.asStateFlow()
-    ) { accounts, paging, categories, deletedAccounts, error ->
+    ) { (accounts, deletedAccounts), paging, categories, summary, error ->
         val totalBalance = accounts.sumOf { it.balance }
         HomeUiState(
             isLoading = false,
@@ -86,6 +131,9 @@ class HomeViewModel(
             groupedDays = groupTransactionByDay(paging.transactions),
             deletedAccounts = deletedAccounts,
             totalBalance = totalBalance,
+            monthlyIncome = summary.income,
+            monthlyExpense = summary.expense,
+            currentMonthName = currentMonthName,
             errorMessage = error,
             isLoadingMore = paging.isLoadingMore,
             hasMoreTransactions = paging.hasMore
@@ -228,6 +276,11 @@ class HomeViewModel(
         viewModelScope.launch(errorHandler) {
             accountRepository.setDefaultAccount(accountId, isDefault)
         }
+    }
+
+    fun getAccountMonthlySummary(accountId: String): Flow<MonthlySummary> {
+        val (start, end) = currentMonthRange
+        return transactionRepository.getMonthlySummaryByAccountId(accountId, start, end)
     }
 
     suspend fun getAccountTransactions(accountId: String, limit: Int = 100): List<Transaction> {

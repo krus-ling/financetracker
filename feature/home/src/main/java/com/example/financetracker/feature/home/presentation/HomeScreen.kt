@@ -19,9 +19,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -50,6 +54,7 @@ import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.core.uikit.components.account.AccountBalanceCard
 import com.example.financetracker.core.uikit.components.account.AddAccountCardItem
 import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.components.text.DateHeader
@@ -198,23 +203,29 @@ fun HomeScreenContent(
                 ) {
                     // Общий баланс
                     item {
-                        Column(
+                        AccountBalanceCard(
+                            title = "Общий баланс",
+                            balance = uiState.totalBalance,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 16.dp)
-                        ) {
-                            Text(
-                                text = "Общий баланс",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            AmountText(
-                                amount = uiState.totalBalance,
-                                type = null,
-                                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            trailingContent = {
+                                IconButton(
+                                    onClick = { /* TODO скрытие баланса */},
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Visibility,
+                                        contentDescription = "Скрыть баланс",
+                                        tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                    )
+                                }
+                            },
+                            incomeTitle = "Доходы за ${uiState.currentMonthName.ifEmpty { "месяц" }}",
+                            incomeAmount = uiState.monthlyIncome,
+                            expenseTitle = "Расходы за ${uiState.currentMonthName.ifEmpty { "месяц" }}",
+                            expenseAmount = uiState.monthlyExpense
+                        )
                     }
 
                     // Карусель счетов

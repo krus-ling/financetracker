@@ -36,6 +36,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.CategoryType
+import com.example.financetracker.core.model.MonthlySummary
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.navigation.ScreenKey
@@ -50,6 +51,8 @@ import com.example.financetracker.feature.home.presentation.components.sheet.Qui
 import com.example.financetracker.feature.profile.CategoriesScreen
 import com.example.financetracker.feature.profile.ProfileScreen
 import com.example.financetracker.feature.profile.TrashScreen
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -103,6 +106,9 @@ fun MainScaffold(
         onGetAccountTransactions = { accountId, limit ->
             homeViewModel.getAccountTransactions(accountId, limit)
         },
+        onGetAccountMonthlySummary = { accountId ->
+            homeViewModel.getAccountMonthlySummary(accountId)
+        },
         onLoadMore = {
             homeViewModel.loadMoreTransactions()
         },
@@ -130,6 +136,7 @@ fun MainScaffoldContent(
     onRestoreAccount: (String) -> Unit = {},
     onPurgeAccount: (String) -> Unit = {},
     onGetAccountTransactions: suspend (String, Int) -> List<Transaction> = { _, _ -> emptyList() },
+    onGetAccountMonthlySummary: (String) -> Flow<MonthlySummary> = { flowOf(MonthlySummary()) },
     onLoadMore: () -> Unit = {},
     onToggleDefaultAccount: (String, Boolean) -> Unit = { _, _ -> },
     onClearError: () -> Unit = {}
@@ -269,12 +276,14 @@ fun MainScaffoldContent(
                             transactions = currentHomeUiState.recentTransaction,
                             categories = currentHomeUiState.categories,
                             accounts = currentHomeUiState.accounts + currentHomeUiState.deletedAccounts,
+                            monthName = currentHomeUiState.currentMonthName,
                             onActionClick = { type ->
                                 showQuickAdd = true
                                 quickAddType = type
                                 quickAddAccountId = account.id
                             },
-                            onGetAccountTransactions = onGetAccountTransactions
+                            onGetAccountTransactions = onGetAccountTransactions,
+                            onGetAccountMonthlySummary = onGetAccountMonthlySummary,
                         )
                     } else {
                         // Если аккаунт не найден (например, удален), корректно возвращаемся назад
