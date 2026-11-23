@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,6 +33,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,13 +47,17 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -59,6 +66,7 @@ import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.AccountType
 import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.Transaction
+import com.example.financetracker.core.model.TransactionDayGroup
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountActionButton
 import com.example.financetracker.core.uikit.components.text.AmountText
@@ -69,6 +77,10 @@ import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.presentation.components.HomeTransactionRow
 import com.example.financetracker.feature.home.presentation.components.sheet.EditAccountBottomSheet
 import com.example.financetracker.feature.home.util.groupTransactionByDay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,16 +93,26 @@ fun AccountDetailScreen(
     categories: List<Category> = emptyList(),
     accounts: List<Account> = emptyList(),
     onActionClick: (TransactionType) -> Unit = {},
-    onGetAccountTransactions: (suspend (String) -> List<Transaction>)? = null
+    onGetAccountTransactions: (suspend (accountId: String, limit: Int) -> List<Transaction>)? = null
 ) {
     var editing by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    var loadedTransactions by remember(account.id) { mutableStateOf<List<Transaction>?>(null) }
+    val listState = rememberLazyListState()
 
-    LaunchedEffect(account.id) {
+    var transactionLimit by rememberSaveable(account.id) { mutableIntStateOf(30) }
+    var isLoadingMore by remember { mutableStateOf(false) }
+    var hasMoreTransactions by remember { mutableStateOf(true) }
+    var loadedTransactions by remember(account.id) { mutableStateOf<List<Transaction>?>(null) }
+    var groupedDays by remember(account.id) { mutableStateOf<List<TransactionDayGroup>>(emptyList()) }
+
+    // // Загрузка операций при смене счёта, лимита или поступлении новых транзакций
+    LaunchedEffect(account.id, transactionLimit, transactions) {
         if (onGetAccountTransactions != null) {
-            loadedTransactions = onGetAccountTransactions(account.id)
+            val list = onGetAccountTransactions(account.id, transactionLimit)
+            loadedTransactions = list
+            hasMoreTransactions = list.size >= transactionLimit
+            isLoadingMore = false
         }
     }
 
@@ -100,8 +122,28 @@ fun AccountDetailScreen(
         effectiveTransactions.filter { it.accountId == account.id || it.targetAccountId == account.id }
     }
 
-    val groupedDays = remember(accountTransactions) {
-        groupTransactionByDay(accountTransactions)
+    // Фоновая группировка по дням
+    LaunchedEffect(accountTransactions) {
+        groupedDays = withContext(Dispatchers.Default) {
+            groupTransactionByDay(accountTransactions)
+        }
+    }
+
+    // Триггер дозагрузки за 2 элемента до конца списка
+    LaunchedEffect(listState, hasMoreTransactions, isLoadingMore) {
+        snapshotFlow {
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            totalItems > 0 && lastVisibleItemIndex >= totalItems - 2
+        }
+        .distinctUntilChanged()
+        .collect { nearBottom ->
+            if (nearBottom && hasMoreTransactions && !isLoadingMore) {
+                isLoadingMore = true
+                transactionLimit += 30
+            }
+        }
     }
 
     val accountsMap = remember(accounts) { accounts.associateBy { it.id } }
@@ -155,6 +197,7 @@ fun AccountDetailScreen(
         }
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = innerPadding.calculateTopPadding(),
@@ -288,7 +331,7 @@ fun AccountDetailScreen(
             }
 
             // Список операций по дням или заглушка пустого состояния
-            if (accountTransactions.isEmpty()) {
+            if (accountTransactions.isEmpty() && !isLoadingMore) {
                 item {
                     Box(
                         modifier = Modifier
@@ -306,6 +349,7 @@ fun AccountDetailScreen(
                 }
             } else {
                 groupedDays.forEach { dayGroup ->
+                    // Заголовок дня со сводкой
                     item(key = "header_${dayGroup.dateTitle}") {
                         DateHeader(
                             title = dayGroup.dateTitle,
@@ -313,32 +357,59 @@ fun AccountDetailScreen(
                         )
                     }
 
-                    item(key = "card_${dayGroup.dateTitle}") {
-                        Card(
+                    // Каждая операция — отдельный элемент LazyColumn со своим ключом
+                    itemsIndexed(
+                        items = dayGroup.transactions,
+                        key = { _, tx -> tx.id }
+                    ) { index, transaction ->
+                        val shape = when {
+                            dayGroup.transactions.size == 1 -> RoundedCornerShape(20.dp)
+                            index == 0 -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                            index == dayGroup.transactions.lastIndex -> RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
+                            else -> RectangleShape
+                        }
+                        Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
+                                .padding(horizontal = 20.dp),
+                            shape = shape,
+                            color = MaterialTheme.colorScheme.surface
                         ) {
-                            Column {
-                                dayGroup.transactions.forEach { transaction ->
-                                    val transactionAccount = accountsMap[transaction.accountId]
-                                    val category = categoriesMap[transaction.categoryId]
-                                    val targetAccount = accountsMap[transaction.targetAccountId]
+                            val transactionAccount = accountsMap[transaction.accountId]
+                            val category = categoriesMap[transaction.categoryId]
+                            val targetAccount = accountsMap[transaction.targetAccountId]
 
-                                    HomeTransactionRow(
-                                        transaction = transaction,
-                                        category = category,
-                                        account = transactionAccount,
-                                        targetAccount = targetAccount,
-                                        onClick = {}
-                                    )
-                                }
-                            }
+                            HomeTransactionRow(
+                                transaction = transaction,
+                                category = category,
+                                account = transactionAccount,
+                                targetAccount = targetAccount,
+                                onClick = {}
+                            )
                         }
+                    }
+
+                    // Отступ между карточками разных дней
+                    item(key = "spacer_${dayGroup.dateTitle}") {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+            }
+
+            // Индикатор дозагрузки внизу списка
+            if (isLoadingMore) {
+                item(key = "pagination_loader") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }

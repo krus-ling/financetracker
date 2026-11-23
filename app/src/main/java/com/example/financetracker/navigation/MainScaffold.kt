@@ -100,8 +100,8 @@ fun MainScaffold(
         onPurgeAccount = {
             homeViewModel.purgeAccount(it)
         },
-        onGetAccountTransactions = { accountId ->
-            homeViewModel.getAccountTransactions(accountId)
+        onGetAccountTransactions = { accountId, limit ->
+            homeViewModel.getAccountTransactions(accountId, limit)
         },
         onLoadMore = {
             homeViewModel.loadMoreTransactions()
@@ -126,7 +126,7 @@ fun MainScaffoldContent(
     onCheckDeletedAccount: suspend (String) -> Account? = { null },
     onRestoreAccount: (String) -> Unit = {},
     onPurgeAccount: (String) -> Unit = {},
-    onGetAccountTransactions: suspend (String) -> List<Transaction> = { emptyList() },
+    onGetAccountTransactions: suspend (String, Int) -> List<Transaction> = { _, _ -> emptyList() },
     onLoadMore: () -> Unit = {},
     onClearError: () -> Unit = {}
 ) {
@@ -236,7 +236,7 @@ fun MainScaffoldContent(
                                 onCheckDeletedAccount = onCheckDeletedAccount,
                                 onRestoreDeletedAccount = onRestoreAccount,
                                 onPurgeDeletedAccount = onPurgeAccount,
-                                onGetAccountTransactions = onGetAccountTransactions,
+                                onGetAccountTransactions = { id -> onGetAccountTransactions(id, 100) },
                                 onLoadMore = onLoadMore,
                                 onClearError = onClearError,
                             )
@@ -302,7 +302,7 @@ fun MainScaffoldContent(
                         onBack = navigateBackSafely,
                         onRestoreAccount = onRestoreAccount,
                         onPurgeAccount = onPurgeAccount,
-                        onGetAccountTransactions = onGetAccountTransactions,
+                        onGetAccountTransactions = { id -> onGetAccountTransactions(id, 100) },
                         onOpenAccountDetails = { accountId ->
                             backStack.add(ScreenKey.AccountDetail(accountId))
                         }
@@ -361,7 +361,7 @@ fun MainScaffoldContent(
             onPurgeDeletedAccount = { accountId ->
                 onPurgeAccount(accountId)
             },
-            onGetAccountTransactions = onGetAccountTransactions,
+            onGetAccountTransactions = { id -> onGetAccountTransactions(id, 100) },
             categories = currentHomeUiState.categories,
             deletedAccounts = currentHomeUiState.deletedAccounts,
             onOpenAccountDetails = { accountId ->
