@@ -71,6 +71,8 @@ import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionDayGroup
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountActionButton
+import com.example.financetracker.core.uikit.components.account.DeletedAccountBanner
+import com.example.financetracker.core.uikit.components.account.DeletedAccountCard
 import com.example.financetracker.core.uikit.components.text.AmountText
 import com.example.financetracker.core.uikit.components.text.DateHeader
 import com.example.financetracker.core.uikit.theme.Expense
@@ -78,6 +80,7 @@ import com.example.financetracker.core.uikit.theme.ExpenseSoft
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.presentation.components.HomeTransactionRow
 import com.example.financetracker.feature.home.presentation.components.sheet.EditAccountBottomSheet
+import com.example.financetracker.feature.home.presentation.components.transactionDayItems
 import com.example.financetracker.feature.home.util.groupTransactionByDay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -158,7 +161,7 @@ fun AccountDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = account.name,
+                        text = if (account.isDeleted) "Все операции" else account.name,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -208,48 +211,58 @@ fun AccountDetailScreen(
         ) {
             // Карточка баланса
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                if (account.isDeleted) {
+                    DeletedAccountCard(
+                        account = account,
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        trailingContent = {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.errorContainer
+                            ) {
+                                Text(
+                                    text = "В корзине",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     )
-                ) {
-                    Column(
+                } else {
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp)
+                            .padding(horizontal = 20.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp)
                         ) {
-                            Text(
-                                text = "Текущий баланс · ${account.type.title}",
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                                style = MaterialTheme.typography.titleMedium
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Текущий баланс · ${account.type.title}",
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
 
-                            if (account.isDeleted) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = Color.White.copy(alpha = 0.2f)
-                                ) {
-                                    Text(
-                                        text = "В корзине",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-                            } else {
+
                                 IconButton(
                                     onClick = {
-                                        onToggleDefaultAccount?.invoke(account.id, !account.isDefault)
+                                        onToggleDefaultAccount?.invoke(
+                                            account.id,
+                                            !account.isDefault
+                                        )
                                     },
                                     modifier = Modifier.size(40.dp)
                                 ) {
@@ -271,16 +284,16 @@ fun AccountDetailScreen(
                                     )
                                 }
                             }
+
+                            Spacer(Modifier.height(8.dp))
+
+                            AmountText(
+                                amount = account.balance,
+                                type = null,
+                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
-
-                        Spacer(Modifier.height(8.dp))
-
-                        AmountText(
-                            amount = account.balance,
-                            type = null,
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
                     }
                 }
             }
@@ -317,30 +330,7 @@ fun AccountDetailScreen(
                 }
             } else {
                 item {
-                    Spacer(Modifier.height(12.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DeleteOutline,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = "Счёт находится в корзине. Операции доступны только для просмотра.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    DeletedAccountBanner(modifier = Modifier.padding(horizontal = 20.dp))
                 }
             }
 
@@ -375,50 +365,14 @@ fun AccountDetailScreen(
                 }
             } else {
                 groupedDays.forEach { dayGroup ->
-                    // Заголовок дня со сводкой
-                    item(key = "header_${dayGroup.dateTitle}") {
-                        DateHeader(
-                            title = dayGroup.dateTitle,
-                            dailyTotal = dayGroup.dailyTotal
-                        )
-                    }
-
-                    // Каждая операция — отдельный элемент LazyColumn со своим ключом
-                    itemsIndexed(
-                        items = dayGroup.transactions,
-                        key = { _, tx -> tx.id }
-                    ) { index, transaction ->
-                        val shape = when {
-                            dayGroup.transactions.size == 1 -> RoundedCornerShape(20.dp)
-                            index == 0 -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-                            index == dayGroup.transactions.lastIndex -> RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
-                            else -> RectangleShape
-                        }
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp),
-                            shape = shape,
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            val transactionAccount = accountsMap[transaction.accountId]
-                            val category = categoriesMap[transaction.categoryId]
-                            val targetAccount = accountsMap[transaction.targetAccountId]
-
-                            HomeTransactionRow(
-                                transaction = transaction,
-                                category = category,
-                                account = transactionAccount,
-                                targetAccount = targetAccount,
-                                onClick = {}
-                            )
-                        }
-                    }
-
-                    // Отступ между карточками разных дней
-                    item(key = "spacer_${dayGroup.dateTitle}") {
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
+                    transactionDayItems(
+                        dayGroup = dayGroup,
+                        categoriesMap = categoriesMap,
+                        accountsMap = accountsMap,
+                        account = account,
+                        itemHorizontalPadding = 20.dp,
+                        onTransactionClick = {}
+                    )
                 }
             }
 

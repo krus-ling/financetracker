@@ -1,5 +1,6 @@
 package com.example.financetracker.feature.home.presentation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,6 +57,7 @@ import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.home.presentation.components.HomeAccountCard
 import com.example.financetracker.feature.home.presentation.components.HomeTransactionRow
 import com.example.financetracker.feature.home.presentation.components.sheet.AddAccountBottomSheet
+import com.example.financetracker.feature.home.presentation.components.transactionDayItems
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.androidx.compose.koinViewModel
 
@@ -97,7 +99,6 @@ fun HomeScreenContent(
     onLoadMore: () -> Unit = {}
 ) {
     var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
-    var reopenAddAccountSheetOnReturn by rememberSaveable { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
 
@@ -116,14 +117,6 @@ fun HomeScreenContent(
             if (nearBottom && uiState.hasMoreTransactions && !uiState.isLoadingMore) {
                 onLoadMore()
             }
-        }
-    }
-
-    // Когда возвращаемся на экран и стоит флаг — снова открываем шторку
-    LaunchedEffect(Unit) {
-        if (reopenAddAccountSheetOnReturn) {
-            reopenAddAccountSheetOnReturn = false
-            showAddAccountSheet = true
         }
     }
 
@@ -149,6 +142,11 @@ fun HomeScreenContent(
             )
             onClearError()
         }
+    }
+
+    BackHandler(enabled = showAddAccountSheet) {
+        showAddAccountSheet = false
+        addAccountStateHolder.removeState("add_account_sheet")
     }
 
     when {
@@ -295,56 +293,12 @@ fun HomeScreenContent(
 
                         else -> {
                             uiState.groupedDays.forEach { dayGroup ->
-                                // Заголовок дня и сводка доходов/расходов
-                                item(key = "header_${dayGroup.dateTitle}") {
-                                    DateHeader(
-                                        title = dayGroup.dateTitle,
-                                        dailyTotal = dayGroup.dailyTotal
-                                    )
-                                }
-
-                                // Каждая строка операции — отдельный элемент LazyColumn с индивидуальным ключом
-                                itemsIndexed(
-                                    items = dayGroup.transactions,
-                                    key = { _, tx -> tx.id }
-                                ) { index, transaction ->
-                                    // Динамически скругляем края карточки:
-                                    // Если операция одна — скругляем все 4 угла
-                                    // Если первая — только верх
-                                    // Если последняя — только низ
-                                    // Если в середине — прямоугольник
-                                    val shape = when {
-                                        dayGroup.transactions.size == 1 -> RoundedCornerShape(20.dp)
-                                        index == 0 -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-                                        index == dayGroup.transactions.lastIndex -> RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
-                                        else -> RectangleShape
-                                    }
-
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 20.dp),
-                                        shape = shape,
-                                        color = MaterialTheme.colorScheme.surface
-                                    ) {
-                                        val account = accountsMap[transaction.accountId]
-                                        val category = categoriesMap[transaction.categoryId]
-                                        val targetAccount = accountsMap[transaction.targetAccountId]
-
-                                        HomeTransactionRow(
-                                            transaction = transaction,
-                                            category = category,
-                                            account = account,
-                                            targetAccount = targetAccount,
-                                            onClick = { /* TODO клик по операции */ }
-                                        )
-                                    }
-                                }
-
-                                // Небольшой отступ между карточками разных дней
-                                item(key = "spacer_${dayGroup.dateTitle}") {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                }
+                                transactionDayItems(
+                                    dayGroup = dayGroup,
+                                    categoriesMap = categoriesMap,
+                                    accountsMap = accountsMap,
+                                    onTransactionClick = { /* TODO клик по операции */ }
+                                )
                             }
                         }
                     }
@@ -395,11 +349,6 @@ fun HomeScreenContent(
                 onGetAccountTransactions = onGetAccountTransactions,
                 categories = uiState.categories,
                 deletedAccounts = uiState.deletedAccounts,
-                onOpenAccountDetails = { accountId ->
-                    reopenAddAccountSheetOnReturn = true
-                    showAddAccountSheet = false
-                    onAccountClick(accountId)
-                }
             )
         }
     }

@@ -7,17 +7,17 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,15 +39,15 @@ import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.navigation.ScreenKey
-import com.example.financetracker.feature.home.presentation.components.sheet.QuickAddTransactionSheet
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
+import com.example.financetracker.feature.analytics.AnalyticsScreen
 import com.example.financetracker.feature.home.presentation.AccountDetailScreen
-import com.example.financetracker.feature.profile.CategoriesScreen
 import com.example.financetracker.feature.home.presentation.HomeScreenContent
 import com.example.financetracker.feature.home.presentation.HomeUiState
 import com.example.financetracker.feature.home.presentation.HomeViewModel
 import com.example.financetracker.feature.home.presentation.components.sheet.AddAccountBottomSheet
-import com.example.financetracker.feature.analytics.AnalyticsScreen
+import com.example.financetracker.feature.home.presentation.components.sheet.QuickAddTransactionSheet
+import com.example.financetracker.feature.profile.CategoriesScreen
 import com.example.financetracker.feature.profile.ProfileScreen
 import com.example.financetracker.feature.profile.TrashScreen
 import kotlinx.coroutines.launch
@@ -159,15 +159,6 @@ fun MainScaffoldContent(
     var quickAddAccountId by remember { mutableStateOf<String?>(null) }
     var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
 
-    var reopenAddAccountSheetOnReturn by rememberSaveable { mutableStateOf(false) }
-    // При возврате на ScreenKey.Home снова показываем шторку:
-    LaunchedEffect(currentKey) {
-        if (currentKey is ScreenKey.Home && reopenAddAccountSheetOnReturn) {
-            reopenAddAccountSheetOnReturn = false
-            showAddAccountSheet = true
-        }
-    }
-
     // Активная вкладка синхронизирована с целевой страницей свайпа
     val currentTab = NavTab.entries[pagerState.targetPage]
 
@@ -235,7 +226,10 @@ fun MainScaffoldContent(
                                 contentPadding = innerPadding,
                                 onAddAccount = onCreateAccount,
                                 onAccountClick = { accountId ->
-                                    backStack.add(ScreenKey.AccountDetail(accountId))
+                                    val targetKey = ScreenKey.AccountDetail(accountId)
+                                    if (backStack.lastOrNull() != targetKey) {
+                                        backStack.add(targetKey)
+                                    }
                                 },
                                 onCheckDeletedAccount = onCheckDeletedAccount,
                                 onRestoreDeletedAccount = onRestoreAccount,
@@ -369,12 +363,6 @@ fun MainScaffoldContent(
             onGetAccountTransactions = { id -> onGetAccountTransactions(id, 100) },
             categories = currentHomeUiState.categories,
             deletedAccounts = currentHomeUiState.deletedAccounts,
-            onOpenAccountDetails = { accountId ->
-                reopenAddAccountSheetOnReturn = true
-                showAddAccountSheet = false
-                showQuickAdd = false
-                backStack.add(ScreenKey.AccountDetail(accountId))
-            }
         )
     }
 }

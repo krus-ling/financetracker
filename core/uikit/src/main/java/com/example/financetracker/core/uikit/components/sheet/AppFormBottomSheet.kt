@@ -2,6 +2,7 @@ package com.example.financetracker.core.uikit.components.sheet
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -23,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -38,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -56,6 +59,7 @@ import com.example.financetracker.core.uikit.components.button.AppSecondaryButto
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalInspectionMode
 
 /**
  * Оптимизированная универсальная шторка (bottom sheet) для форм ввода данных.
@@ -85,10 +89,92 @@ fun AppFormBottomSheet(
     isPrimaryEnabled: Boolean = true,
     cancelButtonText: String? = "Отмена",
     onSheetOpened: (() -> Unit)? = null,
+    titleLeadingContent: @Composable (RowScope.() -> Unit)? = null,
     titleTrailingContent: @Composable (RowScope.() -> Unit)? = null,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
     content: @Composable ColumnScope.(clearFocus: () -> Unit) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
+    // Если мы в окне Preview Android Studio — рендерим как Surface,
+    // так как LayoutLib Студии не поддерживает отображение ModalBottomSheetDialog
+    if (LocalInspectionMode.current) {
+        Surface(
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            color = containerColor
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Полоска шторки
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp, bottom = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    BottomSheetDefaults.DragHandle()
+                }
+
+                // Заголовок
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        titleLeadingContent?.invoke(this)
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    titleTrailingContent?.invoke(this)
+                }
+
+                // Контент формы
+                content {}
+
+                // Кнопки шторки
+                val hasCancel = cancelButtonText != null
+                val hasPrimary = primaryButtonText != null
+                if (hasCancel || hasPrimary) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (hasCancel) {
+                            AppSecondaryButton(
+                                text = cancelButtonText,
+                                onClick = {},
+                                modifier = if (hasPrimary) Modifier.weight(1f) else Modifier.fillMaxWidth()
+                            )
+                        }
+                        if (hasPrimary) {
+                            AppPrimaryButton(
+                                text = primaryButtonText,
+                                onClick = {},
+                                enabled = isPrimaryEnabled,
+                                modifier = if (hasCancel) Modifier.weight(1.3f) else Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
+
     val scrollState = rememberScrollState()
 
     val currentOnDismiss by rememberUpdatedState(onDismiss)
@@ -138,7 +224,7 @@ fun AppFormBottomSheet(
         sheetState = actualSheetState,
         contentWindowInsets = { WindowInsets(0, 0, 0, 0) }, // Фон шторки заходит под системный бар
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = containerColor,
         dragHandle = {
             val focusManager = LocalFocusManager.current
             val keyboardController = LocalSoftwareKeyboardController.current
@@ -279,11 +365,17 @@ fun AppFormBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    titleLeadingContent?.invoke(this)
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 titleTrailingContent?.invoke(this)
             }
 

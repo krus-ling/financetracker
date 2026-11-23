@@ -612,33 +612,79 @@ private fun TransactionDatePickerDialog(
     }
 }
 
+// --- ТЕСТОВЫЕ ДАННЫЕ ДЛЯ ПРЕВЬЮ ---
+private val previewAccounts = listOf(
+    Account(id = "1", name = "Основная карта", balance = 86700.0, isDefault = true),
+    Account(id = "2", name = "Наличные", balance = 12500.0),
+    Account(id = "3", name = "Накопления", balance = 250000.0)
+)
+private val previewCategories = listOf(
+    Category(id = "cat1", name = "Продукты", type = CategoryType.EXPENSE, iconRes = "ic_category_groceries"),
+    Category(id = "cat2", name = "Кафе", type = CategoryType.EXPENSE, iconRes = "ic_category_cafe"),
+    Category(id = "cat3", name = "Транспорт", type = CategoryType.EXPENSE, iconRes = "ic_category_transport"),
+    Category(id = "cat4", name = "Одежда", type = CategoryType.EXPENSE, iconRes = "ic_category_clothing"),
+    Category(id = "cat5", name = "Зарплата", type = CategoryType.INCOME, iconRes = "ic_category_salary"),
+    Category(id = "cat6", name = "Фриланс", type = CategoryType.INCOME, iconRes = "ic_category_freelance"),
+    Category(id = "cat7", name = "Pljhjdmt", type = CategoryType.EXPENSE, iconRes = "ic_category_health")
+)
+// 1. Режим «Расход» (Светлая тема)
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview(name = "Quick Add Sheet - Light", showBackground = true)
+@Preview(name = "1. Расход - Светлая", showBackground = true)
 @Composable
-private fun QuickAddTransactionSheetLightPreview() {
+private fun QuickAddExpenseLightPreview() {
     FinancetrackerTheme(darkTheme = false) {
         QuickAddTransactionSheet(
-            categories = emptyList(),
-            accounts = emptyList(),
+            categories = previewCategories,
+            accounts = previewAccounts,
+            initialType = TransactionType.EXPENSE,
             onDismiss = {},
             onAddClick = { _, _, _, _, _, _, _ -> },
             onAddNewAccount = {}
         )
     }
 }
-
+// 2. Режим «Доход» (Светлая тема)
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview(
-    name = "Quick Add Sheet - Dark",
-    showBackground = true,
-    backgroundColor = 0xFF121816
-)
+@Preview(name = "2. Доход - Светлая", showBackground = true)
 @Composable
-private fun QuickAddTransactionSheetDarkPreview() {
+private fun QuickAddIncomeLightPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        QuickAddTransactionSheet(
+            categories = previewCategories,
+            accounts = previewAccounts,
+            initialType = TransactionType.INCOME,
+            onDismiss = {},
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
+        )
+    }
+}
+// 3. Режим «Перевод между счетами» (Светлая тема)
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(name = "3. Перевод - Светлая", showBackground = true)
+@Composable
+private fun QuickAddTransferLightPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        QuickAddTransactionSheet(
+            categories = previewCategories,
+            accounts = previewAccounts,
+            initialType = TransactionType.TRANSFER,
+            onDismiss = {},
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
+        )
+    }
+}
+// 4. Режим «Расход» (Тёмная тема)
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(name = "4. Расход - Тёмная", showBackground = true)
+@Composable
+private fun QuickAddExpenseDarkPreview() {
     FinancetrackerTheme(darkTheme = true) {
         QuickAddTransactionSheet(
-            categories = emptyList(),
-            accounts = emptyList(),
+            categories = previewCategories,
+            accounts = previewAccounts,
+            initialType = TransactionType.EXPENSE,
             onDismiss = {},
             onAddClick = { _, _, _, _, _, _, _ -> },
             onAddNewAccount = {}
