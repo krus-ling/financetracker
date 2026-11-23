@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -71,6 +72,7 @@ import com.example.financetracker.core.uikit.components.transaction.TransactionT
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
+import com.example.financetracker.core.uikit.util.rememberHalfWidth
 import com.example.financetracker.core.uikit.util.toAmountOrNull
 import com.example.financetracker.feature.home.presentation.components.fastinput.FastInputSection
 import com.example.financetracker.feature.home.presentation.components.fastinput.FastInputTriggerChip
@@ -123,6 +125,8 @@ fun QuickAddTransactionSheet(
     val targetAccounts = remember(accounts, selectedAccountId) {
         accounts.filter { it.id != selectedAccountId }
     }
+
+    val halfWidth = rememberHalfWidth(horizontalPadding = 20.dp, spacing = 10.dp)
 
     // Инициализация при изменении списка счетов
     LaunchedEffect(accounts) {
@@ -340,7 +344,7 @@ fun QuickAddTransactionSheet(
                     dateTime = selectedDateTime,
                     onClick = { showDatePicker = true },
                     modifier = Modifier
-                        .fillMaxWidth(0.5f)
+                        .width(halfWidth)
                         .padding(top = 8.dp)
                 )
             }
@@ -521,6 +525,9 @@ private fun AccountSelectorSection(
     lazyListState: LazyListState = rememberLazyListState(),
     showAddAccountButton: Boolean = true
 ) {
+    val cardSpacing = 10.dp
+    val cardWidth = rememberHalfWidth(horizontalPadding = 20.dp, spacing = cardSpacing)
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -537,6 +544,7 @@ private fun AccountSelectorSection(
                     AddAccountCardItem(
                         title = if (title == "Счёт") "Создать счёт" else "Добавить счёт",
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        modifier = Modifier.width(cardWidth),
                         onClick = onAddNewAccount
                     )
                 }
@@ -544,7 +552,7 @@ private fun AccountSelectorSection(
         } else {
             LazyRow(
                 state = lazyListState,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(cardSpacing)
             ) {
                 items(accounts, key = { it.id }) { account ->
                     val isSelected = account.id == selectedAccountId
@@ -556,6 +564,7 @@ private fun AccountSelectorSection(
                         isDefault = account.isDefault,
                         containerColor = if (isSelected) PrimaryTint else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                         contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.width(cardWidth),
                         onClick = { onAccountSelected(account.id) }
                     )
                 }
@@ -564,6 +573,7 @@ private fun AccountSelectorSection(
                         AddAccountCardItem(
                             title = "Добавить счёт",
                             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            modifier = Modifier.width(cardWidth),
                             onClick = onAddNewAccount
                         )
                     }

@@ -46,7 +46,7 @@ fun AccountCardItem(
     title: String, // Текстовое название счёта
     balance: Double, // Числовое значение баланса
     accountIcon: ImageVector, // Иконка, которая будет отображаться в левом верхнем углу карточки
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier.width(160.dp),
     isSelected: Boolean = false,
     containerColor: Color = MaterialTheme.colorScheme.surface, // Цвет фона самой карточки
     contentColor: Color? = null, // параметр для цвета текста
@@ -63,9 +63,7 @@ fun AccountCardItem(
 
     Card(
         onClick = onClick, // делает интерактивной
-        modifier = modifier
-            .width(160.dp) // фикс размеры
-            .height(100.dp),
+        modifier = modifier.height(100.dp),
         shape = RoundedCornerShape(16.dp), // скругление углов
         colors = CardDefaults.cardColors(containerColor = containerColor), // цвет фона
         // Добавляем обводку (рамку), если карточка выбрана
