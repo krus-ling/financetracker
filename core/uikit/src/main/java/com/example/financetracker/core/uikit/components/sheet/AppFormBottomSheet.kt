@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -222,10 +223,6 @@ fun AppFormBottomSheet(
                     focusManager.clearFocus(force = true)
                     wasImeOpened = false
                 }
-                // Автоматически возвращаем скролл наверх к шапке при скрытии клавиатуры
-                if (scrollState.value > 0) {
-                    scrollState.animateScrollTo(0)
-                }
             }
         }
 
@@ -273,6 +270,7 @@ fun AppFormBottomSheet(
                 }
                 .padding(horizontal = 20.dp)
                 .navigationBarsPadding()
+                .imePadding()
                 .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {

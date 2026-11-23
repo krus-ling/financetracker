@@ -5,6 +5,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -155,11 +156,6 @@ fun QuickAddTransactionSheet(
     val amountError = submitted && !isAmountValid
 
     var isNoteFocused by remember { mutableStateOf(false) }
-    val dateWeight by animateFloatAsState(
-        targetValue = if (isNoteFocused) 0.0001f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "dateWeight"
-    )
     var isFastInputExpanded by rememberSaveable { mutableStateOf(false) }
 
     val trySubmitTransaction: () -> Boolean = {
@@ -331,17 +327,22 @@ fun QuickAddTransactionSheet(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(if (dateWeight > 0.05f) 10.dp else 0.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (!isNoteFocused) 10.dp else 0.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // 5. Дата
-            if (dateWeight > 0.05f) {
+            AnimatedVisibility(
+                visible = !isNoteFocused,
+                enter = expandHorizontally(animationSpec = tween(200)) +
+                        fadeIn(animationSpec = tween(200)),
+                exit = shrinkHorizontally(animationSpec = tween(200)) +
+                        fadeOut(animationSpec = tween(50))
+            ) {
                 DateTimePickerRow(
                     dateTime = selectedDateTime,
                     onClick = { showDatePicker = true },
                     modifier = Modifier
-                        .weight(dateWeight)
-                        .alpha((dateWeight - 0.2f).coerceIn(0f, 1f))
+                        .fillMaxWidth(0.5f)
                         .padding(top = 8.dp)
                 )
             }
@@ -356,9 +357,7 @@ fun QuickAddTransactionSheet(
                 keyboardActions = KeyboardActions(onDone = { clearFocus() }),
                 modifier = Modifier
                     .weight(1f)
-                    .onFocusChanged { focusState ->
-                        isNoteFocused = focusState.isFocused
-                    }
+                    .onFocusChanged { isNoteFocused = it.isFocused }
             )
         }
     }
