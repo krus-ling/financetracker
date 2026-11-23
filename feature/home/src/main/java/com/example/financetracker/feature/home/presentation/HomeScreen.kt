@@ -71,8 +71,8 @@ fun HomeScreen(
     HomeScreenContent(
         uiState = uiState,
         contentPadding = contentPadding,
-        onAddAccount = { name, initialBalance ->
-            viewModel.createAccount(name, initialBalance)
+        onAddAccount = { name, initialBalance, isDefault ->
+            viewModel.createAccount(name, initialBalance, isDefault = isDefault)
         },
         onAccountClick = onAccountClick,
         onClearError = { viewModel.clearError() },
@@ -87,7 +87,7 @@ fun HomeScreenContent(
     uiState: HomeUiState,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
-    onAddAccount: (name: String, initialBalance: Double) -> Unit = { _, _ -> },
+    onAddAccount: (name: String, initialBalance: Double, isDefault: Boolean) -> Unit = { _, _, _ -> },
     onAccountClick: (String) -> Unit = {},
     onCheckDeletedAccount: (suspend (String) -> Account?)? = null,
     onRestoreDeletedAccount: ((String) -> Unit)? = null,
@@ -384,8 +384,8 @@ fun HomeScreenContent(
                     showAddAccountSheet = false
                     addAccountStateHolder.removeState("add_account_sheet")
                 },
-                onAddClick = { name, initialBalance ->
-                    onAddAccount(name, initialBalance)
+                onAddClick = { name, initialBalance, isDefault ->
+                    onAddAccount(name, initialBalance, isDefault)
                     showAddAccountSheet = false
                     addAccountStateHolder.removeState("add_account_sheet")
                 },
@@ -418,7 +418,8 @@ private fun HomeScreenPreview() {
                         id = "1",
                         name = "Основная карта",
                         balance = 45200.0,
-                        currency = "RUB"
+                        currency = "RUB",
+                        isDefault = true
                     )
                 ),
                 categories = listOf(

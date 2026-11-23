@@ -2,9 +2,6 @@ package com.example.financetracker.feature.home.presentation.components.sheet
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -113,7 +110,8 @@ fun QuickAddTransactionSheet(
     var submitted by remember { mutableStateOf(false) }
 
     var selectedAccountId by remember(accounts, initialAccountId) {
-        mutableStateOf(initialAccountId ?: accounts.firstOrNull()?.id)
+        mutableStateOf(initialAccountId ?: accounts.find { it.isDefault }?.id ?:
+        accounts.firstOrNull()?.id)
     }
     var selectedTargetAccountId by remember { mutableStateOf<String?>(accounts.getOrNull(1)?.id) }
 
@@ -555,6 +553,7 @@ private fun AccountSelectorSection(
                         balance = account.balance,
                         accountIcon = Icons.Default.CreditCard,
                         isSelected = isSelected,
+                        isDefault = account.isDefault,
                         containerColor = if (isSelected) PrimaryTint else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                         contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface,
                         onClick = { onAccountSelected(account.id) }

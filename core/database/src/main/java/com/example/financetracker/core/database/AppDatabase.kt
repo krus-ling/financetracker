@@ -22,7 +22,7 @@ import com.example.financetracker.core.database.entity.TransactionEntity
         CategoryEntity::class,
         TransactionEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(DatabaseConverters::class)

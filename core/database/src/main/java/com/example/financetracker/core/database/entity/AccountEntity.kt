@@ -12,6 +12,7 @@ data class AccountEntity (
     val balance: Double,
     val currency: String = "RUB",
     val colorHex: String = "#0F5C4A",
+    val isDefault: Boolean = false,
     val isDeleted: Boolean = false,
     val deletedAt: Long? = null
 )

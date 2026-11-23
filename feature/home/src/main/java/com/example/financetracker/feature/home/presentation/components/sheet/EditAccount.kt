@@ -1,9 +1,14 @@
 package com.example.financetracker.feature.home.presentation.components.sheet
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -11,13 +16,17 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -52,13 +61,21 @@ fun EditAccountBottomSheet(
         getCurrencyDisplayTitle(account.currency)
     }
 
+    var isDefault by remember(account.id) { mutableStateOf(account.isDefault) }
+
     AppFormBottomSheet(
         title = "Редактирование счёта",
         primaryButtonText = "Сохранить",
         isPrimaryEnabled = isFormValid,
         onPrimaryClick = {
             if (validBalance != null && name.isNotBlank()) {
-                onSave(account.copy(name = name.trim(), type = type, balance = validBalance))
+                onSave(
+                    account.copy(name = name.trim(),
+                    type = type,
+                    balance = validBalance,
+                    isDefault = isDefault
+                    )
+                )
                 true
             } else {
                 false
@@ -126,6 +143,41 @@ fun EditAccountBottomSheet(
             onDone = clearFocus,
             modifier = Modifier.fillMaxWidth()
         )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { isDefault = !isDefault }
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "Счёт по умолчанию",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Будет автоматически выбираться для новых операций",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.width(16.dp))
+
+            Switch(
+                checked = isDefault,
+                onCheckedChange = { isDefault = it },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                    checkedTrackColor = MaterialTheme.colorScheme.primary,
+                )
+            )
+        }
     }
 }
 
@@ -146,7 +198,8 @@ private fun EditAccountBottomSheetPreview() {
                 name = "Основная карта",
                 balance = 125000.0,
                 currency = "RUB",
-                type = AccountType.CARD
+                type = AccountType.CARD,
+                isDefault = true
             ),
             onDismiss = {},
             onSave = {}

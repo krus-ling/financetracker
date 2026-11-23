@@ -58,6 +58,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.res.painterResource
+import com.example.financetracker.core.uikit.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -78,7 +80,6 @@ import com.example.financetracker.feature.home.presentation.components.HomeTrans
 import com.example.financetracker.feature.home.presentation.components.sheet.EditAccountBottomSheet
 import com.example.financetracker.feature.home.util.groupTransactionByDay
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withContext
 
@@ -93,7 +94,8 @@ fun AccountDetailScreen(
     categories: List<Category> = emptyList(),
     accounts: List<Account> = emptyList(),
     onActionClick: (TransactionType) -> Unit = {},
-    onGetAccountTransactions: (suspend (accountId: String, limit: Int) -> List<Transaction>)? = null
+    onGetAccountTransactions: (suspend (accountId: String, limit: Int) -> List<Transaction>)? = null,
+    onToggleDefaultAccount: ((accountId: String, isDefault: Boolean) -> Unit)? = null,
 ) {
     var editing by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -242,6 +244,30 @@ fun AccountDetailScreen(
                                         fontWeight = FontWeight.SemiBold,
                                         color = Color.White,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            } else {
+                                IconButton(
+                                    onClick = {
+                                        onToggleDefaultAccount?.invoke(account.id, !account.isDefault)
+                                    },
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(
+                                            if (account.isDefault) {
+                                                R.drawable.ic_star_filled
+                                            } else {
+                                                R.drawable.ic_star_outline
+                                            }
+                                        ),
+                                        contentDescription = if (account.isDefault) {
+                                            "Снять статус по умолчанию"
+                                        } else "Сделать счётом по умолчанию",
+                                        tint = if (account.isDefault) {
+                                            Color(0xFFFFD700)
+                                        } else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                                        modifier = Modifier.size(30.dp)
                                     )
                                 }
                             }
@@ -550,7 +576,8 @@ private fun AccountDetailScreenLightPreview() {
                 name = "Основная карта",
                 balance = 125000.0,
                 currency = "RUB",
-                type = AccountType.CARD
+                type = AccountType.CARD,
+                isDefault = true
             ),
             onBack = {},
             onSave = {}

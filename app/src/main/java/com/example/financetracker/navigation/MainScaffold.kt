@@ -73,8 +73,8 @@ fun MainScaffold(
                 dateTime = dateTime
             )
         },
-        onCreateAccount = { name, initialBalance ->
-            homeViewModel.createAccount(name, initialBalance)
+        onCreateAccount = { name, initialBalance, isDefault ->
+            homeViewModel.createAccount(name, initialBalance, isDefault = isDefault)
         },
         onUpdateAccount = { account ->
             homeViewModel.updateAccount(account)
@@ -106,6 +106,9 @@ fun MainScaffold(
         onLoadMore = {
             homeViewModel.loadMoreTransactions()
         },
+        onToggleDefaultAccount = { id, isDefault ->
+            homeViewModel.setDefaultAccount(id, isDefault)
+        },
         onClearError = {
             homeViewModel.clearError()
         }
@@ -117,7 +120,7 @@ fun MainScaffold(
 fun MainScaffoldContent(
     homeUiState: HomeUiState,
     onAddTransaction: (Double, String?, String, String?, TransactionType, String, Long) -> Unit,
-    onCreateAccount: (String, Double) -> Unit,
+    onCreateAccount: (String, Double, Boolean) -> Unit = { _, _, _ -> },
     onUpdateAccount: (Account) -> Unit,
     onSaveCategoryBudget: (categoryId: String, limit: Double?) -> Unit = { _, _ -> },
     onCreateCategory: (name: String, type: CategoryType, iconRes: String, limit: Double?) -> Unit = { _, _, _, _ -> },
@@ -128,6 +131,7 @@ fun MainScaffoldContent(
     onPurgeAccount: (String) -> Unit = {},
     onGetAccountTransactions: suspend (String, Int) -> List<Transaction> = { _, _ -> emptyList() },
     onLoadMore: () -> Unit = {},
+    onToggleDefaultAccount: (String, Boolean) -> Unit = { _, _ -> },
     onClearError: () -> Unit = {}
 ) {
     // Стек навигации Navigation 3 для детальных экранов (автоматически переживает поворот экрана и смерть процесса)
@@ -267,6 +271,7 @@ fun MainScaffoldContent(
                             onBack = navigateBackSafely,
                             onSave = onUpdateAccount,
                             onDelete = onDeleteAccount,
+                            onToggleDefaultAccount = onToggleDefaultAccount,
                             transactions = currentHomeUiState.recentTransaction,
                             categories = currentHomeUiState.categories,
                             accounts = currentHomeUiState.accounts + currentHomeUiState.deletedAccounts,
@@ -346,8 +351,8 @@ fun MainScaffoldContent(
                 // При закрытии возвращаем шторку операции назад
                 showQuickAdd = true
             },
-            onAddClick = { name, initialBalance ->
-                onCreateAccount(name, initialBalance)
+            onAddClick = { name, initialBalance, isDefault ->
+                onCreateAccount(name, initialBalance, isDefault)
                 showAddAccountSheet = false
                 // После успешного создания возвращаем шторку операции
                 showQuickAdd = true
@@ -383,11 +388,11 @@ private fun MainScaffoldLightPreview() {
                 isLoading = false,
                 totalBalance = 43965.72,
                 accounts = listOf(
-                    Account(id = "1", name = "Основная карта", balance = 43965.72, currency = "RUB")
+                    Account(id = "1", name = "Основная карта", balance = 43965.72, currency = "RUB", isDefault = true)
                 )
             ),
             onAddTransaction = { _, _, _, _, _, _, _ -> },
-            onCreateAccount = { _, _ -> },
+            onCreateAccount = { _, _, _ -> },
             onUpdateAccount = {}
         )
     }
@@ -401,11 +406,11 @@ private fun MainScaffoldDarkPreview() {
                 isLoading = false,
                 totalBalance = 43965.72,
                 accounts = listOf(
-                    Account(id = "1", name = "Основная карта", balance = 43965.72, currency = "RUB")
+                    Account(id = "1", name = "Основная карта", balance = 43965.72, currency = "RUB", isDefault = true)
                 )
             ),
             onAddTransaction = { _, _, _, _, _, _, _ -> },
-            onCreateAccount = { _, _ -> },
+            onCreateAccount = { _, _, _ -> },
             onUpdateAccount = {}
         )
     }

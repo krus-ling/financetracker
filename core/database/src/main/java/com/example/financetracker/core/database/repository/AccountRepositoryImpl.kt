@@ -32,6 +32,7 @@ class AccountRepositoryImpl(
                     balance = 0.0,
                     currency = "RUB",
                     colorHex = "#0F5C4A",
+                    isDefault = true,
                     isDeleted = false
                 )
             )
@@ -42,17 +43,31 @@ class AccountRepositoryImpl(
         return id.toLongOrNull()?.let { getAccountById(it) }
     }
 
-    override suspend fun createAccount(name: String, initialBalance: Double, currency: String): Long {
+    override suspend fun createAccount(
+        name: String,
+        initialBalance: Double,
+        currency: String,
+        isDefault: Boolean,
+    ): Long {
+        val isFirst = accountDao.getCount() == 0
+        val shouldBeDefault = isDefault || isFirst
+        if (shouldBeDefault) {
+            accountDao.clearDefaultAccount()
+        }
         return accountDao.insertAccount(
             AccountEntity(
                 name = name,
                 balance = initialBalance,
-                currency = currency
+                currency = currency,
+                isDefault = shouldBeDefault
             )
         )
     }
 
     override suspend fun updateAccount(account: Account) {
+        if (account.isDefault) {
+            accountDao.clearDefaultAccount()
+        }
         accountDao.updateAccount(account.toEntity())
     }
 
@@ -91,5 +106,14 @@ class AccountRepositoryImpl(
         val accountId = id.toLongOrNull() ?: return
         transactionDao.deleteTransactionsByAccountId(accountId)
         accountDao.deleteAccountById(accountId)
+    }
+
+    override suspend fun setDefaultAccount(id: String, isDefault: Boolean) {
+        val accountId = id.toLongOrNull() ?: return
+        if (isDefault) {
+            accountDao.setAccountAsDefault(accountId)
+        } else {
+            accountDao.updateDefaultStatus(accountId, false)
+        }
     }
 }

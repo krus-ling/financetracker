@@ -24,6 +24,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,7 +57,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AddAccountBottomSheet(
     onDismiss: () -> Unit,
-    onAddClick: (name: String, initialBalance: Double) -> Unit,
+    onAddClick: (name: String, initialBalance: Double, isDefault: Boolean) -> Unit,
     onCheckDeletedAccount: (suspend (String) -> Account?)? = null,
     onRestoreDeletedAccount: ((String) -> Unit)? = null,
     onPurgeDeletedAccount: ((String) -> Unit)? = null,
@@ -88,6 +90,8 @@ fun AddAccountBottomSheet(
     val nameError = submitted && !isNameValid
 
     val categoriesMap = remember(categories) { categories.associateBy { it.id } }
+
+    var isDefault by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(deletedAccountName) {
         val name = deletedAccountName
@@ -131,7 +135,7 @@ fun AddAccountBottomSheet(
                             isRestoreSelected = true
                         } else {
                             // Не нашли - создаем счет как обычно
-                            onAddClick(trimmedName, balance)
+                            onAddClick(trimmedName, balance, isDefault)
                             onDismiss()
                         }
                     }
@@ -144,7 +148,7 @@ fun AddAccountBottomSheet(
                 } else {
                     val balance = balanceText.toAmountOrNull() ?: 0.0
                     onPurgeDeletedAccount?.invoke(currentDeleted.id)
-                    onAddClick(accountName.trim(), balance)
+                    onAddClick(accountName.trim(), balance, isDefault)
                 }
                 deletedAccount = null
                 true // плавно закрываем шторку
@@ -155,6 +159,7 @@ fun AddAccountBottomSheet(
                 accountName = ""
                 balanceText = ""
                 submitted = false
+                isDefault = false
                 deletedAccount = null
                 deletedAccountName = null
                 deletedTransactions = emptyList()
@@ -302,6 +307,41 @@ fun AddAccountBottomSheet(
                     label = "Начальный баланс",
                     onDone = clearFocus
                 )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isDefault = !isDefault }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Счёт по умолчанию",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Будет автоматически выбираться для новых операций",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Spacer(Modifier.width(16.dp))
+
+                    Switch(
+                        checked = isDefault,
+                        onCheckedChange = { isDefault = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        )
+                    )
+                }
 
                 // Если перезаписываем старый счёт — предупреждаем пользователя
                 if (currentDeleted != null) {

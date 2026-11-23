@@ -147,13 +147,15 @@ class HomeViewModel(
     fun createAccount(
         name: String,
         initialBalance: Double,
-        currency: String = "RUB"
+        currency: String = "RUB",
+        isDefault: Boolean = false,
     ) {
         viewModelScope.launch(errorHandler) {
             accountRepository.createAccount(
                 name = name,
                 initialBalance = initialBalance,
-                currency = currency
+                currency = currency,
+                isDefault = isDefault,
             )
         }
     }
@@ -220,6 +222,12 @@ class HomeViewModel(
 
         _isLoadingMore.value = true
         _transactionLimit.update { currentLimit -> currentLimit + PAGE_SIZE }
+    }
+
+    fun setDefaultAccount(accountId: String, isDefault: Boolean = true) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.setDefaultAccount(accountId, isDefault)
+        }
     }
 
     suspend fun getAccountTransactions(accountId: String, limit: Int = 100): List<Transaction> {

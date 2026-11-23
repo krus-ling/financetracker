@@ -24,6 +24,7 @@ fun HomeAccountCard(
         title = account.name,
         balance = account.balance,
         accountIcon = Icons.Default.CreditCard,
+        isDefault = account.isDefault,
         modifier = modifier,
         onClick = onClick
     )

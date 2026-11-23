@@ -6,6 +6,7 @@ data class Account(
     val balance: Double,
     val currency: String = "RUB",
     val type: AccountType = AccountType.CARD,
+    val isDefault: Boolean = false,
     val isDeleted: Boolean = false,
     val deletedAt: Long? = null
 )
