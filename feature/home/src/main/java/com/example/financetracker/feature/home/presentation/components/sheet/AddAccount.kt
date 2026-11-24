@@ -70,7 +70,7 @@ import com.example.financetracker.feature.home.presentation.components.Transacti
 import com.example.financetracker.feature.home.util.groupTransactionByDay
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
 
 @ExperimentalMaterial3Api
 @Composable
@@ -97,12 +97,8 @@ fun AddAccountBottomSheet(
     var deletedAccountName by rememberSaveable { mutableStateOf<String?>(null) }
     var isViewingAllTransactions by rememberSaveable { mutableStateOf(initialIsViewingAllTransactions) }
 
-    BackHandler(enabled = isViewingAllTransactions) {
-        isViewingAllTransactions = false
-    }
-
     // Найденный в корзине счёт и выбранный режим
-    var deletedAccount by remember { mutableStateOf<Account?>(initialDeletedAccount) }
+    var deletedAccount by remember { mutableStateOf(initialDeletedAccount) }
     var deletedTransactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }
     var isRestoreSelected by rememberSaveable { mutableStateOf(true) }
 
@@ -227,29 +223,28 @@ fun AddAccountBottomSheet(
             }
         },
         onDismiss = {
-            if (isViewingAllTransactions) {
-                // Если мы в режиме «Все операции», системный «Назад»
-                // просто возвращает нас к выбору дежавю, не закрывая шторку:
-                isViewingAllTransactions = false
-            } else {
-                // Если мы на первом шаге — закрываем шторку и сбрасываем поля:
-                accountName = ""
-                balanceText = ""
-                submitted = false
-                isDefault = false
-                deletedAccount = null
-                deletedAccountName = null
-                deletedTransactions = emptyList()
-                isRestoreSelected = true
-                selectedType = AccountType.CARD
-                onDismiss()
-            }
+            accountName = ""
+            balanceText = ""
+            submitted = false
+            isDefault = false
+            deletedAccount = null
+            deletedAccountName = null
+            deletedTransactions = emptyList()
+            isRestoreSelected = true
+            selectedType = AccountType.CARD
+            isViewingAllTransactions = false
+            onDismiss()
         },
         onSheetOpened = {
             if (currentDeleted == null) nameFocusRequester.requestFocus()
         },
         modifier = if (currentDeleted != null) Modifier.fillMaxHeight() else Modifier,
     ) { clearFocus ->
+
+        // Перехватываем «Назад» внутри окна шторки, предотвращая стягивание Predictive Back
+        BackHandler(enabled = isViewingAllTransactions) {
+            isViewingAllTransactions = false
+        }
 
         if (isViewingAllTransactions && currentDeleted != null) {
 
@@ -258,7 +253,7 @@ fun AddAccountBottomSheet(
                 title = "Текущий баланс · ${currentDeleted.type.title}",
                 balance = currentDeleted.balance,
                 subtitle = currentDeleted.deletedAt?.let {
-                    val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+                    val dateFormat = SimpleDateFormat("dd.MM.yyyy", LocalLocale.current.platformLocale)
                     "Удалён: ${dateFormat.format(Date(it))}"
                 },
                 trailingContent = {
@@ -491,6 +486,10 @@ fun AddAccountBottomSheet(
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                                 checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedBorderColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                uncheckedBorderColor = MaterialTheme.colorScheme.outline
                             )
                         )
                     }
