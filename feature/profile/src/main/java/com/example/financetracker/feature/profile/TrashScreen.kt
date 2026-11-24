@@ -57,12 +57,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.Transaction
+import com.example.financetracker.core.uikit.components.account.getIconRes
 import com.example.financetracker.core.uikit.components.button.AppPrimaryButton
 import com.example.financetracker.core.uikit.components.button.AppSecondaryButton
 import com.example.financetracker.core.uikit.components.text.AmountText
@@ -216,7 +218,7 @@ fun TrashScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.CreditCard,
+                                        painter = painterResource(account.type.getIconRes()),
                                         contentDescription = null,
                                         tint = Primary,
                                         modifier = Modifier.size(22.dp)
@@ -234,13 +236,16 @@ fun TrashScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     val dateStr = account.deletedAt?.let { dateFormat.format(Date(it)) }
-                                    if (dateStr != null) {
-                                        Text(
-                                            text = "Удалён: $dateStr",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                    val subtitleText = if (dateStr != null) {
+                                        "${account.type.title} · Удалён: $dateStr"
+                                    } else {
+                                        account.type.title
                                     }
+                                    Text(
+                                        text = subtitleText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
 
                                 AmountText(

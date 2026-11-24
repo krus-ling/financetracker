@@ -64,6 +64,7 @@ import com.example.financetracker.core.model.AccountType
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountBalanceCard
+import com.example.financetracker.core.uikit.components.account.AccountTypeSelector
 import com.example.financetracker.core.uikit.components.account.DeletedAccountBanner
 import com.example.financetracker.feature.home.presentation.components.TransactionDayGroupView
 import com.example.financetracker.feature.home.util.groupTransactionByDay
@@ -75,7 +76,7 @@ import java.util.Locale
 @Composable
 fun AddAccountBottomSheet(
     onDismiss: () -> Unit,
-    onAddClick: (name: String, initialBalance: Double, isDefault: Boolean) -> Unit,
+    onAddClick: (name: String, initialBalance: Double, isDefault: Boolean, type: AccountType) -> Unit,
     onCheckDeletedAccount: (suspend (String) -> Account?)? = null,
     onRestoreDeletedAccount: ((String) -> Unit)? = null,
     onPurgeDeletedAccount: ((String) -> Unit)? = null,
@@ -115,6 +116,8 @@ fun AddAccountBottomSheet(
     val categoriesMap = remember(categories) { categories.associateBy { it.id } }
 
     var isDefault by rememberSaveable { mutableStateOf(false) }
+
+    var selectedType by rememberSaveable { mutableStateOf(AccountType.CARD) }
 
     LaunchedEffect(deletedAccountName) {
         val name = deletedAccountName
@@ -194,7 +197,12 @@ fun AddAccountBottomSheet(
                             isRestoreSelected = true
                         } else {
                             // Не нашли - создаем счет как обычно
-                            onAddClick(trimmedName, balance, isDefault)
+                            onAddClick(
+                                trimmedName,
+                                balance,
+                                isDefault,
+                                selectedType
+                            )
                             onDismiss()
                         }
                     }
@@ -207,7 +215,12 @@ fun AddAccountBottomSheet(
                 } else {
                     val balance = balanceText.toAmountOrNull() ?: 0.0
                     onPurgeDeletedAccount?.invoke(currentDeleted.id)
-                    onAddClick(accountName.trim(), balance, isDefault)
+                    onAddClick(
+                        accountName.trim(),
+                        balance,
+                        isDefault,
+                        selectedType
+                    )
                 }
                 deletedAccount = null
                 true // плавно закрываем шторку
@@ -228,6 +241,7 @@ fun AddAccountBottomSheet(
                 deletedAccountName = null
                 deletedTransactions = emptyList()
                 isRestoreSelected = true
+                selectedType = AccountType.CARD
                 onDismiss()
             }
         },
@@ -434,6 +448,11 @@ fun AddAccountBottomSheet(
                         focusRequester = nameFocusRequester
                     )
 
+                    AccountTypeSelector(
+                        selectedType = selectedType,
+                        onTypeSelected = { selectedType = it }
+                    )
+
                     AmountInputField(
                         value = balanceText,
                         onValueChange = { balanceText = it },
@@ -554,7 +573,7 @@ private fun AddAccountNewPreview() {
     FinancetrackerTheme(darkTheme = false) {
         AddAccountBottomSheet(
             onDismiss = {},
-            onAddClick = { _, _, _ -> }
+            onAddClick = { _, _, _, _ -> }
         )
     }
 }
@@ -567,7 +586,7 @@ private fun AddAccountDejaVuPreview() {
     FinancetrackerTheme(darkTheme = false) {
         AddAccountBottomSheet(
             onDismiss = {},
-            onAddClick = { _, _, _ -> },
+            onAddClick = { _, _, _, _ -> },
             initialDeletedAccount = previewDeletedAccount,
             categories = previewCategories,
             onGetAccountTransactions = { previewTransactions }
@@ -583,7 +602,7 @@ private fun AddAccountAllTransactionsPreview() {
     FinancetrackerTheme(darkTheme = false) {
         AddAccountBottomSheet(
             onDismiss = {},
-            onAddClick = { _, _, _ -> },
+            onAddClick = { _, _, _, _ -> },
             initialDeletedAccount = previewDeletedAccount,
             initialIsViewingAllTransactions = true,
             categories = previewCategories,
@@ -600,7 +619,7 @@ private fun AddAccountAllTransactionsDarkPreview() {
     FinancetrackerTheme(darkTheme = true) {
         AddAccountBottomSheet(
             onDismiss = {},
-            onAddClick = { _, _, _ -> },
+            onAddClick = { _, _, _, _ -> },
             initialDeletedAccount = previewDeletedAccount,
             initialIsViewingAllTransactions = true,
             categories = previewCategories,

@@ -62,6 +62,7 @@ import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountCardItem
 import com.example.financetracker.core.uikit.components.account.AddAccountCardItem
+import com.example.financetracker.core.uikit.components.account.getIconRes
 import com.example.financetracker.core.uikit.components.button.AppMiniActionButton
 import com.example.financetracker.core.uikit.components.category.CategoryIconChip
 import com.example.financetracker.core.uikit.components.input.AmountInputField
@@ -559,7 +560,7 @@ private fun AccountSelectorSection(
                     AccountCardItem(
                         title = account.name,
                         balance = account.balance,
-                        accountIcon = Icons.Default.CreditCard,
+                        accountIcon = account.type.getIconRes(),
                         isSelected = isSelected,
                         isDefault = account.isDefault,
                         containerColor = if (isSelected) PrimaryTint else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),

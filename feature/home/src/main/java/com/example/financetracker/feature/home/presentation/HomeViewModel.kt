@@ -6,6 +6,7 @@ import com.example.financetracker.core.model.repository.AccountRepository
 import com.example.financetracker.core.model.repository.CategoryRepository
 import com.example.financetracker.core.model.repository.TransactionRepository
 import com.example.financetracker.core.model.Account
+import com.example.financetracker.core.model.AccountType
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.MonthlySummary
 import com.example.financetracker.core.model.Transaction
@@ -235,6 +236,7 @@ class HomeViewModel(
         initialBalance: Double,
         currency: String = "RUB",
         isDefault: Boolean = false,
+        type: AccountType = AccountType.CARD,
     ) {
         viewModelScope.launch(errorHandler) {
             accountRepository.createAccount(
@@ -242,6 +244,7 @@ class HomeViewModel(
                 initialBalance = initialBalance,
                 currency = currency,
                 isDefault = isDefault,
+                type = type,
             )
         }
     }

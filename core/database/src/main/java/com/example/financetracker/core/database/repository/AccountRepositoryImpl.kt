@@ -6,6 +6,7 @@ import com.example.financetracker.core.database.entity.AccountEntity
 import com.example.financetracker.core.database.mapper.toDomain
 import com.example.financetracker.core.database.mapper.toEntity
 import com.example.financetracker.core.model.Account
+import com.example.financetracker.core.model.AccountType
 import com.example.financetracker.core.model.repository.AccountRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -32,6 +33,7 @@ class AccountRepositoryImpl(
                     balance = 0.0,
                     currency = "RUB",
                     colorHex = "#0F5C4A",
+                    type = AccountType.CARD,
                     isDefault = true,
                     isDeleted = false
                 )
@@ -48,6 +50,7 @@ class AccountRepositoryImpl(
         initialBalance: Double,
         currency: String,
         isDefault: Boolean,
+        type: AccountType,
     ): Long {
         val isFirst = accountDao.getCount() == 0
         val shouldBeDefault = isDefault || isFirst
@@ -59,6 +62,7 @@ class AccountRepositoryImpl(
                 name = name,
                 balance = initialBalance,
                 currency = currency,
+                type = type,
                 isDefault = shouldBeDefault
             )
         )

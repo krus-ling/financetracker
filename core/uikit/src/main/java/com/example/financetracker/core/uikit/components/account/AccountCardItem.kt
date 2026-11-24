@@ -1,5 +1,6 @@
 package com.example.financetracker.core.uikit.components.account
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,8 +46,8 @@ import com.example.financetracker.core.uikit.util.AmountFormatter
 fun AccountCardItem(
     title: String, // Текстовое название счёта
     balance: Double, // Числовое значение баланса
-    accountIcon: ImageVector, // Иконка, которая будет отображаться в левом верхнем углу карточки
     modifier: Modifier = Modifier.width(160.dp),
+    @DrawableRes accountIcon: Int = R.drawable.ic_account_card,
     isSelected: Boolean = false,
     containerColor: Color = MaterialTheme.colorScheme.surface, // Цвет фона самой карточки
     contentColor: Color? = null, // параметр для цвета текста
@@ -94,7 +95,7 @@ fun AccountCardItem(
             ) {
                 // Иконка счета
                 AppCircleIcon(
-                    icon = accountIcon,
+                    iconRes = accountIcon,
                     backgroundColor = iconBgColor,
                     iconTint = Primary, // цвет иконки
                     size = 32.dp
@@ -145,7 +146,7 @@ fun AccountCardItemLightPreview() {
         AccountCardItem(
             title = "Основная карта",
             balance = -86780.0,
-            accountIcon = Icons.Default.CreditCard,
+            accountIcon = R.drawable.ic_account_card,
             isDefault = true,
             onClick = {}
         )
@@ -159,7 +160,7 @@ fun AccountCardItemDarkPreview() {
         AccountCardItem(
             title = "Основная карта",
             balance = 86780.05,
-            accountIcon = Icons.Default.CreditCard,
+            accountIcon = R.drawable.ic_account_savings,
             onClick = {}
         )
     }

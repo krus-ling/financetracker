@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.execSQL
@@ -22,7 +23,7 @@ import com.example.financetracker.core.database.entity.TransactionEntity
         CategoryEntity::class,
         TransactionEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(DatabaseConverters::class)
@@ -33,6 +34,17 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         private const val DATABASE_NAME = "finance_tracker.db"
+
+        /**
+         * Миграция с версии 7 на версию 8:
+         * Добавляет колонку `type` в таблицу счетов `accounts` со значением по умолчанию 'CARD'.
+         * Все существующие счета и операции сохраняются.
+         */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(connection: SQLiteConnection) {
+                connection.execSQL("ALTER TABLE accounts ADD COLUMN type TEXT NOT NULL DEFAULT 'CARD';")
+            }
+        }
 
         fun buildDatabase(context: Context): AppDatabase {
 
@@ -50,6 +62,7 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 DATABASE_NAME
             )
+                .addMigrations(MIGRATION_7_8)
                 .fallbackToDestructiveMigration(true)
                 .addCallback(callback)
                 .build()

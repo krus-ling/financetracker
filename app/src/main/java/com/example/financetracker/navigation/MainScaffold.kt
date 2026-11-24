@@ -35,6 +35,7 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.example.financetracker.core.model.Account
+import com.example.financetracker.core.model.AccountType
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.MonthlySummary
 import com.example.financetracker.core.model.Transaction
@@ -76,8 +77,8 @@ fun MainScaffold(
                 dateTime = dateTime
             )
         },
-        onCreateAccount = { name, initialBalance, isDefault ->
-            homeViewModel.createAccount(name, initialBalance, isDefault = isDefault)
+        onCreateAccount = { name, initialBalance, isDefault, type ->
+            homeViewModel.createAccount(name, initialBalance, isDefault = isDefault, type = type)
         },
         onUpdateAccount = { account ->
             homeViewModel.updateAccount(account)
@@ -126,7 +127,7 @@ fun MainScaffold(
 fun MainScaffoldContent(
     homeUiState: HomeUiState,
     onAddTransaction: (Double, String?, String, String?, TransactionType, String, Long) -> Unit,
-    onCreateAccount: (String, Double, Boolean) -> Unit = { _, _, _ -> },
+    onCreateAccount: (String, Double, Boolean, AccountType) -> Unit = { _, _, _, _ -> },
     onUpdateAccount: (Account) -> Unit,
     onSaveCategoryBudget: (categoryId: String, limit: Double?) -> Unit = { _, _ -> },
     onCreateCategory: (name: String, type: CategoryType, iconRes: String, limit: Double?) -> Unit = { _, _, _, _ -> },
@@ -354,8 +355,8 @@ fun MainScaffoldContent(
                 // При закрытии возвращаем шторку операции назад
                 showQuickAdd = true
             },
-            onAddClick = { name, initialBalance, isDefault ->
-                onCreateAccount(name, initialBalance, isDefault)
+            onAddClick = { name, initialBalance, isDefault, type ->
+                onCreateAccount(name, initialBalance, isDefault, type)
                 showAddAccountSheet = false
                 // После успешного создания возвращаем шторку операции
                 showQuickAdd = true
@@ -389,7 +390,7 @@ private fun MainScaffoldLightPreview() {
                 )
             ),
             onAddTransaction = { _, _, _, _, _, _, _ -> },
-            onCreateAccount = { _, _, _ -> },
+            onCreateAccount = { _, _, _, _ -> },
             onUpdateAccount = {}
         )
     }
@@ -407,7 +408,7 @@ private fun MainScaffoldDarkPreview() {
                 )
             ),
             onAddTransaction = { _, _, _, _, _, _, _ -> },
-            onCreateAccount = { _, _, _ -> },
+            onCreateAccount = { _, _, _, _ -> },
             onUpdateAccount = {}
         )
     }

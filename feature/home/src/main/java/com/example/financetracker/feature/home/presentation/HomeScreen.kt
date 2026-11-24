@@ -46,6 +46,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.financetracker.core.model.Account
+import com.example.financetracker.core.model.AccountType
 import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.Transaction
@@ -73,8 +74,8 @@ fun HomeScreen(
     HomeScreenContent(
         uiState = uiState,
         contentPadding = contentPadding,
-        onAddAccount = { name, initialBalance, isDefault ->
-            viewModel.createAccount(name, initialBalance, isDefault = isDefault)
+        onAddAccount = { name, initialBalance, isDefault, type ->
+            viewModel.createAccount(name, initialBalance, isDefault = isDefault, type = type)
         },
         onAccountClick = onAccountClick,
         onClearError = { viewModel.clearError() },
@@ -89,7 +90,7 @@ fun HomeScreenContent(
     uiState: HomeUiState,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
-    onAddAccount: (name: String, initialBalance: Double, isDefault: Boolean) -> Unit = { _, _, _ -> },
+    onAddAccount: (name: String, initialBalance: Double, isDefault: Boolean, type: AccountType) -> Unit = { _, _, _, _ -> },
     onAccountClick: (String) -> Unit = {},
     onCheckDeletedAccount: (suspend (String) -> Account?)? = null,
     onRestoreDeletedAccount: ((String) -> Unit)? = null,
@@ -360,8 +361,13 @@ fun HomeScreenContent(
                     showAddAccountSheet = false
                     addAccountStateHolder.removeState("add_account_sheet")
                 },
-                onAddClick = { name, initialBalance, isDefault ->
-                    onAddAccount(name, initialBalance, isDefault)
+                onAddClick = { name, initialBalance, isDefault, type ->
+                    onAddAccount(
+                        name,
+                        initialBalance,
+                        isDefault,
+                        type
+                    )
                     showAddAccountSheet = false
                     addAccountStateHolder.removeState("add_account_sheet")
                 },

@@ -1,6 +1,7 @@
 package com.example.financetracker.core.model.repository
 
 import com.example.financetracker.core.model.Account
+import com.example.financetracker.core.model.AccountType
 import kotlinx.coroutines.flow.Flow
 
 interface AccountRepository {
@@ -15,6 +16,7 @@ interface AccountRepository {
         initialBalance: Double,
         currency: String = "RUB",
         isDefault: Boolean = false,
+        type: AccountType = AccountType.CARD,
     ): Long
     suspend fun updateAccount(account: Account)
     suspend fun deleteAccount(id: Long)

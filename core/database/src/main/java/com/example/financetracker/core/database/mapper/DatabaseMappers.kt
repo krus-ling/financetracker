@@ -13,6 +13,7 @@ fun AccountEntity.toDomain(): Account {
         name = name,
         balance = balance,
         currency = currency,
+        type = type,
         isDefault = isDefault,
         isDeleted = isDeleted,
         deletedAt = deletedAt
@@ -25,6 +26,7 @@ fun Account.toEntity(): AccountEntity {
         name = name,
         balance = balance,
         currency = currency,
+        type = type,
         isDefault = isDefault,
         isDeleted = isDeleted,
         deletedAt = deletedAt

@@ -32,7 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.AccountType
-import com.example.financetracker.core.uikit.components.account.AccountTypeChip
+import com.example.financetracker.core.uikit.components.account.AccountTypeSelector
 import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.input.AppTextField
 import com.example.financetracker.core.uikit.components.sheet.AppFormBottomSheet
@@ -99,25 +99,10 @@ fun EditAccountBottomSheet(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
         )
 
-        Text(
-            text = "Тип",
-            style = MaterialTheme.typography.titleMedium
+        AccountTypeSelector(
+            selectedType = type,
+            onTypeSelected = { type = it }
         )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            AccountType.entries.forEach { accountType ->
-                AccountTypeChip(
-                    type = accountType,
-                    selected = type == accountType,
-                    onClick = { type = accountType }
-                )
-            }
-        }
 
         // Информационное поле валюты
         AppTextField(
