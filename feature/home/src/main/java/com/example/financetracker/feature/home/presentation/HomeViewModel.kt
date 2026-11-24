@@ -9,9 +9,12 @@ import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.MonthlySummary
 import com.example.financetracker.core.model.Transaction
+import com.example.financetracker.core.model.TransactionDayGroup
 import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.feature.home.util.DateTimeUtils
 import com.example.financetracker.feature.home.util.groupTransactionByDay
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,74 +29,69 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.ZoneId
+import kotlinx.coroutines.withContext
 
+/**
+ * Главная ViewModel приложения.
+ *
+ * Отвечает за:
+ * - Управление реактивным состоянием главного экрана [HomeUiState] по архитектуре UDF;
+ * - Постраничную подгрузку истории операций с фоновой группировкой по дням;
+ * - Реактивный сбор доходов/расходов за текущий месяц;
+ * - Операции со счетами, категориями и транзакциями.
+ */
 class HomeViewModel(
     private val accountRepository: AccountRepository,
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository
 ) : ViewModel() {
 
-    // Ошибки одиночных асинхронных операций
+    // =========================================================================
+    // СТЕЙТЫ И ОБРАБОТКА ИСКЛЮЧЕНИЙ
+    // =========================================================================
+
+    /** Состояние ошибок одиночных асинхронных операций */
     private val _errorState = MutableStateFlow<String?>(null)
 
-    // Единый перехватчик исключений для coroutines без runCatching
+    /** Текущий лимит загрузки истории транзакций */
+    private val _transactionLimit = MutableStateFlow(PAGE_SIZE)
+
+    /** Флаг активного процесса дозагрузки страницы истории */
+    private val _isLoadingMore = MutableStateFlow(false)
+
+    /** Единый перехватчик исключений корутин */
     private val errorHandler = CoroutineExceptionHandler { _, throwable ->
         _errorState.update { throwable.localizedMessage ?: "Произошла неизвестная ошибка" }
     }
 
+    /** Внутренняя модель состояния пагинации */
     private data class PagingData(
         val transactions: List<Transaction> = emptyList(),
+        val groupedDays: List<TransactionDayGroup> = emptyList(),
         val hasMore: Boolean = true,
         val isLoadingMore: Boolean = false
     )
 
-    // Стейты управления лимитом
-    private val _transactionLimit = MutableStateFlow(PAGE_SIZE)
-    private val _isLoadingMore = MutableStateFlow(false)
+    // =========================================================================
+    // РЕАКТИВНЫЕ ПАЙПЛАЙНЫ ДАННЫХ (UPSTREAM FLOWS)
+    // =========================================================================
 
-    // Временные границы текущего календарного месяца (с 1-го числа 00:00:00 до 1-го числа следующего)
-    private val currentMonthRange: Pair<Long, Long>
-        get() {
-            val zoneId = ZoneId.systemDefault()
-            val now = LocalDate.now(zoneId)
-            val startOfMonth = now
-                .withDayOfMonth(1)
-                .atStartOfDay(zoneId)
-                .toInstant()
-                .toEpochMilli()
-            val startOfNextMonth = now
-                .plusMonths(1)
-                .withDayOfMonth(1)
-                .atStartOfDay(zoneId)
-                .toInstant()
-                .toEpochMilli()
-            return Pair(startOfMonth, startOfNextMonth)
-        }
-
-    // Название текущего месяца на русском в винительном падеже («за ноябрь», «за май» и т.д.)
-    private val currentMonthName: String
-        get() {
-            val months = listOf(
-                "январь", "февраль", "март", "апрель", "май", "июнь",
-                "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"
-            )
-            val index = LocalDate.now().monthValue - 1
-            return months.getOrElse(index) { "месяц" }
-        }
-
-    // Поток активных и удалённых счетов
+    /** Поток активных и удалённых счетов */
     private val accountFlow = combine(
         accountRepository.getAllAccounts().catch { emit(emptyList()) },
         accountRepository.getDeletedAccounts().catch { emit(emptyList()) }
     ) { active, deleted -> Pair(active, deleted) }
 
-    // Реактивный поток доходов и расходов за текущий месяц
-    private val monthlySummaryFlow: Flow<MonthlySummary> =
-        transactionRepository.getMonthlySummary(currentMonthRange.first, currentMonthRange.second)
+    /** Реактивная сводка доходов и расходов за текущий календарный месяц */
+    private val monthlySummaryFlow: Flow<MonthlySummary> = run {
+        val (start, end) = DateTimeUtils.getCurrentMonthRange()
+        transactionRepository.getMonthlySummary(start, end)
             .catch { emit(MonthlySummary()) }
+    }
 
+    /**
+     * Постраничный поток операций с оптимизированной фоновой группировкой по дням на [kotlinx.coroutines.Dispatchers.Default].
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val transactionPagingFlow = combine(
         _transactionLimit.flatMapLatest { limit ->
@@ -102,19 +100,27 @@ class HomeViewModel(
                 .onEach { _isLoadingMore.value = false }
                 .map { list ->
                     val hasMore = list.size >= limit
-                    Pair(list, hasMore)
+                    val grouped = withContext(Dispatchers.Default) {
+                        groupTransactionByDay(list)
+                    }
+                    Triple(list, grouped, hasMore)
                 }
         },
         _isLoadingMore
-    ) { (list, hasMore), isLoadingMore ->
+    ) { (list, grouped, hasMore), isLoadingMore ->
         PagingData(
             transactions = list,
+            groupedDays = grouped,
             hasMore = hasMore,
             isLoadingMore = isLoadingMore
         )
     }
 
-    // Реактивное состояние экрана
+    // =========================================================================
+    // ЕДИНЫЙ ПУБЛИЧНЫЙ UI-СТАТУС (UDF)
+    // =========================================================================
+
+    /** Реактивное состояние экрана */
     val uiState: StateFlow<HomeUiState> = combine(
         accountFlow,
         transactionPagingFlow,
@@ -128,12 +134,12 @@ class HomeViewModel(
             accounts = accounts,
             categories = categories,
             recentTransaction = paging.transactions,
-            groupedDays = groupTransactionByDay(paging.transactions),
+            groupedDays = paging.groupedDays,
             deletedAccounts = deletedAccounts,
             totalBalance = totalBalance,
             monthlyIncome = summary.income,
             monthlyExpense = summary.expense,
-            currentMonthName = currentMonthName,
+            currentMonthName = DateTimeUtils.getCurrentMonthName(),
             errorMessage = error,
             isLoadingMore = paging.isLoadingMore,
             hasMoreTransactions = paging.hasMore
@@ -144,6 +150,10 @@ class HomeViewModel(
         initialValue = HomeUiState(isLoading = true)
     )
 
+    // =========================================================================
+    // ИНИЦИАЛИЗАЦИЯ
+    // =========================================================================
+
     init {
         viewModelScope.launch(errorHandler) {
             accountRepository.checkAndSeedDefaultAccount()
@@ -151,10 +161,13 @@ class HomeViewModel(
         }
     }
 
-    fun clearError() {
-        _errorState.value = null
-    }
+    // =========================================================================
+    // 1. ОПЕРАЦИИ И ИСТОРИЯ (TRANSACTIONS & PAGINATION)
+    // =========================================================================
 
+    /**
+     * Добавляет новую финансовую операцию (Расход, Доход или Перевод).
+     */
     fun addTransaction(
         amount: Double,
         categoryId: String?,
@@ -192,6 +205,31 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Запрашивает дозагрузку следующей порции истории транзакций.
+     */
+    fun loadMoreTransactions() {
+        val state = uiState.value
+        if (state.isLoading || state.isLoadingMore || !state.hasMoreTransactions) return
+
+        _isLoadingMore.value = true
+        _transactionLimit.update { currentLimit -> currentLimit + PAGE_SIZE }
+    }
+
+    /**
+     * Возвращает список операций для конкретного счёта с лимитом.
+     */
+    suspend fun getAccountTransactions(accountId: String, limit: Int = 100): List<Transaction> {
+        return transactionRepository.getTransactionsByAccountId(accountId, limit)
+    }
+
+    // =========================================================================
+    // 2. УПРАВЛЕНИЕ СЧЕТАМИ (ACCOUNTS MANAGEMENT)
+    // =========================================================================
+
+    /**
+     * Создаёт новый счёт.
+     */
     fun createAccount(
         name: String,
         initialBalance: Double,
@@ -208,12 +246,73 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Обновляет параметры существующего счёта.
+     */
     fun updateAccount(account: Account) {
         viewModelScope.launch(errorHandler) {
             accountRepository.updateAccount(account)
         }
     }
 
+    /**
+     * Мягко удаляет счёт в корзину (с опциональным удалением связанных операций).
+     */
+    fun deleteAccount(accountId: String, deleteTransactions: Boolean = false) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.deleteAccount(accountId, deleteTransactions)
+        }
+    }
+
+    /**
+     * Находит удалённый счёт по имени (для проверки на режим дежавю).
+     */
+    suspend fun findDeletedAccountByName(name: String): Account? {
+        return accountRepository.findDeletedAccountByName(name)
+    }
+
+    /**
+     * Восстанавливает счёт из корзины.
+     */
+    fun restoreAccount(accountId: String) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.restoreAccount(accountId)
+        }
+    }
+
+    /**
+     * Навсегда удаляет счёт из корзины (очистка).
+     */
+    fun purgeAccount(accountId: String) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.purgeAccount(accountId)
+        }
+    }
+
+    /**
+     * Назначает счёт счётом по умолчанию.
+     */
+    fun setDefaultAccount(accountId: String, isDefault: Boolean = true) {
+        viewModelScope.launch(errorHandler) {
+            accountRepository.setDefaultAccount(accountId, isDefault)
+        }
+    }
+
+    /**
+     * Возвращает реактивный поток сводки расходов и доходов для конкретного счёта за текущий месяц.
+     */
+    fun getAccountMonthlySummary(accountId: String): Flow<MonthlySummary> {
+        val (start, end) = DateTimeUtils.getCurrentMonthRange()
+        return transactionRepository.getMonthlySummaryByAccountId(accountId, start, end)
+    }
+
+    // =========================================================================
+    // 3. УПРАВЛЕНИЕ КАТЕГОРИЯМИ (CATEGORIES MANAGEMENT)
+    // =========================================================================
+
+    /**
+     * Создаёт новую категорию.
+     */
     fun createCategory(
         name: String,
         type: CategoryType,
@@ -230,64 +329,41 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Обновляет бюджетный лимит категории.
+     */
     fun updateCategoryBudget(categoryId: String, budgetLimit: Double?) {
         viewModelScope.launch(errorHandler) {
             categoryRepository.updateBudgetLimit(categoryId, budgetLimit)
         }
     }
 
+    /**
+     * Удаляет категорию.
+     */
     fun deleteCategory(categoryId: String) {
         viewModelScope.launch(errorHandler) {
             categoryRepository.deleteCategory(categoryId)
         }
     }
 
-    fun deleteAccount(accountId: String, deleteTransactions: Boolean = false) {
-        viewModelScope.launch(errorHandler) {
-            accountRepository.deleteAccount(accountId, deleteTransactions)
-        }
+    // =========================================================================
+    // 4. ОБРАБОТКА ОШИБОК (ERROR HANDLING)
+    // =========================================================================
+
+    /**
+     * Сбрасывает текущую ошибку после её отображения пользователю (например, в Snackbar).
+     */
+    fun clearError() {
+        _errorState.value = null
     }
 
-    suspend fun findDeletedAccountByName(name: String): Account? {
-        return accountRepository.findDeletedAccountByName(name)
-    }
-
-    fun restoreAccount(accountId: String) {
-        viewModelScope.launch(errorHandler) {
-            accountRepository.restoreAccount(accountId)
-        }
-    }
-
-    fun purgeAccount(accountId: String) {
-        viewModelScope.launch(errorHandler) {
-            accountRepository.purgeAccount(accountId)
-        }
-    }
-
-    fun loadMoreTransactions() {
-        val state = uiState.value
-        if (state.isLoading || state.isLoadingMore || !state.hasMoreTransactions) return
-
-        _isLoadingMore.value = true
-        _transactionLimit.update { currentLimit -> currentLimit + PAGE_SIZE }
-    }
-
-    fun setDefaultAccount(accountId: String, isDefault: Boolean = true) {
-        viewModelScope.launch(errorHandler) {
-            accountRepository.setDefaultAccount(accountId, isDefault)
-        }
-    }
-
-    fun getAccountMonthlySummary(accountId: String): Flow<MonthlySummary> {
-        val (start, end) = currentMonthRange
-        return transactionRepository.getMonthlySummaryByAccountId(accountId, start, end)
-    }
-
-    suspend fun getAccountTransactions(accountId: String, limit: Int = 100): List<Transaction> {
-        return transactionRepository.getTransactionsByAccountId(accountId, limit)
-    }
+    // =========================================================================
+    // КОНСТАНТЫ
+    // =========================================================================
 
     companion object {
+        /** Размер пачки загрузки операций при постраничной пагинации */
         private const val PAGE_SIZE = 30
     }
 }
