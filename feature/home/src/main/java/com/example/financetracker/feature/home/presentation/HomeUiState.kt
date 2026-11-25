@@ -19,6 +19,10 @@ data class HomeUiState(
     val currentMonthName: String = "",
     val deletedAccounts: List<Account> = emptyList(),
     val errorMessage: String? = null,
-    val isLoadingMore: Boolean = false, // Дозагрузка истории
-    val hasMoreTransactions: Boolean = true // Есть ли еще что подгружать
+    // Дозагрузка истории
+    val isLoadingMore: Boolean = false,
+    // Есть ли еще что подгружать
+    val hasMoreTransactions: Boolean = true,
+    val learnedCategoryKeywords: Map<String, String> = emptyMap(),
+    val learnedAccountAliases: Map<String, String> = emptyMap(),
 )

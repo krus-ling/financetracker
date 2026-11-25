@@ -41,6 +41,8 @@ object FastTransactionParser {
         categories: List<Category>,
         accounts: List<Account>,
         defaultAccountId: String? = accounts.firstOrNull()?.id,
+        learnedCategoryKeywords: Map<String, String> = emptyMap(),
+        learnedAccountAliases: Map<String, String> = emptyMap(),
         textEmbedder: TextEmbedder = defaultEmbedder
     ): ParsedTransactionDraft {
 
@@ -76,6 +78,7 @@ object FastTransactionParser {
             accounts = accounts,
             defaultAccountId = defaultAccountId,
             textEmbedder = textEmbedder,
+            learnedAliases = learnedAccountAliases,
             excludedIndices = consumedIndices
         )
         consumedIndices.addAll(matchedAccount.consumedIndices)
@@ -86,6 +89,7 @@ object FastTransactionParser {
             categories = categories,
             operationType = targetType,
             textEmbedder = textEmbedder,
+            learnedKeywords = learnedCategoryKeywords,
             excludedIndices = consumedIndices
         )
 
@@ -96,6 +100,7 @@ object FastTransactionParser {
                 categories = categories,
                 operationType = TransactionType.INCOME,
                 textEmbedder = textEmbedder,
+                learnedKeywords = learnedCategoryKeywords,
                 excludedIndices = consumedIndices
             )
             if (incomeMatch.category != null) {

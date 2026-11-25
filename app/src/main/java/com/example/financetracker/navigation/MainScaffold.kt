@@ -116,6 +116,9 @@ fun MainScaffold(
         onToggleDefaultAccount = { id, isDefault ->
             homeViewModel.setDefaultAccount(id, isDefault)
         },
+        onLearnFromFastInput = { rawText, categoryId, accountId ->
+            homeViewModel.learnFromFastInput(rawText, categoryId, accountId)
+        },
         onClearError = {
             homeViewModel.clearError()
         }
@@ -140,6 +143,7 @@ fun MainScaffoldContent(
     onGetAccountMonthlySummary: (String) -> Flow<MonthlySummary> = { flowOf(MonthlySummary()) },
     onLoadMore: () -> Unit = {},
     onToggleDefaultAccount: (String, Boolean) -> Unit = { _, _ -> },
+    onLearnFromFastInput: (String, String?, String?) -> Unit = { _, _, _ -> },
     onClearError: () -> Unit = {}
 ) {
     // Стек навигации Navigation 3 для детальных экранов (автоматически переживает поворот экрана и смерть процесса)
@@ -344,7 +348,10 @@ fun MainScaffoldContent(
                     note,
                     dateTime
                 )
-            }
+            },
+            learnedCategoryKeywords = homeUiState.learnedCategoryKeywords,
+            learnedAccountAliases = homeUiState.learnedAccountAliases,
+            onLearnFromFastInput = onLearnFromFastInput,
         )
     }
 

@@ -42,9 +42,29 @@ object AccountMatcher {
         accounts: List<Account>,
         defaultAccountId: String?,
         textEmbedder: TextEmbedder,
+        learnedAliases: Map<String, String> = emptyMap(),
         excludedIndices: Set<Int> = emptySet()
     ): MatchedAccount {
-        val lowerTokens = tokens.map { it.lowercase().trim() }
+        val lowerTokens = tokens.map { it.lowercase().replace('ё', 'е').trim() }
+
+        // 0. Адаптивная память пользователя
+        if (learnedAliases.isNotEmpty()) {
+            for (i in lowerTokens.indices) {
+                if (i in excludedIndices) continue
+                val token = lowerTokens[i]
+                val tokenStem = RussianStemmer.stem(token)
+
+                val learnedAccountId = learnedAliases[token] ?: learnedAliases[tokenStem]
+                if (learnedAccountId != null) {
+                    val matched = accounts.firstOrNull { it.id == learnedAccountId }
+                    if (matched != null) {
+                        val consumed = mutableSetOf(i)
+                        attachPreposition(i, lowerTokens, excludedIndices, consumed)
+                        return MatchedAccount(matched.id, consumed)
+                    }
+                }
+            }
+        }
 
         // 1. Поиск по сленгу банков и наличных
         for (i in lowerTokens.indices) {

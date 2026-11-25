@@ -47,6 +47,7 @@ object CategoryMatcher {
         categories: List<Category>,
         operationType: TransactionType,
         textEmbedder: TextEmbedder,
+        learnedKeywords: Map<String, String> = emptyMap(),
         excludedIndices: Set<Int> = emptySet()
     ): MatchedCategory {
         val lowerTokens = tokens.map { it.lowercase().replace('ё', 'е').trim() }
@@ -79,7 +80,28 @@ object CategoryMatcher {
             }
         }
 
-        // 2. Нечеткий поиск по названиям категории (дословная опечатка)
+        // 2. Уровень 2. Адаптивная память пользователя
+        if (learnedKeywords.isNotEmpty()) {
+            for (i in lowerTokens.indices) {
+                if (i in excludedIndices) continue
+                val token = lowerTokens[i]
+                if (token in STOP_WORDS || token.length <= 2) continue
+                val tokenStem = RussianStemmer.stem(token)
+
+                val learnedCatId = learnedKeywords[token] ?: learnedKeywords[tokenStem]
+                if (learnedCatId != null) {
+                    val matched = candidateCategories.firstOrNull { it.id == learnedCatId }
+                    if (matched != null) {
+                        val isDirect = matched.name.split(" ").any { word ->
+                            RussianStemmer.stem(word) == tokenStem
+                        }
+                        return MatchedCategory(matched, isDirectNameMatch = isDirect, setOf(i))
+                    }
+                }
+            }
+        }
+
+        // 3. Нечеткий поиск по названиям категории (дословная опечатка)
         for (i in lowerTokens.indices) {
             if (i in excludedIndices) continue
             val token = lowerTokens[i]
@@ -96,7 +118,7 @@ object CategoryMatcher {
             }
         }
 
-        // 3. Уровень 3. Словарь синонимов и мерчантов (косвенное совпадение - такси, пятерочка)
+        // 4. Уровень 3. Словарь синонимов и мерчантов (косвенное совпадение - такси, пятерочка)
         for (i in lowerTokens.indices) {
             if (i in excludedIndices) continue
             val token = lowerTokens[i]
@@ -120,7 +142,7 @@ object CategoryMatcher {
             }
         }
 
-        // 4. Уровень 4. On-Device Векторный эмбеддер
+        // 5. Уровень 4. On-Device Векторный эмбеддер
         for (i in lowerTokens.indices) {
             if (i in excludedIndices) continue
             val token = lowerTokens[i]

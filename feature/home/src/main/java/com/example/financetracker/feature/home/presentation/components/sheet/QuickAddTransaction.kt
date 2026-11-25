@@ -96,7 +96,10 @@ fun QuickAddTransactionSheet(
         type: TransactionType,
         note: String,
         dateTime: Long
-    ) -> Unit
+    ) -> Unit,
+    learnedCategoryKeywords: Map<String, String> = emptyMap(),
+    learnedAccountAliases: Map<String, String> = emptyMap(),
+    onLearnFromFastInput: (rawText: String, categoryId: String?, accountId: String?) -> Unit = { _, _, _ -> },
 ) {
     val amountFocusRequester = remember { FocusRequester() }
 
@@ -160,6 +163,7 @@ fun QuickAddTransactionSheet(
 
     var isNoteFocused by remember { mutableStateOf(false) }
     var isFastInputExpanded by rememberSaveable { mutableStateOf(false) }
+    var lastFastInputText by remember { mutableStateOf("") }
 
     val trySubmitTransaction: () -> Boolean = {
         submitted = true
@@ -188,6 +192,9 @@ fun QuickAddTransactionSheet(
                 note,
                 selectedDateTime
             )
+            if (lastFastInputText.isNotBlank()) {
+                onLearnFromFastInput(lastFastInputText, chosenCategory, chosenAccount)
+            }
             true
         } else {
             false
@@ -221,6 +228,7 @@ fun QuickAddTransactionSheet(
             accounts = accounts,
             defaultAccountId = selectedAccountId ?: accounts.firstOrNull()?.id,
             onDraftParsed = { draft ->
+                lastFastInputText = draft.rawText
                 if (draft.rawText.isNotBlank()) {
                     draft.amount?.let { amt ->
                         amountText = if (amt % 1.0 == 0.0) amt.toLong().toString() else amt.toString()
@@ -235,7 +243,9 @@ fun QuickAddTransactionSheet(
                     draft.date?.let { selectedDateTime = it }
                     note = draft.note
                 }
-            }
+            },
+            learnedCategoryKeywords = learnedCategoryKeywords,
+            learnedAccountAliases = learnedAccountAliases,
         )
 
         // 1. Селектор типа операции

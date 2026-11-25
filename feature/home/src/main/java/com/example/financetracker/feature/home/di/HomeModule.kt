@@ -9,7 +9,8 @@ val homeModule = module {
         HomeViewModel(
             accountRepository = get(),
             transactionRepository = get(),
-            categoryRepository = get()
+            categoryRepository = get(),
+            keywordRepository = get()
         )
     }
 }

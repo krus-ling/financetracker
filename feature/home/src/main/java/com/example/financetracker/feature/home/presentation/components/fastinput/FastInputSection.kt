@@ -69,7 +69,9 @@ fun FastInputSection(
     onDraftParsed: (ParsedTransactionDraft) -> Unit,
     modifier: Modifier = Modifier,
     onVoiceClick: () -> Unit = {},
-    initialExpanded: Boolean = false
+    initialExpanded: Boolean = false,
+    learnedCategoryKeywords: Map<String, String> = emptyMap(),
+    learnedAccountAliases: Map<String, String> = emptyMap(),
 ) {
     val context = LocalContext.current
 
@@ -90,7 +92,9 @@ fun FastInputSection(
                     text = spokenText,
                     categories = categories,
                     accounts = accounts,
-                    defaultAccountId = defaultAccountId
+                    defaultAccountId = defaultAccountId,
+                    learnedCategoryKeywords = learnedCategoryKeywords,
+                    learnedAccountAliases = learnedAccountAliases,
                 )
                 onDraftParsed(draft)
             }
@@ -145,6 +149,7 @@ fun FastInputSection(
                         onClick = {
                             onExpandedChange(false)
                             inputText = ""
+                            onDraftParsed(ParsedTransactionDraft())
                             focusManager.clearFocus()
                         },
                         modifier = Modifier.size(24.dp)
@@ -165,10 +170,12 @@ fun FastInputSection(
                         inputText = text
                         // Разбираем фразу на лету при каждом изменении
                         val draft = FastTransactionParser.parse(
-                            text,
-                            categories,
-                            accounts,
-                            defaultAccountId
+                            text = text,
+                            categories = categories,
+                            accounts = accounts,
+                            defaultAccountId = defaultAccountId,
+                            learnedCategoryKeywords = learnedCategoryKeywords,
+                            learnedAccountAliases = learnedAccountAliases,
                         )
                         onDraftParsed(draft)
                     },
@@ -240,10 +247,12 @@ fun FastInputSection(
                                 inputText = suggestion
                                 val draft =
                                     FastTransactionParser.parse(
-                                        suggestion,
-                                        categories,
-                                        accounts,
-                                        defaultAccountId
+                                        text = suggestion,
+                                        categories = categories,
+                                        accounts = accounts,
+                                        defaultAccountId = defaultAccountId,
+                                        learnedCategoryKeywords = learnedCategoryKeywords,
+                                        learnedAccountAliases = learnedAccountAliases,
                                     )
                                 onDraftParsed(draft)
                             },

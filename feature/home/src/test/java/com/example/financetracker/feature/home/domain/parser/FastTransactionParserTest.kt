@@ -1,14 +1,16 @@
 package com.example.financetracker.feature.home.domain.parser
 
-
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.AccountType
 import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.CategoryType
 import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.feature.home.domain.parser.extractor.KeywordExtractor
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Calendar
 
@@ -194,5 +196,62 @@ class FastTransactionParserTest {
         assertNull(draft.amount)
         assertNull(draft.categoryId)
         assertEquals("", draft.note)
+    }
+
+    @Test
+    fun `keyword extractor cleanly separates category words from account sources and filters noise`() {
+        val result = KeywordExtractor.extractCandidates(
+            rawText = "купил вкусную шавуху вчера за 350 с заначки",
+            accounts = testAccounts,
+            finalCategory = testCategories.first { it.id == "cat_cafe" },
+            finalAccount = testAccounts.first { it.id == "acc_cash" }
+        )
+
+        // В категорию попала только «шавуха» (стем «шавух») и «вкусн», но не дата, сумма, глагол или счёт
+        assertTrue(result.categoryKeywordStems.contains("шавух"))
+        assertFalse(result.categoryKeywordStems.contains("купил"))
+        assertFalse(result.categoryKeywordStems.contains("вчер"))
+        assertFalse(result.categoryKeywordStems.contains("заначк"))
+
+        // В алиас счёта попала только «заначка» после предлога «с»
+        assertTrue(result.accountAliasStems.contains("заначк"))
+        assertFalse(result.accountAliasStems.contains("шавух"))
+    }
+
+    @Test
+    fun `keyword extractor skips direct category name to avoid redundant keywords`() {
+        val result = KeywordExtractor.extractCandidates(
+            rawText = "продукты 1000",
+            accounts = testAccounts,
+            finalCategory = testCategories.first { it.id == "cat_food" },
+            finalAccount = testAccounts.first()
+        )
+
+        assertTrue(result.categoryKeywordStems.isEmpty())
+        assertTrue(result.accountAliasStems.isEmpty())
+    }
+
+    @Test
+    fun `learned memory overrides defaults and resolves custom user slang`() {
+        val householdCat = Category(
+            id = "cat_household",
+            name = "Бытовая химия",
+            type = CategoryType.EXPENSE,
+            iconRes = "ic_other"
+        )
+        val categories = testCategories + householdCat
+
+        val draft = FastTransactionParser.parse(
+            text = "мыло 200 из заначки",
+            categories = categories,
+            accounts = testAccounts,
+            learnedCategoryKeywords = mapOf("мыл" to "cat_household"),
+            learnedAccountAliases = mapOf("заначк" to "acc_cash")
+        )
+
+        assertEquals("cat_household", draft.categoryId)
+        assertEquals("acc_cash", draft.accountId)
+        assertEquals(200.0, draft.amount!!, 0.01)
+        assertEquals("Мыло", draft.note)
     }
 }

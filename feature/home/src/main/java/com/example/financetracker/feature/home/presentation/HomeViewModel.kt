@@ -12,6 +12,8 @@ import com.example.financetracker.core.model.MonthlySummary
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionDayGroup
 import com.example.financetracker.core.model.TransactionType
+import com.example.financetracker.core.model.repository.KeywordRepository
+import com.example.financetracker.feature.home.domain.parser.extractor.KeywordExtractor
 import com.example.financetracker.feature.home.util.DateTimeUtils
 import com.example.financetracker.feature.home.util.groupTransactionByDay
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -44,7 +46,8 @@ import kotlinx.coroutines.withContext
 class HomeViewModel(
     private val accountRepository: AccountRepository,
     private val transactionRepository: TransactionRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val keywordRepository: KeywordRepository
 ) : ViewModel() {
 
     // =========================================================================
@@ -117,6 +120,15 @@ class HomeViewModel(
         )
     }
 
+    /** Поток категорий и адаптивной памяти пользователя */
+    private val catalogAndMemoryFlow = combine(
+        categoryRepository.getAllCategories().catch { emit(emptyList()) },
+        keywordRepository.observeCategoryKeywords().catch { emit(emptyMap()) },
+        keywordRepository.observeAccountAliases().catch { emit(emptyMap()) }
+    ) { categories, catKeywords, accAliases ->
+        Triple(categories, catKeywords, accAliases)
+    }
+
     // =========================================================================
     // ЕДИНЫЙ ПУБЛИЧНЫЙ UI-СТАТУС (UDF)
     // =========================================================================
@@ -125,10 +137,10 @@ class HomeViewModel(
     val uiState: StateFlow<HomeUiState> = combine(
         accountFlow,
         transactionPagingFlow,
-        categoryRepository.getAllCategories().catch { emit(emptyList()) },
+        catalogAndMemoryFlow,
         monthlySummaryFlow,
         _errorState.asStateFlow()
-    ) { (accounts, deletedAccounts), paging, categories, summary, error ->
+    ) { (accounts, deletedAccounts), paging, (categories, catKeywords, accAliases), summary, error ->
         val totalBalance = accounts.sumOf { it.balance }
         HomeUiState(
             isLoading = false,
@@ -143,7 +155,9 @@ class HomeViewModel(
             currentMonthName = DateTimeUtils.getCurrentMonthName(),
             errorMessage = error,
             isLoadingMore = paging.isLoadingMore,
-            hasMoreTransactions = paging.hasMore
+            hasMoreTransactions = paging.hasMore,
+            learnedCategoryKeywords = catKeywords,
+            learnedAccountAliases = accAliases
         )
     }.stateIn(
         scope = viewModelScope,
@@ -222,6 +236,38 @@ class HomeViewModel(
      */
     suspend fun getAccountTransactions(accountId: String, limit: Int = 100): List<Transaction> {
         return transactionRepository.getTransactionsByAccountId(accountId, limit)
+    }
+
+    /**
+     * Обучает адаптивную память на основе подтвержденной транзакции из быстрого ввода
+     */
+    fun learnFromFastInput(
+        rawText: String,
+        categoryId: String?,
+        accountId: String?
+    ) {
+        if (rawText.isBlank()) return
+        viewModelScope.launch(errorHandler) {
+            val state = uiState.value
+            val finalCategory = categoryId?.let { id -> state.categories.firstOrNull { it.id == id } }
+            val finalAccount = accountId?.let { id -> state.accounts.firstOrNull { it.id == id } }
+
+            val result = withContext(Dispatchers.Default) {
+                KeywordExtractor.extractCandidates(
+                    rawText = rawText,
+                    accounts = state.accounts,
+                    finalCategory = finalCategory,
+                    finalAccount = finalAccount
+                )
+            }
+
+            if (finalCategory != null && result.categoryKeywordStems.isNotEmpty()) {
+                keywordRepository.learnCategoryKeywords(result.categoryKeywordStems, finalCategory.id)
+            }
+            if (finalAccount != null && result.accountAliasStems.isNotEmpty()) {
+                keywordRepository.learnAccountAliases(result.accountAliasStems, finalAccount.id)
+            }
+        }
     }
 
     // =========================================================================
