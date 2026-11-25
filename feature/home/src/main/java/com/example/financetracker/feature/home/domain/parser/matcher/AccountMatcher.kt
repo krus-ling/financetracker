@@ -150,20 +150,12 @@ object AccountMatcher {
             if (i in excludedIndices) continue
             val token = lowerTokens[i]
             if (token.length <= 3) continue
-
-            val tokenVec = textEmbedder.embed(token)
-            var bestSimilarity = 0f
-            var bestAccount: Account? = null
-
-            for (acc in accounts) {
-                val accVec = textEmbedder.embed(acc.name)
-                val sim = textEmbedder.cosineSimilarity(tokenVec, accVec)
-                if (sim > bestSimilarity && sim >= 0.70f) {
-                    bestSimilarity = sim
-                    bestAccount = acc
-                }
-            }
-
+            val bestAccount = textEmbedder.findBestMatch(
+                token = token,
+                candidates = accounts,
+                labelSelector = { it.name },
+                minSimilarity = textEmbedder.minAccountSimilarity
+            )
             if (bestAccount != null) {
                 val consumed = mutableSetOf(i)
                 attachPreposition(i, lowerTokens, excludedIndices, consumed)

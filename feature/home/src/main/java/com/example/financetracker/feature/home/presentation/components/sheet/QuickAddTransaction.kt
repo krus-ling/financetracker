@@ -75,6 +75,7 @@ import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
 import com.example.financetracker.core.uikit.util.rememberHalfWidth
 import com.example.financetracker.core.uikit.util.toAmountOrNull
+import com.example.financetracker.feature.home.domain.model.ParsedTransactionDraft
 import com.example.financetracker.feature.home.presentation.components.fastinput.FastInputSection
 import com.example.financetracker.feature.home.presentation.components.fastinput.FastInputTriggerChip
 import java.util.Calendar
@@ -99,7 +100,14 @@ fun QuickAddTransactionSheet(
     ) -> Unit,
     learnedCategoryKeywords: Map<String, String> = emptyMap(),
     learnedAccountAliases: Map<String, String> = emptyMap(),
-    onLearnFromFastInput: (rawText: String, categoryId: String?, accountId: String?) -> Unit = { _, _, _ -> },
+    onLearnFromFastInput: (
+        rawText: String,
+        categoryId: String?,
+        accountId: String?,
+        wasCategoryChanged: Boolean,
+        wasAccountChanged: Boolean
+    ) -> Unit = { _, _, _, _, _ -> },
+    onParseFastInput: (suspend (text: String, defaultAccountId: String?) -> ParsedTransactionDraft)? = null,
 ) {
     val amountFocusRequester = remember { FocusRequester() }
 
@@ -164,6 +172,8 @@ fun QuickAddTransactionSheet(
     var isNoteFocused by remember { mutableStateOf(false) }
     var isFastInputExpanded by rememberSaveable { mutableStateOf(false) }
     var lastFastInputText by remember { mutableStateOf("") }
+    var userChangedCategory by remember { mutableStateOf(false) }
+    var userChangedAccount by remember { mutableStateOf(false) }
 
     val trySubmitTransaction: () -> Boolean = {
         submitted = true
@@ -193,7 +203,13 @@ fun QuickAddTransactionSheet(
                 selectedDateTime
             )
             if (lastFastInputText.isNotBlank()) {
-                onLearnFromFastInput(lastFastInputText, chosenCategory, chosenAccount)
+                onLearnFromFastInput(
+                    lastFastInputText,
+                    chosenCategory,
+                    chosenAccount,
+                    userChangedCategory,
+                    userChangedAccount
+                )
             }
             true
         } else {
@@ -229,6 +245,8 @@ fun QuickAddTransactionSheet(
             defaultAccountId = selectedAccountId ?: accounts.firstOrNull()?.id,
             onDraftParsed = { draft ->
                 lastFastInputText = draft.rawText
+                userChangedCategory = false
+                userChangedAccount = false
                 if (draft.rawText.isNotBlank()) {
                     draft.amount?.let { amt ->
                         amountText = if (amt % 1.0 == 0.0) amt.toLong().toString() else amt.toString()
@@ -246,6 +264,7 @@ fun QuickAddTransactionSheet(
             },
             learnedCategoryKeywords = learnedCategoryKeywords,
             learnedAccountAliases = learnedAccountAliases,
+            onParseFastInput = onParseFastInput,
         )
 
         // 1. Селектор типа операции
@@ -312,6 +331,7 @@ fun QuickAddTransactionSheet(
                     } else selectedExpenseCategoryId,
                     isIncome = selectedType == TransactionType.INCOME,
                     onCategoryClick = { categoryId ->
+                        userChangedCategory = true
                         if (selectedType == TransactionType.INCOME) {
                             selectedIncomeCategoryId = categoryId
                         } else {
@@ -328,6 +348,7 @@ fun QuickAddTransactionSheet(
             accounts = if (selectedType == TransactionType.TRANSFER) targetAccounts else accounts,
             selectedAccountId = if (selectedType == TransactionType.TRANSFER) selectedTargetAccountId else selectedAccountId,
             onAccountSelected = { id ->
+                userChangedAccount = true
                 if (selectedType == TransactionType.TRANSFER) {
                     selectedTargetAccountId = id
                 } else {

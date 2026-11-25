@@ -202,9 +202,11 @@ class FastTransactionParserTest {
     fun `keyword extractor cleanly separates category words from account sources and filters noise`() {
         val result = KeywordExtractor.extractCandidates(
             rawText = "купил вкусную шавуху вчера за 350 с заначки",
+            categories = testCategories,
             accounts = testAccounts,
             finalCategory = testCategories.first { it.id == "cat_cafe" },
-            finalAccount = testAccounts.first { it.id == "acc_cash" }
+            finalAccount = testAccounts.first { it.id == "acc_cash" },
+            wasCategoryManuallyChanged = true
         )
 
         // В категорию попала только «шавуха» (стем «шавух») и «вкусн», но не дата, сумма, глагол или счёт
@@ -222,6 +224,7 @@ class FastTransactionParserTest {
     fun `keyword extractor skips direct category name to avoid redundant keywords`() {
         val result = KeywordExtractor.extractCandidates(
             rawText = "продукты 1000",
+            categories = testCategories,
             accounts = testAccounts,
             finalCategory = testCategories.first { it.id == "cat_food" },
             finalAccount = testAccounts.first()
@@ -253,5 +256,23 @@ class FastTransactionParserTest {
         assertEquals("acc_cash", draft.accountId)
         assertEquals(200.0, draft.amount!!, 0.01)
         assertEquals("Мыло", draft.note)
+    }
+    @Test
+    fun `manual account change learns prepositionless account alias without polluting category`() {
+        val kopilka = Account(id = "acc_kopilka", name = "Копилка", balance = 5000.0, type = AccountType.SAVINGS)
+        val accounts = testAccounts + kopilka
+
+        val result = KeywordExtractor.extractCandidates(
+            rawText = "такси карман",
+            categories = testCategories,
+            accounts = accounts,
+            finalCategory = testCategories.first { it.id == "cat_transport" },
+            finalAccount = kopilka,
+            wasCategoryManuallyChanged = false,
+            wasAccountManuallyChanged = true
+        )
+
+        assertTrue(result.accountAliasStems.contains("карман"))
+        assertFalse(result.categoryKeywordStems.contains("карман"))
     }
 }

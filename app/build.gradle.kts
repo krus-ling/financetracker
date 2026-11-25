@@ -7,7 +7,11 @@ plugins {
 
 android {
     namespace = "com.example.financetracker"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 1
+        }
+    }
 
     defaultConfig {
         applicationId = "com.example.financetracker"

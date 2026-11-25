@@ -43,6 +43,7 @@ import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.navigation.ScreenKey
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.feature.analytics.AnalyticsScreen
+import com.example.financetracker.feature.home.domain.model.ParsedTransactionDraft
 import com.example.financetracker.feature.home.presentation.AccountDetailScreen
 import com.example.financetracker.feature.home.presentation.HomeScreenContent
 import com.example.financetracker.feature.home.presentation.HomeUiState
@@ -116,8 +117,11 @@ fun MainScaffold(
         onToggleDefaultAccount = { id, isDefault ->
             homeViewModel.setDefaultAccount(id, isDefault)
         },
-        onLearnFromFastInput = { rawText, categoryId, accountId ->
-            homeViewModel.learnFromFastInput(rawText, categoryId, accountId)
+        onLearnFromFastInput = { rawText, categoryId, accountId, catChanged, accChanged ->
+            homeViewModel.learnFromFastInput(rawText, categoryId, accountId, catChanged, accChanged)
+        },
+        onParseFastInput = { text, defaultAccId ->
+            homeViewModel.parseFastInput(text, defaultAccId)
         },
         onClearError = {
             homeViewModel.clearError()
@@ -143,7 +147,8 @@ fun MainScaffoldContent(
     onGetAccountMonthlySummary: (String) -> Flow<MonthlySummary> = { flowOf(MonthlySummary()) },
     onLoadMore: () -> Unit = {},
     onToggleDefaultAccount: (String, Boolean) -> Unit = { _, _ -> },
-    onLearnFromFastInput: (String, String?, String?) -> Unit = { _, _, _ -> },
+    onLearnFromFastInput: (String, String?, String?, Boolean, Boolean) -> Unit = { _, _, _, _, _ -> },
+    onParseFastInput: (suspend (text: String, defaultAccountId: String?) -> ParsedTransactionDraft)? = null,
     onClearError: () -> Unit = {}
 ) {
     // Стек навигации Navigation 3 для детальных экранов (автоматически переживает поворот экрана и смерть процесса)
@@ -352,6 +357,7 @@ fun MainScaffoldContent(
             learnedCategoryKeywords = homeUiState.learnedCategoryKeywords,
             learnedAccountAliases = homeUiState.learnedAccountAliases,
             onLearnFromFastInput = onLearnFromFastInput,
+            onParseFastInput = onParseFastInput,
         )
     }
 

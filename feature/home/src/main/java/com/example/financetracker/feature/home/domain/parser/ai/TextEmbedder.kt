@@ -7,10 +7,71 @@ import kotlin.math.sqrt
  */
 interface TextEmbedder {
 
-    /**
-     * Преобразует текст в нормализованный числовой вектор признаков (embedding).
-     */
+    /** Минимальное косинусное сходство для выбора категории. */
+    val minCategorySimilarity: Float get() = 0.65f
+
+    /** Минимальное косинусное сходство для выбора счёта. */
+    val minAccountSimilarity: Float get() = 0.70f
+
+    /** Минимальный отрыв лидера от второго места (защита от шума). */
+    val minScoreMargin: Float get() = 0f
+
+    /** Преобразует текст в нормализованный числовой вектор признаков (embedding). */
     fun embed(text: String): FloatArray
+
+    /**Опциональный фоновый прогрев модели в память */
+    suspend fun warmUp() {}
+
+    /**
+     * Вычисляет регистронезависимый L2-нормализованный вектор для названия категории или счёта,
+     * усредняя исходный вариант и вариант в нижнем регистре (важно для cased WordPiece-моделей).
+     */
+    fun embedCaseInvariant(text: String): FloatArray {
+        val primary = embed(text)
+        val lowered = text.lowercase()
+        if (lowered == text || primary.isEmpty()) return primary
+        val secondary = embed(lowered)
+        if (secondary.size != primary.size) return primary
+        val combined = FloatArray(primary.size) { i -> (primary[i] + secondary[i]) * 0.5f }
+        var sumSquares = 0.0
+        for (v in combined) {
+            sumSquares += (v * v).toDouble()
+        }
+        val norm = sqrt(sumSquares)
+        if (norm <= 0.0) return primary
+        return FloatArray(combined.size) { i -> (combined[i] / norm).toFloat() }
+    }
+
+    /**
+     * Находит наиболее семантически близкий элемент среди [candidates] для [token],
+     * требуя превышения [minSimilarity] и отрыва от второго кандидата не менее чем на [minMargin].
+     */
+    fun <T> findBestMatch(
+        token: String,
+        candidates: List<T>,
+        labelSelector: (T) -> String,
+        minSimilarity: Float,
+        minMargin: Float = minScoreMargin
+    ): T? {
+        if (candidates.isEmpty() || token.isBlank()) return null
+        val tokenVec = embed(token)
+        var bestSimilarity = Float.NEGATIVE_INFINITY
+        var secondBestSimilarity = Float.NEGATIVE_INFINITY
+        var bestCandidate: T? = null
+        for (candidate in candidates) {
+            val candidateVec = embedCaseInvariant(labelSelector(candidate))
+            val sim = cosineSimilarity(tokenVec, candidateVec)
+            if (sim > bestSimilarity) {
+                secondBestSimilarity = bestSimilarity
+                bestSimilarity = sim
+                bestCandidate = candidate
+            } else if (sim > secondBestSimilarity) {
+                secondBestSimilarity = sim
+            }
+        }
+        val hasEnoughMargin = candidates.size == 1 || (bestSimilarity - secondBestSimilarity) >= minMargin
+        return if (bestSimilarity >= minSimilarity && hasEnoughMargin) bestCandidate else null
+    }
 
     /**
      * Вычисляет косинусное сходство (Cosine Similarity) между двумя векторами.
@@ -18,11 +79,9 @@ interface TextEmbedder {
      */
     fun cosineSimilarity(vecA: FloatArray, vecB: FloatArray): Float {
         if (vecA.isEmpty() || vecB.isEmpty() || vecA.size != vecB.size) return 0f
-
         var dotProduct = 0.0
         var normA = 0.0
         var normB = 0.0
-
         for (i in vecA.indices) {
             val a = vecA[i].toDouble()
             val b = vecB[i].toDouble()
@@ -30,7 +89,6 @@ interface TextEmbedder {
             normA += a * a
             normB += b * b
         }
-
         val denom = sqrt(normA) * sqrt(normB)
         return if (denom > 0.0) (dotProduct / denom).toFloat().coerceIn(-1.0f, 1.0f) else 0f
     }

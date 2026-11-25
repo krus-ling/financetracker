@@ -2,10 +2,13 @@ package com.example.financetracker.feature.home.domain.parser.extractor
 
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.Category
+import com.example.financetracker.core.model.CategoryType
+import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.feature.home.domain.parser.RussianStemmer
 import com.example.financetracker.feature.home.domain.parser.ai.FastTextCharEmbedder
 import com.example.financetracker.feature.home.domain.parser.ai.TextEmbedder
 import com.example.financetracker.feature.home.domain.parser.matcher.AccountMatcher
+import com.example.financetracker.feature.home.domain.parser.matcher.CategoryMatcher
 
 /**
  * Результат извлечения слов-триггеров для самообучения.
@@ -20,7 +23,8 @@ data class LearnedKeywordsResult(
 
 /**
  * Извлекает чистые ключевые слова из фразы быстрого ввода при подтверждении транзакции.
- * Отсеивает даты, суммы, стоп-слова и разделяет триггеры счетов и категорий.
+ * Отсеивает даты, суммы, стоп-слова и корректно разделяет триггеры счетов и категорий
+ * (в том числе без предлогов вида «такси карман»).
  */
 object KeywordExtractor {
 
@@ -30,8 +34,9 @@ object KeywordExtractor {
         "взял", "взяла", "сходил", "сходила", "заказал", "заказала", "отдал", "отдала",
         "рублей", "рубля", "руб", "тысяч", "тысячи", "тысяча", "штук", "штуки"
     )
+
     private val GENERIC_ACCOUNT_WORDS = setOf(
-        "карта", "карты", "карте", "карту", "картой", "карточка", "карточки",
+        "карта", "карты", "карте", "карту", "картой", "карточка", "карточки", "карточкой",
         "нал", "нала", "налом", "наличка", "наличные", "кэш", "кэша", "кэшем", "кеш"
     )
 
@@ -39,19 +44,21 @@ object KeywordExtractor {
 
     fun extractCandidates(
         rawText: String,
+        categories: List<Category>,
         accounts: List<Account>,
         finalCategory: Category?,
         finalAccount: Account?,
+        wasCategoryManuallyChanged: Boolean = false,
+        wasAccountManuallyChanged: Boolean = false,
+        learnedCategoryKeywords: Map<String, String> = emptyMap(),
+        learnedAccountAliases: Map<String, String> = emptyMap(),
         textEmbedder: TextEmbedder = FastTextCharEmbedder()
     ): LearnedKeywordsResult {
         val trimmed = rawText.trim()
         if (trimmed.isEmpty()) return LearnedKeywordsResult(emptyList(), emptyList())
 
         var prepared = trimmed
-            .replace(
-                Regex("""(?<=\d)[.\s]+(?=\d{3}(?!\d))"""),
-                ""
-            )
+            .replace(Regex("""(?<=\d)[.\s]+(?=\d{3}(?!\d))"""), "")
             .replace(
                 Regex("""(\d+(?:[.,]\d+)?)\s+(к|k|тыс(?:яч|ячи)?)\b""", RegexOption.IGNORE_CASE),
                 "$1$2"
@@ -63,26 +70,25 @@ object KeywordExtractor {
         val ignoredIndices = mutableSetOf<Int>()
 
         DateExtractor.extract(tokens)?.let { ignoredIndices.addAll(it.consumedIndices) }
-        AmountExtractor.extract(tokens, ignoredIndices)?.let {
-            ignoredIndices.addAll(it.consumedIndices)
-        }
-        TypeExtractor.extract(tokens, ignoredIndices).let {
-            ignoredIndices.addAll(it.consumedIndices)
-        }
+        AmountExtractor.extract(tokens, ignoredIndices)?.let { ignoredIndices.addAll(it.consumedIndices) }
+        val extractedType = TypeExtractor.extract(tokens, ignoredIndices)
+        ignoredIndices.addAll(extractedType.consumedIndices)
 
         val accountIndices = mutableSetOf<Int>()
-        val accountAliasStems = mutableListOf<String>()
+        val categoryMatchedIndices = mutableSetOf<Int>()
 
-        // 1. Слова, распознанные AccountMatcher или стоящие после предлогов источника (с совка, из заначки)
+        // 1. Слова, распознанные AccountMatcher
         val matchedAccount = AccountMatcher.match(
             tokens = tokens,
             accounts = accounts,
             defaultAccountId = null,
             textEmbedder = textEmbedder,
+            learnedAliases = learnedAccountAliases,
             excludedIndices = ignoredIndices
         )
         accountIndices.addAll(matchedAccount.consumedIndices)
 
+        // 2. Слова после предлогов источника счёта («с совка», «из заначки»)
         for (i in 1 until lowerTokens.size) {
             if (i in ignoredIndices || (i - 1) in ignoredIndices) continue
             if (lowerTokens[i - 1] in ACCOUNT_SOURCE_PREPOSITIONS) {
@@ -91,6 +97,38 @@ object KeywordExtractor {
             }
         }
 
+        // 3. Слова, уже распознанные CategoryMatcher (например, «такси» в «такси карман»)
+        val typeToMatch = if (finalCategory?.type == CategoryType.INCOME) TransactionType.INCOME else extractedType.type
+        val matchedCategory = CategoryMatcher.match(
+            tokens = tokens,
+            categories = categories,
+            operationType = typeToMatch,
+            textEmbedder = textEmbedder,
+            learnedKeywords = learnedCategoryKeywords,
+            excludedIndices = ignoredIndices + accountIndices
+        )
+        if (matchedCategory.category?.id == finalCategory?.id) {
+            categoryMatchedIndices.addAll(matchedCategory.matchedTokenIndices)
+        }
+
+        // 4. Нераспознанные значимые слова
+        val unrecognizedIndices = lowerTokens.indices.filter { i ->
+            i !in ignoredIndices &&
+                    i !in accountIndices &&
+                    i !in categoryMatchedIndices &&
+                    lowerTokens[i] !in NOISE_WORDS &&
+                    lowerTokens[i] !in GENERIC_ACCOUNT_WORDS &&
+                    lowerTokens[i].length > 2 &&
+                    lowerTokens[i].toDoubleOrNull() == null
+        }
+
+        // Если пользователь вручную переключил счёт, но не менял категорию
+        // (или категория уже сматчилась другими словами), относим оставшиеся слова к алиасу счёта
+        if (wasAccountManuallyChanged && (!wasCategoryManuallyChanged || categoryMatchedIndices.isNotEmpty())) {
+            accountIndices.addAll(unrecognizedIndices)
+        }
+
+        val accountAliasStems = mutableListOf<String>()
         if (finalAccount != null) {
             for (idx in accountIndices) {
                 val word = lowerTokens[idx]
@@ -99,9 +137,8 @@ object KeywordExtractor {
             }
         }
 
-        // 2. Оставшиеся значимые слова (кроме имени самой категории и счетов) привязываем к категории
         val categoryKeywordStems = mutableListOf<String>()
-        if (finalCategory != null) {
+        if (finalCategory != null && (wasCategoryManuallyChanged || categoryMatchedIndices.isNotEmpty())) {
             val categoryNameStems = finalCategory.name.split(" ")
                 .map { RussianStemmer.stem(it.lowercase().replace('ё', 'е')) }
                 .toSet()

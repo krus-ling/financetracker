@@ -33,6 +33,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.financetracker.feature.home.domain.model.ParsedTransactionDraft
+import com.example.financetracker.feature.home.domain.parser.FastTransactionParser
+import com.example.financetracker.feature.home.domain.parser.ai.FastTextCharEmbedder
+import com.example.financetracker.feature.home.domain.parser.ai.TextEmbedder
 
 /**
  * Главная ViewModel приложения.
@@ -47,7 +51,8 @@ class HomeViewModel(
     private val accountRepository: AccountRepository,
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository,
-    private val keywordRepository: KeywordRepository
+    private val keywordRepository: KeywordRepository,
+    private val textEmbedder: TextEmbedder = FastTextCharEmbedder(),
 ) : ViewModel() {
 
     // =========================================================================
@@ -174,6 +179,10 @@ class HomeViewModel(
             accountRepository.checkAndSeedDefaultAccount()
             categoryRepository.checkAndSeedDefaultCategories()
         }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            textEmbedder.warmUp()
+        }
     }
 
     // =========================================================================
@@ -244,7 +253,9 @@ class HomeViewModel(
     fun learnFromFastInput(
         rawText: String,
         categoryId: String?,
-        accountId: String?
+        accountId: String?,
+        wasCategoryChanged: Boolean = false,
+        wasAccountChanged: Boolean = false,
     ) {
         if (rawText.isBlank()) return
         viewModelScope.launch(errorHandler) {
@@ -255,9 +266,15 @@ class HomeViewModel(
             val result = withContext(Dispatchers.Default) {
                 KeywordExtractor.extractCandidates(
                     rawText = rawText,
+                    categories = state.categories,
                     accounts = state.accounts,
                     finalCategory = finalCategory,
-                    finalAccount = finalAccount
+                    finalAccount = finalAccount,
+                    wasCategoryManuallyChanged = wasCategoryChanged,
+                    wasAccountManuallyChanged = wasAccountChanged,
+                    learnedCategoryKeywords = state.learnedCategoryKeywords,
+                    learnedAccountAliases = state.learnedAccountAliases,
+                    textEmbedder = textEmbedder,
                 )
             }
 
@@ -267,6 +284,28 @@ class HomeViewModel(
             if (finalAccount != null && result.accountAliasStems.isNotEmpty()) {
                 keywordRepository.learnAccountAliases(result.accountAliasStems, finalAccount.id)
             }
+        }
+    }
+
+    /**
+     * Разбирает фразу быстрого ввода в фоновом потоке [Dispatchers.Default]
+     * с использованием адаптивной памяти Room и локальной нейросети [TextEmbedder].
+     */
+    suspend fun parseFastInput(
+        text: String,
+        defaultAccountId: String?
+    ): ParsedTransactionDraft {
+        val state = uiState.value
+        return withContext(Dispatchers.Default) {
+            FastTransactionParser.parse(
+                text = text,
+                categories = state.categories,
+                accounts = state.accounts,
+                defaultAccountId = defaultAccountId,
+                learnedCategoryKeywords = state.learnedCategoryKeywords,
+                learnedAccountAliases = state.learnedAccountAliases,
+                textEmbedder = textEmbedder
+            )
         }
     }
 

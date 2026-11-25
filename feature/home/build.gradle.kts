@@ -5,7 +5,11 @@ plugins {
 
 android {
     namespace = "com.example.financetracker.feature.home"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 1
+        }
+    }
 
     defaultConfig {
         minSdk = 29
@@ -33,6 +37,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+
+    // On-Device AI (ONNX Runtime)
+    implementation(libs.onnxruntime.android)
 
     // Lifecycle & ViewModel для Compose
     implementation(libs.androidx.lifecycle.runtime.ktx)

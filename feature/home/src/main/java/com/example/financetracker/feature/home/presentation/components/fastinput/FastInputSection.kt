@@ -58,6 +58,14 @@ import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
 import com.example.financetracker.feature.home.domain.parser.FastTransactionParser
 import com.example.financetracker.feature.home.domain.model.ParsedTransactionDraft
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun FastInputSection(
@@ -72,12 +80,40 @@ fun FastInputSection(
     initialExpanded: Boolean = false,
     learnedCategoryKeywords: Map<String, String> = emptyMap(),
     learnedAccountAliases: Map<String, String> = emptyMap(),
+    onParseFastInput: (suspend (text: String, defaultAccountId: String?) -> ParsedTransactionDraft)? = null,
 ) {
     val context = LocalContext.current
 
     var inputText by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    val coroutineScope = rememberCoroutineScope()
+    val currentOnDraftParsed by rememberUpdatedState(onDraftParsed)
+    val currentOnParseFastInput by rememberUpdatedState(onParseFastInput)
+
+    suspend fun parseSafely(phrase: String): ParsedTransactionDraft {
+        return currentOnParseFastInput?.invoke(phrase, defaultAccountId)
+            ?: withContext(Dispatchers.Default) {
+                FastTransactionParser.parse(
+                    text = phrase,
+                    categories = categories,
+                    accounts = accounts,
+                    defaultAccountId = defaultAccountId,
+                    learnedCategoryKeywords = learnedCategoryKeywords,
+                    learnedAccountAliases = learnedAccountAliases
+                )
+            }
+    }
+
+    // Плавный асинхронный парсинг при наборе текста с debounce 150 мс (без лагов клавиатуры)
+    LaunchedEffect(inputText) {
+        if (inputText.isNotBlank()) {
+            delay(150L.milliseconds)
+            val draft = parseSafely(inputText)
+            currentOnDraftParsed(draft)
+        }
+    }
 
     val voiceLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -88,15 +124,9 @@ fun FastInputSection(
                 ?.firstOrNull()
             if (!spokenText.isNullOrBlank()) {
                 inputText = spokenText
-                val draft = FastTransactionParser.parse(
-                    text = spokenText,
-                    categories = categories,
-                    accounts = accounts,
-                    defaultAccountId = defaultAccountId,
-                    learnedCategoryKeywords = learnedCategoryKeywords,
-                    learnedAccountAliases = learnedAccountAliases,
-                )
-                onDraftParsed(draft)
+                coroutineScope.launch {
+                    currentOnDraftParsed(parseSafely(spokenText))
+                }
             }
         }
     }
@@ -168,16 +198,9 @@ fun FastInputSection(
                     value = inputText,
                     onValueChange = { text ->
                         inputText = text
-                        // Разбираем фразу на лету при каждом изменении
-                        val draft = FastTransactionParser.parse(
-                            text = text,
-                            categories = categories,
-                            accounts = accounts,
-                            defaultAccountId = defaultAccountId,
-                            learnedCategoryKeywords = learnedCategoryKeywords,
-                            learnedAccountAliases = learnedAccountAliases,
-                        )
-                        onDraftParsed(draft)
+                        if (text.isBlank()) {
+                            onDraftParsed(ParsedTransactionDraft())
+                        }
                     },
                     placeholder = {
                         Text(
@@ -245,16 +268,9 @@ fun FastInputSection(
                         Surface(
                             onClick = {
                                 inputText = suggestion
-                                val draft =
-                                    FastTransactionParser.parse(
-                                        text = suggestion,
-                                        categories = categories,
-                                        accounts = accounts,
-                                        defaultAccountId = defaultAccountId,
-                                        learnedCategoryKeywords = learnedCategoryKeywords,
-                                        learnedAccountAliases = learnedAccountAliases,
-                                    )
-                                onDraftParsed(draft)
+                                coroutineScope.launch {
+                                    currentOnDraftParsed(parseSafely(suggestion))
+                                }
                             },
                             shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.surface,

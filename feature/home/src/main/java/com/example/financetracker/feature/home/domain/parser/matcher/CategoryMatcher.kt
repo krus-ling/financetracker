@@ -147,20 +147,12 @@ object CategoryMatcher {
             if (i in excludedIndices) continue
             val token = lowerTokens[i]
             if (token in STOP_WORDS || token.length <= 3) continue
-
-            val tokenVec = textEmbedder.embed(token)
-            var bestSimilarity = 0f
-            var bestCategory: Category? = null
-
-            for (cat in candidateCategories) {
-                val catVec = textEmbedder.embed(cat.name)
-                val sim = textEmbedder.cosineSimilarity(tokenVec, catVec)
-                if (sim > bestSimilarity && sim >= 0.65f) {
-                    bestSimilarity = sim
-                    bestCategory = cat
-                }
-            }
-
+            val bestCategory = textEmbedder.findBestMatch(
+                token = token,
+                candidates = candidateCategories,
+                labelSelector = { it.name },
+                minSimilarity = textEmbedder.minCategorySimilarity
+            )
             if (bestCategory != null) {
                 return MatchedCategory(bestCategory, isDirectNameMatch = false, setOf(i))
             }
