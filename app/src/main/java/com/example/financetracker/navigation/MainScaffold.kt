@@ -48,7 +48,7 @@ import com.example.financetracker.feature.home.presentation.AccountDetailScreen
 import com.example.financetracker.feature.home.presentation.HomeScreenContent
 import com.example.financetracker.feature.home.presentation.HomeUiState
 import com.example.financetracker.feature.home.presentation.HomeViewModel
-import com.example.financetracker.feature.home.presentation.components.sheet.AddAccountBottomSheet
+import com.example.financetracker.feature.home.presentation.components.sheet.AddAccount
 import com.example.financetracker.feature.home.presentation.components.sheet.QuickAddTransactionSheet
 import com.example.financetracker.feature.profile.CategoriesScreen
 import com.example.financetracker.feature.profile.ProfileScreen
@@ -367,7 +367,7 @@ fun MainScaffoldContent(
     }
 
     if (showAddAccountSheet) {
-        AddAccountBottomSheet(
+        AddAccount(
             onDismiss = {
                 showAddAccountSheet = false
                 // При закрытии возвращаем шторку операции назад
@@ -391,6 +391,7 @@ fun MainScaffoldContent(
             onGetAccountTransactions = { id -> onGetAccountTransactions(id, 100) },
             categories = currentHomeUiState.categories,
             deletedAccounts = currentHomeUiState.deletedAccounts,
+            accounts = currentHomeUiState.accounts,
         )
     }
 }

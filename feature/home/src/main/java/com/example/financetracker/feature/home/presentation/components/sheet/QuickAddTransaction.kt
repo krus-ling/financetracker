@@ -162,11 +162,66 @@ fun QuickAddTransactionSheet(
     ) -> Unit = { _, _, _, _, _ -> },
     onParseFastInput: (suspend (text: String, defaultAccountId: String?) -> ParsedTransactionDraft)? = null,
 ) {
+    QuickAddTransactionContent(
+        categories = categories,
+        accounts = accounts,
+        onDismiss = onDismiss,
+        onAddNewAccount = onAddNewAccount,
+        initialType = initialType,
+        initialAccountId = initialAccountId,
+        onAddClick = onAddClick,
+        learnedCategoryKeywords = learnedCategoryKeywords,
+        learnedAccountAliases = learnedAccountAliases,
+        onLearnFromFastInput = onLearnFromFastInput,
+        onParseFastInput = onParseFastInput,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuickAddTransactionContent(
+    categories: List<Category>,
+    accounts: List<Account> = emptyList(),
+    onDismiss: () -> Unit,
+    onAddNewAccount: () -> Unit,
+    initialType: TransactionType = TransactionType.EXPENSE,
+    initialAccountId: String? = null,
+    onAddClick: (
+        amount: Double,
+        categoryId: String?,
+        accountId: String,
+        targetAccountId: String?,
+        type: TransactionType,
+        note: String,
+        dateTime: Long
+    ) -> Unit,
+    learnedCategoryKeywords: Map<String, String> = emptyMap(),
+    learnedAccountAliases: Map<String, String> = emptyMap(),
+    onLearnFromFastInput: (
+        rawText: String,
+        categoryId: String?,
+        accountId: String?,
+        wasCategoryChanged: Boolean,
+        wasAccountChanged: Boolean
+    ) -> Unit = { _, _, _, _, _ -> },
+    onParseFastInput: (suspend (text: String, defaultAccountId: String?) -> ParsedTransactionDraft)? = null,
+    initialAmountText: String = "",
+    initialNote: String = "",
+    initialSubmitted: Boolean = false,
+    initialFastInputExpanded: Boolean = false,
+    initialSelectedCategoryId: String? = null,
+) {
+
     val state = rememberQuickAddTransactionState(
         categories = categories,
         accounts = accounts,
         initialType = initialType,
         initialAccountId = initialAccountId,
+        initialAmountText = initialAmountText,
+        initialNote = initialNote,
+        initialSubmitted = initialSubmitted,
+        initialFastInputExpanded = initialFastInputExpanded,
+        initialSelectedCategoryId = initialSelectedCategoryId,
         onAddClick = onAddClick,
         onLearnFromFastInput = onLearnFromFastInput
     )
@@ -299,6 +354,11 @@ private fun rememberQuickAddTransactionState(
     accounts: List<Account>,
     initialType: TransactionType,
     initialAccountId: String?,
+    initialAmountText: String = "",
+    initialNote: String = "",
+    initialSubmitted: Boolean = false,
+    initialFastInputExpanded: Boolean = false,
+    initialSelectedCategoryId: String? = null,
     onAddClick: (
         amount: Double,
         categoryId: String?,
@@ -324,13 +384,18 @@ private fun rememberQuickAddTransactionState(
         spacing = AccountCardSpacing
     )
     val initialDateTime = remember { System.currentTimeMillis() }
-    val fastInputExpandedState = rememberSaveable { mutableStateOf(false) }
+    val fastInputExpandedState = rememberSaveable { mutableStateOf(initialFastInputExpanded) }
     val state = remember {
         QuickAddTransactionState(
             initialType = initialType,
             initialDateTime = initialDateTime,
             initialAccountId = initialAccountId,
             initialAccounts = accounts,
+            initialCategories = categories,
+            initialAmountText = initialAmountText,
+            initialNote = initialNote,
+            initialSubmitted = initialSubmitted,
+            initialSelectedCategoryId = initialSelectedCategoryId,
             isFastInputExpandedState = fastInputExpandedState,
             amountFocusRequester = amountFocusRequester,
             accountListState = accountListState,
@@ -368,6 +433,11 @@ private class QuickAddTransactionState(
     private val initialDateTime: Long,
     initialAccountId: String?,
     initialAccounts: List<Account>,
+    initialCategories: List<Category>,
+    initialAmountText: String = "",
+    initialNote: String = "",
+    initialSubmitted: Boolean = false,
+    initialSelectedCategoryId: String? = null,
     private val isFastInputExpandedState: MutableState<Boolean>,
     val amountFocusRequester: FocusRequester,
     val accountListState: LazyListState,
@@ -377,15 +447,15 @@ private class QuickAddTransactionState(
     onLearnFromFastInput: (String, String?, String?, Boolean, Boolean) -> Unit
 ) {
     /** Внешние данные и колбэки */
-    var categories by mutableStateOf<List<Category>>(emptyList())
+    var categories by mutableStateOf(initialCategories)
     var accounts by mutableStateOf(initialAccounts)
     var onAddClick by mutableStateOf(onAddClick)
     var onLearnFromFastInput by mutableStateOf(onLearnFromFastInput)
 
     /* Поля формы */
     var selectedType by mutableStateOf(initialType)
-    var amountText by mutableStateOf("")
-    var note by mutableStateOf("")
+    var amountText by mutableStateOf(initialAmountText)
+    var note by mutableStateOf(initialNote)
     var selectedDateTime by mutableLongStateOf(initialDateTime)
     var selectedAccountId by mutableStateOf(
         resolvePreferredAccountId(initialAccounts, initialAccountId)
@@ -393,12 +463,20 @@ private class QuickAddTransactionState(
     var selectedTargetAccountId by mutableStateOf(
         initialAccounts.firstOrNull { it.id != selectedAccountId }?.id
     )
-    var selectedExpenseCategoryId by mutableStateOf<String?>(null)
-    var selectedIncomeCategoryId by mutableStateOf<String?>(null)
+    var selectedExpenseCategoryId by mutableStateOf(
+        initialSelectedCategoryId?.takeIf { id ->
+            initialCategories.any { it.id == id && it.type == CategoryType.EXPENSE }
+        } ?: initialCategories.firstOrNull { it.type == CategoryType.EXPENSE }?.id
+    )
+    var selectedIncomeCategoryId by mutableStateOf(
+        initialSelectedCategoryId?.takeIf { id ->
+            initialCategories.any { it.id == id && it.type == CategoryType.INCOME }
+        }
+    )
 
     /** UI-состояния диалога и отправки */
     var showDatePicker by mutableStateOf(false)
-    var submitted by mutableStateOf(false)
+    var submitted by mutableStateOf(initialSubmitted)
     private var isSubmitting by mutableStateOf(false)
 
     /** Состояние быстрого ввода и приоритета ручного выбора */
@@ -1134,79 +1212,15 @@ private val previewCategories = listOf(
     Category(id = "cat6", name = "Фриланс", type = CategoryType.INCOME, iconRes = "ic_category_freelance"),
     Category(id = "cat7", name = "Здоровье", type = CategoryType.EXPENSE, iconRes = "ic_category_health")
 )
+
 // 1. Режим «Расход» (Светлая тема)
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(name = "1. Расход - Светлая", showBackground = true)
 @Composable
 private fun QuickAddExpenseLightPreview() {
     FinancetrackerTheme(darkTheme = false) {
-        QuickAddTransactionSheet(
+        QuickAddTransactionContent(
             categories = previewCategories,
             accounts = previewAccounts,
-            initialType = TransactionType.EXPENSE,
-            onDismiss = {},
-            onAddClick = { _, _, _, _, _, _, _ -> },
-            onAddNewAccount = {}
-        )
-    }
-}
-// 2. Режим «Доход» (Светлая тема)
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(name = "2. Доход - Светлая", showBackground = true)
-@Composable
-private fun QuickAddIncomeLightPreview() {
-    FinancetrackerTheme(darkTheme = false) {
-        QuickAddTransactionSheet(
-            categories = previewCategories,
-            accounts = previewAccounts,
-            initialType = TransactionType.INCOME,
-            onDismiss = {},
-            onAddClick = { _, _, _, _, _, _, _ -> },
-            onAddNewAccount = {}
-        )
-    }
-}
-// 3. Режим «Перевод между счетами» (Светлая тема)
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(name = "3. Перевод - Светлая", showBackground = true)
-@Composable
-private fun QuickAddTransferLightPreview() {
-    FinancetrackerTheme(darkTheme = false) {
-        QuickAddTransactionSheet(
-            categories = previewCategories,
-            accounts = previewAccounts,
-            initialType = TransactionType.TRANSFER,
-            onDismiss = {},
-            onAddClick = { _, _, _, _, _, _, _ -> },
-            onAddNewAccount = {}
-        )
-    }
-}
-// 4. Режим «Расход» (Тёмная тема)
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(name = "4. Расход - Тёмная", showBackground = true)
-@Composable
-private fun QuickAddExpenseDarkPreview() {
-    FinancetrackerTheme(darkTheme = true) {
-        QuickAddTransactionSheet(
-            categories = previewCategories,
-            accounts = previewAccounts,
-            initialType = TransactionType.EXPENSE,
-            onDismiss = {},
-            onAddClick = { _, _, _, _, _, _, _ -> },
-            onAddNewAccount = {}
-        )
-    }
-}
-// 5. Состояние без счетов (Светлая тема)
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(name = "5. Нет счетов - Светлая", showBackground = true)
-@Composable
-private fun QuickAddNoAccountsLightPreview() {
-    FinancetrackerTheme(darkTheme = false) {
-        QuickAddTransactionSheet(
-            categories = previewCategories,
-            accounts = emptyList(),
             initialType = TransactionType.EXPENSE,
             onDismiss = {},
             onAddClick = { _, _, _, _, _, _, _ -> },
@@ -1215,9 +1229,115 @@ private fun QuickAddNoAccountsLightPreview() {
     }
 }
 
-// 6. Несколько страниц категорий (Светлая тема)
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(name = "6. Много категорий - Светлая", showBackground = true)
+// 2. Режим «Расход» (Тёмная тема)
+@Preview(name = "2. Расход - Тёмная", showBackground = true)
+@Composable
+private fun QuickAddExpenseDarkPreview() {
+    FinancetrackerTheme(darkTheme = true) {
+        QuickAddTransactionContent(
+            categories = previewCategories,
+            accounts = previewAccounts,
+            initialType = TransactionType.EXPENSE,
+            onDismiss = {},
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
+        )
+    }
+}
+
+// 3. Режим «Доход» с введённой суммой и мини-кнопкой быстрого сохранения
+@Preview(name = "3. Доход - Заполнен", showBackground = true)
+@Composable
+private fun QuickAddIncomeLightPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        QuickAddTransactionContent(
+            categories = previewCategories,
+            accounts = previewAccounts,
+            initialType = TransactionType.INCOME,
+            initialAmountText = "50000",
+            initialSelectedCategoryId = "cat5",
+            onDismiss = {},
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
+        )
+    }
+}
+
+// 4. Режим «Перевод между счетами» (Светлая тема)
+@Preview(name = "4. Перевод - Светлая", showBackground = true)
+@Composable
+private fun QuickAddTransferLightPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        QuickAddTransactionContent(
+            categories = previewCategories,
+            accounts = previewAccounts,
+            initialType = TransactionType.TRANSFER,
+            initialAmountText = "15000",
+            onDismiss = {},
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
+        )
+    }
+}
+
+// 5. Раскрытый быстрый ввод с подсказками и заполненной формой
+@Preview(name = "5. Быстрый ввод - Светлая", showBackground = true)
+@Composable
+private fun QuickAddFastInputExpandedPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        QuickAddTransactionContent(
+            categories = previewCategories,
+            accounts = previewAccounts,
+            initialType = TransactionType.EXPENSE,
+            initialAmountText = "450",
+            initialNote = "Капучино",
+            initialFastInputExpanded = true,
+            initialSelectedCategoryId = "cat2",
+            onDismiss = {},
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
+        )
+    }
+}
+
+// 6. Ошибки валидации: пустая сумма и отсутствие счетов
+@Preview(name = "6. Ошибки: сумма и нет счетов", showBackground = true)
+@Composable
+private fun QuickAddErrorsNoAccountsPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        QuickAddTransactionContent(
+            categories = previewCategories,
+            accounts = emptyList(),
+            initialType = TransactionType.EXPENSE,
+            initialAmountText = "",
+            initialSubmitted = true,
+            onDismiss = {},
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
+        )
+    }
+}
+
+// 7. Ошибка перевода при одном счёте (меньше 2 счетов)
+@Preview(name = "7. Ошибка: перевод с 1 счётом", showBackground = true)
+@Composable
+private fun QuickAddTransferSingleAccountErrorPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        QuickAddTransactionContent(
+            categories = previewCategories,
+            accounts = listOf(previewAccounts.first()),
+            initialType = TransactionType.TRANSFER,
+            initialAmountText = "1000",
+            initialSubmitted = true,
+            onDismiss = {},
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
+        )
+    }
+}
+
+// 8. Несколько страниц категорий (проверка индикатора страниц)
+@Preview(name = "8. Много категорий (2 стр.)", showBackground = true)
 @Composable
 private fun QuickAddMultiPageCategoriesPreview() {
     val manyCategories = previewCategories + listOf(
@@ -1228,10 +1348,29 @@ private fun QuickAddMultiPageCategoriesPreview() {
         Category(id = "cat12", name = "Подарки", type = CategoryType.EXPENSE, iconRes = "ic_category_gift")
     )
     FinancetrackerTheme(darkTheme = false) {
-        QuickAddTransactionSheet(
+        QuickAddTransactionContent(
             categories = manyCategories,
             accounts = previewAccounts,
             initialType = TransactionType.EXPENSE,
+            onDismiss = {},
+            onAddClick = { _, _, _, _, _, _, _ -> },
+            onAddNewAccount = {}
+        )
+    }
+}
+
+// 9. Быстрый ввод и ошибки в тёмной теме
+@Preview(name = "9. Быстрый ввод и ошибки - Тёмная", showBackground = true)
+@Composable
+private fun QuickAddFastInputErrorsDarkPreview() {
+    FinancetrackerTheme(darkTheme = true) {
+        QuickAddTransactionContent(
+            categories = previewCategories,
+            accounts = emptyList(),
+            initialType = TransactionType.EXPENSE,
+            initialAmountText = "0",
+            initialSubmitted = true,
+            initialFastInputExpanded = true,
             onDismiss = {},
             onAddClick = { _, _, _, _, _, _, _ -> },
             onAddNewAccount = {}

@@ -55,7 +55,7 @@ import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.util.rememberHalfWidth
 import com.example.financetracker.feature.home.presentation.components.HomeAccountCard
 import com.example.financetracker.feature.home.presentation.components.HomeHeader
-import com.example.financetracker.feature.home.presentation.components.sheet.AddAccountBottomSheet
+import com.example.financetracker.feature.home.presentation.components.sheet.AddAccount
 import com.example.financetracker.feature.home.presentation.components.transactionDayItems
 import org.koin.androidx.compose.koinViewModel
 
@@ -127,7 +127,7 @@ fun HomeScreen(
  * 2. Карточку общего баланса с доходами и расходами ([AccountBalanceCard]);
  * 3. Горизонтальную карусель счетов пользователя с кнопкой добавления счёта ([HomeAccountsSection]);
  * 4. Сгруппированную по дням ленту последних операций с поддержкой бесконечной пагинации;
- * 5. Всплывающую шторку создания счёта ([AddAccountBottomSheet]).
+ * 5. Всплывающую шторку создания счёта ([AddAccount]).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -320,7 +320,7 @@ fun HomeScreenContent(
     }
 
     if (showAddAccountSheet) {
-        AddAccountBottomSheet(
+        AddAccount(
             onDismiss = { showAddAccountSheet = false },
             onAddClick = { name, initialBalance, isDefault, type ->
                 onAddAccount(
@@ -337,6 +337,7 @@ fun HomeScreenContent(
             onGetAccountTransactions = onGetAccountTransactions,
             categories = uiState.categories,
             deletedAccounts = uiState.deletedAccounts,
+            accounts = uiState.accounts,
         )
     }
 }
