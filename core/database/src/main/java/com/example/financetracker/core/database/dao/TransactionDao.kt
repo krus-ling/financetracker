@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.financetracker.core.database.entity.TransactionEntity
+import com.example.financetracker.core.model.MonthlySummary
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -29,4 +30,27 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE accountId = :accountId OR targetAccountId = :accountId ORDER BY dateTime DESC LIMIT :limit")
     suspend fun getTransactionsByAccountId(accountId: Long, limit: Int = 10): List<TransactionEntity>
+
+    // Доходы и расходы за период по всем счетам (переводы не учитываются в доходах/расходах)
+    @Query("""
+        SELECT
+            COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount ELSE 0.0 END), 0.0) AS income,
+            COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0.0 END), 0.0) AS expense
+        FROM transactions
+        WHERE isDeleted = 0
+            AND dateTime >= :startTime AND dateTime < :endTime
+    """)
+    fun getMonthlySummary(startTime: Long, endTime: Long): Flow<MonthlySummary>
+
+    // Доходы и расходы за период для конкретного счёта
+    @Query("""
+        SELECT 
+            COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount ELSE 0.0 END), 0.0) AS income,
+            COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0.0 END), 0.0) AS expense
+        FROM transactions 
+        WHERE isDeleted = 0 
+          AND dateTime >= :startTime AND dateTime < :endTime
+          AND (accountId = :accountId OR targetAccountId = :accountId)
+    """)
+    fun getMonthlySummaryByAccountId(accountId: Long, startTime: Long, endTime: Long): Flow<MonthlySummary>
 }

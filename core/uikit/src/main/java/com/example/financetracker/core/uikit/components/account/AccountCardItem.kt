@@ -1,36 +1,43 @@
 package com.example.financetracker.core.uikit.components.account
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import com.example.financetracker.core.uikit.R
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.financetracker.core.uikit.components.category.CategoryIcon
 import com.example.financetracker.core.uikit.components.icon.AppCircleIcon
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
+import com.example.financetracker.core.uikit.theme.StarGold
 import com.example.financetracker.core.uikit.util.AmountFormatter
-import kotlin.math.abs
 
 
 /**
@@ -40,12 +47,13 @@ import kotlin.math.abs
 fun AccountCardItem(
     title: String, // Текстовое название счёта
     balance: Double, // Числовое значение баланса
-    accountIcon: ImageVector, // Иконка, которая будет отображаться в левом верхнем углу карточки
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier.width(160.dp),
+    @DrawableRes accountIcon: Int = R.drawable.ic_account_card,
     isSelected: Boolean = false,
     containerColor: Color = MaterialTheme.colorScheme.surface, // Цвет фона самой карточки
     contentColor: Color? = null, // параметр для цвета текста
-    onClick: () -> Unit // Функция обратного вызова
+    onClick: () -> Unit, // Функция обратного вызова
+    isDefault: Boolean = false,
 ) {
     val formattedBalance = remember(balance) {
         AmountFormatter.format(balance)
@@ -57,9 +65,7 @@ fun AccountCardItem(
 
     Card(
         onClick = onClick, // делает интерактивной
-        modifier = modifier
-            .width(160.dp) // фикс размеры
-            .height(100.dp),
+        modifier = modifier.height(100.dp),
         shape = RoundedCornerShape(16.dp), // скругление углов
         colors = CardDefaults.cardColors(containerColor = containerColor), // цвет фона
         // Добавляем обводку (рамку), если карточка выбрана
@@ -82,13 +88,31 @@ fun AccountCardItem(
             } else {
                 PrimaryTint
             }
-            // Иконка в левом верхнем углу
-            AppCircleIcon(
-                icon = accountIcon,
-                backgroundColor = iconBgColor,
-                iconTint = Primary, // цвет иконки
-                size = 32.dp
-            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Иконка счета
+                AppCircleIcon(
+                    iconRes = accountIcon,
+                    backgroundColor = iconBgColor,
+                    iconTint = Primary, // цвет иконки
+                    size = 32.dp
+                )
+
+                // Звездочка для счета по умолчанию
+                if (isDefault) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_star_filled),
+                        contentDescription = "Счёт по умолчанию",
+                        tint = StarGold,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(2.dp) // отступ между названием и цифрами
@@ -123,7 +147,8 @@ fun AccountCardItemLightPreview() {
         AccountCardItem(
             title = "Основная карта",
             balance = -86780.0,
-            accountIcon = Icons.Default.CreditCard,
+            accountIcon = R.drawable.ic_account_card,
+            isDefault = true,
             onClick = {}
         )
     }
@@ -136,7 +161,7 @@ fun AccountCardItemDarkPreview() {
         AccountCardItem(
             title = "Основная карта",
             balance = 86780.05,
-            accountIcon = Icons.Default.CreditCard,
+            accountIcon = R.drawable.ic_account_savings,
             onClick = {}
         )
     }

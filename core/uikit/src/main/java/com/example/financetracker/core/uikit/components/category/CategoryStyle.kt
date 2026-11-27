@@ -66,7 +66,7 @@ object CategoryStyleRegistry {
         iconColor = Color(0xFF6D7F3A)
     )
     val Other = CategoryStyle(
-        iconResId = R.drawable.ic_category_other,
+        iconResId = R.drawable.ic_other,
         backgroundColor = Color(0xFFECEEED),
         iconColor = Color(0xFF7C8784)
     )
@@ -116,7 +116,7 @@ object CategoryStyleRegistry {
             "ic_category_percent" -> Percent
             "ic_category_cashback", "coins" -> Cashback
             "ic_category_settings" -> Settings
-            "ic_category_other", "more_horiz", "other" -> Other
+            "ic_other", "ic_category_other", "more_horiz", "other" -> Other
             else -> Other
         }
     }

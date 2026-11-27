@@ -3,9 +3,11 @@ package com.example.financetracker.core.database.di
 import com.example.financetracker.core.database.AppDatabase
 import com.example.financetracker.core.database.repository.AccountRepositoryImpl
 import com.example.financetracker.core.database.repository.CategoryRepositoryImpl
+import com.example.financetracker.core.database.repository.KeywordRepositoryImpl
 import com.example.financetracker.core.database.repository.TransactionRepositoryImpl
 import com.example.financetracker.core.model.repository.AccountRepository
 import com.example.financetracker.core.model.repository.CategoryRepository
+import com.example.financetracker.core.model.repository.KeywordRepository
 import com.example.financetracker.core.model.repository.TransactionRepository
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
@@ -18,6 +20,7 @@ val databaseModule = module {
     single { get<AppDatabase>().accountDao() }
     single { get<AppDatabase>().categoryDao() }
     single { get<AppDatabase>().transactionDao() }
+    single { get<AppDatabase>().keywordDao() }
 
     // Репозитории
     single<AccountRepository> {
@@ -33,5 +36,14 @@ val databaseModule = module {
             accountDao = get()
         )
     }
-    single<CategoryRepository> { CategoryRepositoryImpl(categoryDao = get()) }
+    single<CategoryRepository> {
+        CategoryRepositoryImpl(
+            categoryDao = get()
+        )
+    }
+    single<KeywordRepository> {
+        KeywordRepositoryImpl(
+            keywordDao = get()
+        )
+    }
 }

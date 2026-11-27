@@ -6,6 +6,7 @@ import com.example.financetracker.core.database.entity.AccountEntity
 import com.example.financetracker.core.database.mapper.toDomain
 import com.example.financetracker.core.database.mapper.toEntity
 import com.example.financetracker.core.model.Account
+import com.example.financetracker.core.model.AccountType
 import com.example.financetracker.core.model.repository.AccountRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -32,6 +33,8 @@ class AccountRepositoryImpl(
                     balance = 0.0,
                     currency = "RUB",
                     colorHex = "#0F5C4A",
+                    type = AccountType.CARD,
+                    isDefault = true,
                     isDeleted = false
                 )
             )
@@ -42,17 +45,33 @@ class AccountRepositoryImpl(
         return id.toLongOrNull()?.let { getAccountById(it) }
     }
 
-    override suspend fun createAccount(name: String, initialBalance: Double, currency: String): Long {
+    override suspend fun createAccount(
+        name: String,
+        initialBalance: Double,
+        currency: String,
+        isDefault: Boolean,
+        type: AccountType,
+    ): Long {
+        val isFirst = accountDao.getCount() == 0
+        val shouldBeDefault = isDefault || isFirst
+        if (shouldBeDefault) {
+            accountDao.clearDefaultAccount()
+        }
         return accountDao.insertAccount(
             AccountEntity(
                 name = name,
                 balance = initialBalance,
-                currency = currency
+                currency = currency,
+                type = type,
+                isDefault = shouldBeDefault
             )
         )
     }
 
     override suspend fun updateAccount(account: Account) {
+        if (account.isDefault) {
+            accountDao.clearDefaultAccount()
+        }
         accountDao.updateAccount(account.toEntity())
     }
 
@@ -91,5 +110,14 @@ class AccountRepositoryImpl(
         val accountId = id.toLongOrNull() ?: return
         transactionDao.deleteTransactionsByAccountId(accountId)
         accountDao.deleteAccountById(accountId)
+    }
+
+    override suspend fun setDefaultAccount(id: String, isDefault: Boolean) {
+        val accountId = id.toLongOrNull() ?: return
+        if (isDefault) {
+            accountDao.setAccountAsDefault(accountId)
+        } else {
+            accountDao.updateDefaultStatus(accountId, false)
+        }
     }
 }

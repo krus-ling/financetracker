@@ -38,16 +38,15 @@ import com.example.financetracker.core.uikit.theme.PrimaryTint
  */
 @Composable
 fun AddAccountCardItem(
+    modifier: Modifier = Modifier.width(160.dp),
     title: String = "Добавить счёт",
     accountIcon: ImageVector = Icons.Default.Add,
-    modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
     onClick: () -> Unit
 ) {
     Card(
         modifier = modifier
-            .width(160.dp)
             .height(100.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),

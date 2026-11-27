@@ -1,11 +1,16 @@
 package com.example.financetracker.core.uikit.components.input
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,7 +22,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 
 @Composable
 fun AmountInputField(
@@ -111,3 +119,52 @@ fun AmountInputField(
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
     )
 }
+
+@Preview(name = "Light Theme", showBackground = true)
+@Composable
+private fun AmountInputFieldLightPreview() {
+    FinancetrackerTheme(darkTheme = false) {
+        Surface {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                AmountInputField(
+                    value = "1500",
+                    onValueChange = {}
+                )
+                AmountInputField(
+                    value = "",
+                    onValueChange = {},
+                    isError = true,
+                    errorMessage = "Укажите сумму"
+                )
+            }
+        }
+    }
+}
+
+@Preview(name = "Dark Theme", showBackground = true)
+@Composable
+private fun AmountInputFieldDarkPreview() {
+    FinancetrackerTheme(darkTheme = true) {
+        Surface {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                AmountInputField(
+                    value = "1500",
+                    onValueChange = {}
+                )
+                AmountInputField(
+                    value = "",
+                    onValueChange = {},
+                    isError = true,
+                    errorMessage = "Укажите сумму"
+                )
+            }
+        }
+    }
+}
+

@@ -49,4 +49,23 @@ interface AccountDao {
 
     @Query("UPDATE accounts SET isDeleted = 0, deletedAt = NULL WHERE id = :id")
     suspend fun restoreAccount(id: Long)
+
+    // Сбросить дефолтный статус у всех счетов
+    @Query("UPDATE accounts SET isDefault = 0 WHERE isDefault = 1")
+    suspend fun clearDefaultAccount()
+
+    // Назначить счет дефолтным
+    @Query("UPDATE accounts SET isDefault = 1 WHERE id = :accountId")
+    suspend fun setDefaultAccount(accountId: Long)
+
+    // Автоматическое переключение дефолтного счета в одной транзакции
+    @androidx.room.Transaction
+    suspend fun setAccountAsDefault(accountId: Long) {
+        clearDefaultAccount()
+        setDefaultAccount(accountId)
+    }
+
+    // Снять или установить статус по id
+    @Query("UPDATE accounts SET isDefault = :isDefault WHERE id = :accountId")
+    suspend fun updateDefaultStatus(accountId: Long, isDefault: Boolean)
 }

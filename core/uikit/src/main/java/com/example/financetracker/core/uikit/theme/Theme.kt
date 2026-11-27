@@ -24,7 +24,8 @@ private val LightColorScheme = lightColorScheme(
     onSurfaceVariant = InkSecondary,    // второстепенный текст и подписи
 
     surfaceVariant = Surface2Light,     // мягкие подложки
-    outline = Line                      // границы
+    outline = Line,                     // границы
+    outlineVariant = Line               // границы вариантов
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -41,7 +42,8 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant = InkSecondaryDark,// приглушенный текст в темноте
 
     surfaceVariant = Surface2Dark,
-    outline = LineDark
+    outline = LineDark,
+    outlineVariant = LineDark
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),

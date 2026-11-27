@@ -4,5 +4,6 @@ enum class AccountType(val title: String) {
     CARD("Карта"),
     CASH("Наличные"),
     SAVINGS("Накопления"),
+    INVESTMENT("Инвестиции"),
     OTHER("Другое")
 }

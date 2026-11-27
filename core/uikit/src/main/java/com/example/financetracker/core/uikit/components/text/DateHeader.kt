@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
@@ -30,12 +31,13 @@ import kotlin.math.abs
 fun DateHeader(
     title: String,
     dailyTotal: Double,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    horizontalPadding: Dp = 20.dp
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 6.dp),
+            .padding(horizontal = horizontalPadding, vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

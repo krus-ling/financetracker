@@ -22,9 +22,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -57,12 +56,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.financetracker.core.model.Account
 import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.Transaction
+import com.example.financetracker.core.uikit.components.account.getIconRes
 import com.example.financetracker.core.uikit.components.button.AppPrimaryButton
 import com.example.financetracker.core.uikit.components.button.AppSecondaryButton
 import com.example.financetracker.core.uikit.components.text.AmountText
@@ -110,7 +111,7 @@ fun TrashScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBackIos,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Назад"
                         )
                     }
@@ -216,7 +217,7 @@ fun TrashScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.CreditCard,
+                                        painter = painterResource(account.type.getIconRes()),
                                         contentDescription = null,
                                         tint = Primary,
                                         modifier = Modifier.size(22.dp)
@@ -234,13 +235,16 @@ fun TrashScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     val dateStr = account.deletedAt?.let { dateFormat.format(Date(it)) }
-                                    if (dateStr != null) {
-                                        Text(
-                                            text = "Удалён: $dateStr",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                    val subtitleText = if (dateStr != null) {
+                                        "${account.type.title} · Удалён: $dateStr"
+                                    } else {
+                                        account.type.title
                                     }
+                                    Text(
+                                        text = subtitleText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
 
                                 AmountText(

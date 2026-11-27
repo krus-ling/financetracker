@@ -6,10 +6,12 @@ import com.example.financetracker.core.database.dao.AccountDao
 import com.example.financetracker.core.database.dao.TransactionDao
 import com.example.financetracker.core.database.mapper.toDomain
 import com.example.financetracker.core.database.mapper.toEntity
+import com.example.financetracker.core.model.MonthlySummary
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.model.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 class TransactionRepositoryImpl(
@@ -62,5 +64,18 @@ class TransactionRepositoryImpl(
         return transactionDao
             .getTransactionsByAccountId(id, limit)
             .map { it.toDomain() }
+    }
+
+    override fun getMonthlySummary(startTime: Long, endTime: Long): Flow<MonthlySummary> {
+        return transactionDao.getMonthlySummary(startTime, endTime)
+    }
+
+    override fun getMonthlySummaryByAccountId(
+        accountId: String,
+        startTime: Long,
+        endTime: Long
+    ): Flow<MonthlySummary> {
+        val id = accountId.toLongOrNull() ?: return flowOf(MonthlySummary())
+        return transactionDao.getMonthlySummaryByAccountId(id, startTime, endTime)
     }
 }

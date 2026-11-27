@@ -182,7 +182,7 @@ Features are strictly isolated horizontally and do **not** depend on each other.
 - **`navigation/MainScaffold.kt`**: Root orchestrator:
   - Hosts `HorizontalPager` with 3 tabs (`NavTab`).
   - Hosts `NavDisplay` for detailed screens (`AccountDetail`, `Categories`).
-  - Holds modal bottom sheets (`QuickAddTransactionSheet`, `AddAccountBottomSheet`).
+  - Holds modal bottom sheets (`QuickAddTransactionSheet`, `AddAccount`).
 - **`navigation/BottomNavBar.kt`**: Material 3 bottom navigation bar with icons and animated transitions.
 
 ---

@@ -1,4 +1,4 @@
-package com.example.financetracker.feature.home.components
+package com.example.financetracker.feature.home.presentation.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CreditCard
@@ -10,6 +10,7 @@ import com.example.financetracker.core.model.Category
 import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountCardItem
+import com.example.financetracker.core.uikit.components.account.getIconRes
 import com.example.financetracker.core.uikit.components.transaction.TransactionRowItem
 import com.example.financetracker.core.uikit.theme.TransferBlue
 import com.example.financetracker.core.uikit.theme.TransferSoft
@@ -23,7 +24,8 @@ fun HomeAccountCard(
     AccountCardItem(
         title = account.name,
         balance = account.balance,
-        accountIcon = Icons.Default.CreditCard,
+        accountIcon = account.type.getIconRes(),
+        isDefault = account.isDefault,
         modifier = modifier,
         onClick = onClick
     )
