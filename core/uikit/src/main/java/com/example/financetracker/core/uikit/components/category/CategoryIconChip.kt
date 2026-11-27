@@ -42,6 +42,7 @@ import com.example.financetracker.core.uikit.theme.PrimaryTint
  * @param title Название категории.
  * @param isSelected Выбрана ли категория пользователем.
  * @param onClick Обработчик клика.
+ * @param enabled Доступна ли карточка для нажатия.
  */
 @Composable
 fun CategoryIconChip(
@@ -49,7 +50,8 @@ fun CategoryIconChip(
     title: String,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val style = remember(iconRes) { CategoryStyleRegistry.getStyle(iconRes) }
     CategoryIconChip(
@@ -57,7 +59,8 @@ fun CategoryIconChip(
         title = title,
         isSelected = isSelected,
         onClick = onClick,
-        modifier = modifier
+        modifier = modifier,
+        enabled = enabled
     )
 }
 
@@ -70,7 +73,8 @@ fun CategoryIconChip(
     title: String,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     // Фоновая подложка выделенной карточки
     val containerBg = if (isSelected) PrimaryTint else Color.Transparent
@@ -81,7 +85,7 @@ fun CategoryIconChip(
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(containerBg)
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 6.dp, horizontal = 4.dp)
     ) {
         // Контейнер кружка с обводкой при выборе

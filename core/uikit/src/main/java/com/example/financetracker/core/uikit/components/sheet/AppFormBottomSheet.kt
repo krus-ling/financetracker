@@ -28,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +39,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -76,6 +78,11 @@ import androidx.compose.ui.platform.LocalInspectionMode
  * - Автоматический сброс скролла наверх к заголовку при скрытии клавиатуры;
  * - Снятие фокуса при скрытии клавиатуры по системной кнопке «Назад».
  */
+
+/**
+ * Колбэк плавного программного закрытия текущей [AppFormBottomSheet].
+ */
+val LocalAppFormSheetDismiss = staticCompositionLocalOf<() -> Unit> { {} }
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AppFormBottomSheet(
@@ -380,7 +387,10 @@ fun AppFormBottomSheet(
             }
 
             // Контент формы
-            content(clearAllFocus)
+            val dismissSheet = remember(animateDismiss) { { animateDismiss(null) } }
+            CompositionLocalProvider(LocalAppFormSheetDismiss provides dismissSheet) {
+                content(clearAllFocus)
+            }
 
             // Подвал шторки: кнопки «Назад» и действия
             val hasCancel = cancelButtonText != null
