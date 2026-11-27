@@ -274,8 +274,13 @@ fun MainScaffoldContent(
                 }
 
                 is ScreenKey.AccountDetail -> NavEntry(key) {
-                    val account = currentHomeUiState.accounts.find { it.id == key.accountId }
-                        ?: currentHomeUiState.deletedAccounts.find { it.id == key.accountId }
+                    val allAccounts = remember(
+                        currentHomeUiState.accounts,
+                        currentHomeUiState.deletedAccounts
+                    ) {
+                        currentHomeUiState.accounts + currentHomeUiState.deletedAccounts
+                    }
+                    val account = allAccounts.find { it.id == key.accountId}
                     if (account != null) {
                         AccountDetailScreen(
                             account = account,
@@ -285,7 +290,7 @@ fun MainScaffoldContent(
                             onToggleDefaultAccount = onToggleDefaultAccount,
                             transactions = currentHomeUiState.recentTransaction,
                             categories = currentHomeUiState.categories,
-                            accounts = currentHomeUiState.accounts + currentHomeUiState.deletedAccounts,
+                            accounts = allAccounts,
                             monthName = currentHomeUiState.currentMonthName,
                             onActionClick = { type ->
                                 showQuickAdd = true

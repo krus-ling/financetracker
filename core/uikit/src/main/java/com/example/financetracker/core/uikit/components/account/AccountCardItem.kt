@@ -36,6 +36,7 @@ import com.example.financetracker.core.uikit.components.icon.AppCircleIcon
 import com.example.financetracker.core.uikit.theme.FinancetrackerTheme
 import com.example.financetracker.core.uikit.theme.Primary
 import com.example.financetracker.core.uikit.theme.PrimaryTint
+import com.example.financetracker.core.uikit.theme.StarGold
 import com.example.financetracker.core.uikit.util.AmountFormatter
 
 
@@ -106,7 +107,7 @@ fun AccountCardItem(
                     Icon(
                         painter = painterResource(R.drawable.ic_star_filled),
                         contentDescription = "Счёт по умолчанию",
-                        tint = Color(0xFFFFB800),
+                        tint = StarGold,
                         modifier = Modifier.size(20.dp)
                     )
                 }
