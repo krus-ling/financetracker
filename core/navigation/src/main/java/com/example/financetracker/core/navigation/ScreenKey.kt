@@ -10,12 +10,6 @@ sealed interface ScreenKey : NavKey {
     data object Home : ScreenKey
 
     @Serializable
-    data object Analytics : ScreenKey
-
-    @Serializable
-    data object Profile : ScreenKey
-
-    @Serializable
     data class AccountDetail(val accountId: String) : ScreenKey
 
     @Serializable

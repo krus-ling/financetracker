@@ -6,12 +6,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
@@ -27,6 +30,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
@@ -151,140 +155,106 @@ fun MainScaffoldContent(
     onParseFastInput: (suspend (text: String, defaultAccountId: String?) -> ParsedTransactionDraft)? = null,
     onClearError: () -> Unit = {}
 ) {
+
     // Стек навигации Navigation 3 для детальных экранов (автоматически переживает поворот экрана и смерть процесса)
     val backStack = rememberNavBackStack(ScreenKey.Home)
-    val navigateBackSafely = {
+
+    val navigateTo: (ScreenKey) -> Unit = { targetKey ->
+        if (backStack.lastOrNull() != targetKey) {
+            backStack.add(targetKey)
+        }
+    }
+    val navigateBackSafely: () -> Unit = {
         if (backStack.size > 1) {
             backStack.removeLastOrNull()
         }
     }
-    val currentKey = backStack.lastOrNull() ?: ScreenKey.Home
-    val currentHomeUiState by rememberUpdatedState(homeUiState)
-
-    // Детальный экран скрывает нижний бар и FAB
-    val isDetailOpen = currentKey is ScreenKey.AccountDetail || currentKey is ScreenKey.Categories || currentKey is ScreenKey.Trash
-
-    // Пейджер для горизонтального свайпа между тремя вкладками
-    val pagerState = rememberPagerState(
-        initialPage = 0,
-        pageCount = { NavTab.entries.size }
-    )
-    val coroutineScope = rememberCoroutineScope()
-
-    var showQuickAdd by remember { mutableStateOf(false) }
-    var quickAddType by remember { mutableStateOf(TransactionType.EXPENSE) }
-    var quickAddAccountId by remember { mutableStateOf<String?>(null) }
-    var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
-
-    // Активная вкладка синхронизирована с целевой страницей свайпа
-    val currentTab = NavTab.entries[pagerState.targetPage]
-
-    // Нажатие Назад на Аналитике или Профиле возвращает на Главную
-    BackHandler(enabled = !isDetailOpen && pagerState.currentPage != 0) {
-        coroutineScope.launch {
-            pagerState.animateScrollToPage(0)
+    val popScreen: (ScreenKey) -> Unit = { expectedKey ->
+        if (backStack.size > 1 && backStack.lastOrNull() == expectedKey) {
+            backStack.removeLastOrNull()
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            if (!isDetailOpen) {
-                BottomNavBar(
-                    currentTab,
-                    onTabSelected = { tab ->
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(tab.ordinal)
-                        }
-                    }
-                )
-            }
-        },
-        floatingActionButton = {
-            // Кнопка «+» плавно появляется только на Главной вкладке
-            AnimatedVisibility(
-                visible = !isDetailOpen && pagerState.currentPage == 0,
-                enter = scaleIn() + fadeIn(),
-                exit = scaleOut() + fadeOut()
-            ) {
-                FloatingActionButton(
-                    onClick = {
+    val currentKey = backStack.lastOrNull() ?: ScreenKey.Home
+    val currentHomeUiState by rememberUpdatedState(homeUiState)
+
+    // Скрытый detail-экран отключает локальный BackHandler вкладок во время анимации выхода
+    val isDetailOpen = currentKey != ScreenKey.Home
+    val currentIsDetailOpen by rememberUpdatedState(isDetailOpen)
+
+    var showQuickAdd by rememberSaveable { mutableStateOf(false) }
+    var quickAddType by rememberSaveable { mutableStateOf(TransactionType.EXPENSE) }
+    var quickAddAccountId by rememberSaveable { mutableStateOf<String?>(null) }
+    var showAddAccountSheet by rememberSaveable { mutableStateOf(false) }
+
+    // NavDisplay отрисовывает экраны, задаёт общие переходы и управляет системным "Назад"
+    NavDisplay(
+        backStack = backStack,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        onBack = navigateBackSafely,
+        transitionSpec = NavigationTransitions.horizontalPush(),
+        popTransitionSpec = NavigationTransitions.horizontalPop(),
+        predictivePopTransitionSpec = NavigationTransitions.horizontalPredictivePop()
+    ) { key ->
+        when (key) {
+            // Основной экран с горизонтальным свайпом вкладок и нижней панелью
+            is ScreenKey.Home -> NavEntry(key) {
+                MainTabsContent(
+                    homeUiState = currentHomeUiState,
+                    isBackHandlerEnabled = !currentIsDetailOpen,
+                    onCreateAccount = onCreateAccount,
+                    onAccountClick = { accountId ->
+                        navigateTo(ScreenKey.AccountDetail(accountId))
+                    },
+                    onCheckDeletedAccount = onCheckDeletedAccount,
+                    onRestoreAccount = onRestoreAccount,
+                    onPurgeAccount = onPurgeAccount,
+                    onGetAccountTransactions = onGetAccountTransactions,
+                    onLoadMore = onLoadMore,
+                    onClearError = onClearError,
+                    onOpenCategories = {
+                        navigateTo(ScreenKey.Categories)
+                    },
+                    onOpenTrash = {
+                        navigateTo(ScreenKey.Trash)
+                    },
+                    onAddTransactionClick = {
                         quickAddType = TransactionType.EXPENSE
                         quickAddAccountId = null
                         showQuickAdd = true
-                    },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Добавить операцию")
-                }
+                    }
+                )
             }
-        },
-        floatingActionButtonPosition = FabPosition.Center,
-        containerColor = MaterialTheme.colorScheme.background
 
-    ) { innerPadding ->
-        // NavDisplay отрисовывает экраны и автоматически управляет системным «Назад»
-        NavDisplay(
-            backStack = backStack,
-            modifier = Modifier.fillMaxSize(),
-            onBack = navigateBackSafely
-        ) { key ->
-            when (key) {
-                // Основной экран с горизонтальным свайпом вкладок
-                is ScreenKey.Home, is ScreenKey.Analytics, is ScreenKey.Profile -> NavEntry(key) {
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxSize(),
-                        beyondViewportPageCount = 1 // Предварительная загрузка соседних вкладок для 120 fps
-                    ) { page ->
-                        when (page) {
-                            0 -> HomeScreenContent(
-                                uiState = currentHomeUiState,
-                                contentPadding = innerPadding,
-                                onAddAccount = onCreateAccount,
-                                onAccountClick = { accountId ->
-                                    val targetKey = ScreenKey.AccountDetail(accountId)
-                                    if (backStack.lastOrNull() != targetKey) {
-                                        backStack.add(targetKey)
-                                    }
-                                },
-                                onCheckDeletedAccount = onCheckDeletedAccount,
-                                onRestoreDeletedAccount = onRestoreAccount,
-                                onPurgeDeletedAccount = onPurgeAccount,
-                                onGetAccountTransactions = { id -> onGetAccountTransactions(id, 100) },
-                                onLoadMore = onLoadMore,
-                                onClearError = onClearError,
-                            )
+            is ScreenKey.AccountDetail -> NavEntry(key) {
+                val allAccounts = remember(
+                    currentHomeUiState.accounts,
+                    currentHomeUiState.deletedAccounts
+                ) {
+                    currentHomeUiState.accounts + currentHomeUiState.deletedAccounts
+                }
+                val matchedAccount = allAccounts.find { it.id == key.accountId}
+                var cachedAccount by remember(key) { mutableStateOf(matchedAccount) }
+                val isCurrentEntry = backStack.lastOrNull() == key
 
-                            1 -> AnalyticsScreen(
-                                Modifier.padding(innerPadding)
-                            )
-
-                            2 -> ProfileScreen(
-                                modifier = Modifier.padding(innerPadding),
-                                onOpenCategories = {
-                                    backStack.add(ScreenKey.Categories)
-                                },
-                                onOpenTrash = {
-                                    backStack.add(ScreenKey.Trash)
-                                }
-                            )
-                        }
-                    }
+                // Фиксируем снимок счета на время анимации выхода, чтобы после удаления
+                // интерфейс не перепрыгивал в вид "из корзины" прямо во время сдвига
+                if (isCurrentEntry && matchedAccount != null) {
+                    cachedAccount = matchedAccount
+                }
+                val displayAccount = if (isCurrentEntry) {
+                    matchedAccount
+                } else {
+                    cachedAccount ?: matchedAccount
                 }
 
-                is ScreenKey.AccountDetail -> NavEntry(key) {
-                    val allAccounts = remember(
-                        currentHomeUiState.accounts,
-                        currentHomeUiState.deletedAccounts
-                    ) {
-                        currentHomeUiState.accounts + currentHomeUiState.deletedAccounts
-                    }
-                    val account = allAccounts.find { it.id == key.accountId}
-                    if (account != null) {
+                when {
+                    displayAccount != null -> {
                         AccountDetailScreen(
-                            account = account,
-                            onBack = navigateBackSafely,
+                            account = displayAccount,
+                            onBack = { popScreen(key) },
                             onSave = onUpdateAccount,
                             onDelete = onDeleteAccount,
                             onToggleDefaultAccount = onToggleDefaultAccount,
@@ -295,45 +265,60 @@ fun MainScaffoldContent(
                             onActionClick = { type ->
                                 showQuickAdd = true
                                 quickAddType = type
-                                quickAddAccountId = account.id
+                                quickAddAccountId = displayAccount.id
                             },
                             onGetAccountTransactions = onGetAccountTransactions,
                             onGetAccountMonthlySummary = onGetAccountMonthlySummary,
                         )
-                    } else {
-                        // Если аккаунт не найден (например, удален), корректно возвращаемся назад
-                        LaunchedEffect(Unit) {
-                            navigateBackSafely()
+                    }
+
+                    currentHomeUiState.isLoading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    else -> {
+                        // Если аккаунт отсутствует уже после загрузки — безопасно закрываем экран
+                        LaunchedEffect(key, isCurrentEntry) {
+                            if (isCurrentEntry) {
+                                popScreen(key)
+                            }
                         }
                     }
                 }
-
-                is ScreenKey.Categories -> NavEntry(key) {
-                    CategoriesScreen(
-                        categories = currentHomeUiState.categories,
-                        onBack = navigateBackSafely,
-                        onSaveBudgetLimit = onSaveCategoryBudget,
-                        onCreateCategory = onCreateCategory,
-                        onDeleteCategory = onDeleteCategory
-                    )
-                }
-
-                is ScreenKey.Trash -> NavEntry(key) {
-                    TrashScreen(
-                        deletedAccounts = currentHomeUiState.deletedAccounts,
-                        categories = currentHomeUiState.categories,
-                        onBack = navigateBackSafely,
-                        onRestoreAccount = onRestoreAccount,
-                        onPurgeAccount = onPurgeAccount,
-                        onGetAccountTransactions = { id -> onGetAccountTransactions(id, 100) },
-                        onOpenAccountDetails = { accountId ->
-                            backStack.add(ScreenKey.AccountDetail(accountId))
-                        }
-                    )
-                }
-
-                else -> NavEntry(key) {}
             }
+
+            is ScreenKey.Categories -> NavEntry(key) {
+                CategoriesScreen(
+                    categories = currentHomeUiState.categories,
+                    onBack = { popScreen(key) },
+                    onSaveBudgetLimit = onSaveCategoryBudget,
+                    onCreateCategory = onCreateCategory,
+                    onDeleteCategory = onDeleteCategory
+                )
+            }
+
+            is ScreenKey.Trash -> NavEntry(key) {
+                TrashScreen(
+                    deletedAccounts = currentHomeUiState.deletedAccounts,
+                    categories = currentHomeUiState.categories,
+                    onBack = { popScreen(key) },
+                    onRestoreAccount = onRestoreAccount,
+                    onPurgeAccount = onPurgeAccount,
+                    onGetAccountTransactions = { id -> onGetAccountTransactions(id, 100) },
+                    onOpenAccountDetails = { accountId ->
+                        navigateTo(ScreenKey.AccountDetail(accountId))
+                    }
+                )
+            }
+
+            else -> NavEntry(key) {}
         }
     }
 
@@ -393,6 +378,103 @@ fun MainScaffoldContent(
             deletedAccounts = currentHomeUiState.deletedAccounts,
             accounts = currentHomeUiState.accounts,
         )
+    }
+}
+
+@Composable
+private fun MainTabsContent(
+    homeUiState: HomeUiState,
+    isBackHandlerEnabled: Boolean,
+    onCreateAccount: (String, Double, Boolean, AccountType) -> Unit,
+    onAccountClick: (String) -> Unit,
+    onCheckDeletedAccount: suspend (String) -> Account?,
+    onRestoreAccount: (String) -> Unit,
+    onPurgeAccount: (String) -> Unit,
+    onGetAccountTransactions: suspend (String, Int) -> List<Transaction>,
+    onLoadMore: () -> Unit,
+    onClearError: () -> Unit,
+    onOpenCategories: () -> Unit,
+    onOpenTrash: () -> Unit,
+    onAddTransactionClick: () -> Unit
+) {
+    // Пейджер для горизонтального свайпа между тремя вкладками
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = { NavTab.entries.size }
+    )
+    val coroutineScope = rememberCoroutineScope()
+
+    // Активная вкладка синхронизирована с целевой страницей свайпа
+    val currentTab = NavTab.entries[pagerState.targetPage]
+
+    // Нажатие Назад на Аналитике или Профиле возвращает на Главную
+    BackHandler(enabled = isBackHandlerEnabled && pagerState.targetPage != 0) {
+        coroutineScope.launch {
+            pagerState.animateScrollToPage(0)
+        }
+    }
+
+    Scaffold(
+        bottomBar = {
+            BottomNavBar(
+                currentTab = currentTab,
+                onTabSelected = { tab ->
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(tab.ordinal)
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            // Кнопка + плавно появляется только на Главной странице
+            AnimatedVisibility(
+                visible = pagerState.targetPage == 0,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut()
+            ) {
+                FloatingActionButton(
+                    onClick = onAddTransactionClick,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Добавить операцию")
+                }
+            }
+        },
+        floatingActionButtonPosition = FabPosition.Center,
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            // Предварительная загрузка соседних вкладок для 120 fps
+            beyondViewportPageCount = 1
+        ) { page ->
+            when (page) {
+                0 -> HomeScreenContent(
+                    uiState = homeUiState,
+                    contentPadding = innerPadding,
+                    onAddAccount = onCreateAccount,
+                    onAccountClick = onAccountClick,
+                    onCheckDeletedAccount = onCheckDeletedAccount,
+                    onRestoreDeletedAccount = onRestoreAccount,
+                    onPurgeDeletedAccount = onPurgeAccount,
+                    onGetAccountTransactions = { id -> onGetAccountTransactions(id, 100) },
+                    onLoadMore = onLoadMore,
+                    onClearError = onClearError,
+                )
+
+                1 -> AnalyticsScreen(
+                    Modifier.padding(innerPadding)
+                )
+
+                2 -> ProfileScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    onOpenCategories = onOpenCategories,
+                    onOpenTrash = onOpenTrash
+                )
+            }
+        }
     }
 }
 
