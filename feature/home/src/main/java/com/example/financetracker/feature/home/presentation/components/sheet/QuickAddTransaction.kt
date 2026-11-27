@@ -133,7 +133,6 @@ private const val MaxNoteLength = 100
  * @param onLearnFromFastInput Обратная связь обучения после сохранения операции, заполненной через быстрый ввод.
  * @param onParseFastInput Асинхронный парсер фразы быстрого ввода (NLP + локальный BERT-эмбеддер).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickAddTransactionSheet(
     categories: List<Category>,

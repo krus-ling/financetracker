@@ -29,8 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,6 +58,7 @@ import com.example.financetracker.core.model.Transaction
 import com.example.financetracker.core.model.TransactionType
 import com.example.financetracker.core.uikit.components.account.AccountBalanceCard
 import com.example.financetracker.core.uikit.components.account.AccountTypeSelector
+import com.example.financetracker.core.uikit.components.account.DefaultAccountSwitchRow
 import com.example.financetracker.core.uikit.components.account.DeletedAccountBanner
 import com.example.financetracker.core.uikit.components.input.AmountInputField
 import com.example.financetracker.core.uikit.components.input.AppTextField
@@ -875,7 +874,7 @@ private fun NewAccountFormSection(
         onValueChange = onBalanceChange,
         label = "Начальный баланс",
         isError = isBalanceError,
-        errorMessage = "Введите число больше нуля",
+        errorMessage = "Укажите баланс, например 0",
         onDone = onDone
     )
     DefaultAccountSwitchRow(
@@ -884,50 +883,6 @@ private fun NewAccountFormSection(
     )
     if (!replacingDeletedAccountName.isNullOrBlank()) {
         PurgeDeletedAccountWarningBanner(accountName = replacingDeletedAccountName)
-    }
-}
-
-/**
- * Строка с переключателем статуса «Счёт по умолчанию».
- */
-@Composable
-private fun DefaultAccountSwitchRow(
-    isDefault: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCheckedChange(!isDefault) }
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Счёт по умолчанию",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = "Будет автоматически выбираться для новых операций",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Spacer(Modifier.width(16.dp))
-        Switch(
-            checked = isDefault,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                checkedBorderColor = MaterialTheme.colorScheme.primary,
-                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                uncheckedBorderColor = MaterialTheme.colorScheme.outline
-            )
-        )
     }
 }
 
